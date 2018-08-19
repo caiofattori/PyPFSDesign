@@ -12,7 +12,7 @@ class PFSWindow(QWidget):
 		mainLayout.addWidget(self._tab)
 		
 	def newPage(self):
-		w = PFSPage()
+		w = PFSPage.newPage()
 		self._tab.addTab(w, w.getTabName())
 		
 class PFSMain(QMainWindow):
