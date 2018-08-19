@@ -14,6 +14,12 @@ class PFSWindow(QWidget):
 	def newPage(self):
 		w = PFSPage.newPage()
 		self._tab.addTab(w, w.getTabName())
+	
+	def actionDistributor(self):
+		self._tab.currentWidget().stateDistributor()
+	
+	def actionActivity(self):
+		self._tab.currentWidget().stateActivity()		
 		
 class PFSMain(QMainWindow):
 	def __init__(self):
@@ -27,9 +33,13 @@ class PFSMain(QMainWindow):
 		toolBar = self.addToolBar("Basic")
 		toolBar.addAction(actNew)
 		toolBar = self.addToolBar("Elements")
-		ac = toolBar.addWidget(PFSActivityButton())
+		btn = PFSActivityButton()
+		btn.clicked.connect(wind.actionActivity)
+		ac = toolBar.addWidget(btn)
 		ac.setVisible(True)
-		ac = toolBar.addWidget(PFSDistributorButton())
+		btn = PFSDistributorButton()
+		btn.clicked.connect(wind.actionDistributor)
+		ac = toolBar.addWidget(btn)
 		ac.setVisible(True)
 		ac = toolBar.addWidget(PFSRelationButton())
 		ac.setVisible(True)		
