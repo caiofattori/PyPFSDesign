@@ -5,13 +5,14 @@ class PFSElement(QGraphicsItem):
 		super(QGraphicsItem, self).__init__()
 		self._id = id
 		
-class PFSNode(PFSElement):
+class PFSNode(QGraphicsItem):
 	def __init__(self, id, x, y):
-		super(PFSElement, self).__init__(id)
+		super(QGraphicsItem, self).__init__()
 		self._inRelations = []
 		self._outRelations = []
 		self._x = x
 		self._y = y
+		self._id = id
 		
 	def addInRelation(self, relat):
 		if relat not in self._inRelations:
