@@ -1,6 +1,7 @@
 from generic import *
+from xml import PFSXmlBase
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QFont, QFontMetrics
+from PyQt5.QtGui import QFont, QFontMetricqs
 
 class PFSActivity(PFSNode):
 	
@@ -13,6 +14,14 @@ class PFSActivity(PFSNode):
 		self._charsNumbers = 0
 		self.setText(text)
 		self._fontMetrics = QFontMetrics(self._textFont)
+		
+	def generateXml(self, xml):
+		PFSXmlBase.open(xml)
+		xml.writeStartElement("activity")
+		xml.writeAttribute("id", selt._id)
+		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text")
+		xml.writeEndElement() #fecha activity
+		PFSXmlBase.close(xml)
 		
 	def paint(self, p, o, w):
 		p.setPen(Qt.black)
@@ -45,6 +54,16 @@ class PFSDistributor(PFSNode):
 		
 	def setTooltip(self, text):
 		self._tooltip = text
+	
+	def generateXml(self, xml):
+		PFSXmlBase.open(xml)
+		xml.writeStartElement("distributor")
+		xml.writeAttribute("id", selt._id)
+		xml.writeStartElement("graphics")
+		xml.writeStartElement("pos")
+		xml.writeAttribute("x", self.sceneRect().x())
+		xml.writeEndElement() #fecha distributor
+		PFSXmlBase.close(xml)
 	
 	def paint(self, p, o, w):
 		p.setPen(Qt.black)
