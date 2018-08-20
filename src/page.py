@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 from element import PFSActivity, PFSDistributor
 
 class PFSScene(QGraphicsScene):
     DELTA = 20.0
+    inserted = pyqtSignal()
     def __init__(self, w, h, parentState):
         super(QGraphicsScene, self).__init__()
         self._backgroundPoints = []
@@ -12,7 +13,7 @@ class PFSScene(QGraphicsScene):
         self._parentState = parentState
         self._distributorId = 0
         self._activityId = 0
-        self._relatioId = 0
+        self._relationId = 0
         
     def getNewDistributorId(self):
         ans = "D" + str(self._distributorId)
@@ -36,14 +37,16 @@ class PFSScene(QGraphicsScene):
         self.update()
         
     def mousePressEvent(self, ev):
-        if self._parentState._sdistributor:
+        if self._parentState._sDistributor:
             pos = ev.scenePos()
             self.addItem(PFSDistributor(self.getNewDistributorId(), pos.x(), pos.y()))
-            self._parentState._sdistributor = False
-        if self._parentState._sactivity:
+            self.inserted.emit()
+            #self._parentState._sdistributor = False
+        if self._parentState._sActivity:
             pos = ev.scenePos()
             self.addItem(PFSActivity(self.getNewActivityId(), pos.x(), pos.y(), "Activity"))
-            self._parentState._sactivity = False        
+            self.inserted.emit()
+            #self._parentState._sactivity = False        
     
     def drawBackground(self, p, r):
         if not self._paintGrid:
@@ -57,10 +60,10 @@ class PFSView(QGraphicsView):
         super(QGraphicsView, self).__init__(scene)
 
 class PFSPage(QWidget):
-    def __init__(self, w, h):
+    def __init__(self, w, h, stateMachine):
         super(QWidget, self).__init__()
         self._file = None
-        self._scene = PFSScene(w, h, self)
+        self._scene = PFSScene(w, h, stateMachine)
         self._view = PFSView(self._scene)
         layout = QVBoxLayout()
         layoutH = QHBoxLayout()
@@ -91,13 +94,5 @@ class PFSPage(QWidget):
             return "New_Model"
         return "New_Model"
     
-    def newPage():
-        return PFSPage(4000, 4000)
-    
-    def stateDistributor(self):
-        self._sactivity = False
-        self._sdistributor = True
-    
-    def stateActivity(self):
-        self._sdistributor = False
-        self._sactivity = True
+    def newPage(sm):
+        return PFSPage(4000, 4000, sm)

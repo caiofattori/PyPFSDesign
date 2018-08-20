@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainW
 from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton
 from page import PFSPage
 from PyQt5.QtGui import QIcon, QKeySequence
+from statemachine import PFSStateMachine
 
 class PFSWindow(QWidget):
 	def __init__(self):
@@ -10,45 +11,47 @@ class PFSWindow(QWidget):
 		self.setLayout(mainLayout)
 		self._tab = QTabWidget()
 		mainLayout.addWidget(self._tab)
+		self._sm = None
+	
+	def setStateMachine(self, sm):
+		self._sm = sm
 		
 	def newPage(self):
-		w = PFSPage.newPage()
+		w = PFSPage.newPage(self._sm)
 		self._tab.addTab(w, w.getTabName())
-	
-	def actionDistributor(self):
-		self._tab.currentWidget().stateDistributor()
-	
-	def actionActivity(self):
-		self._tab.currentWidget().stateActivity()		
+		self._sm.fixTransitions(w._scene)		
 		
 class PFSMain(QMainWindow):
 	def __init__(self):
 		super(QMainWindow, self).__init__()
-		wind = PFSWindow()
+		self.wind = PFSWindow()
 		icoNew = QIcon.fromTheme("document-new", QIcon())
 		actNew = QAction(icoNew, "New Model", self)
 		actNew.setShortcuts(QKeySequence.New)
 		actNew.setStatusTip("Cria um novo arquivo de modelo")
-		actNew.triggered.connect(wind.newPage)
+		actNew.triggered.connect(self.wind.newPage)
 		toolBar = self.addToolBar("Basic")
 		toolBar.addAction(actNew)
 		toolBar = self.addToolBar("Elements")
-		btn = PFSActivityButton()
-		btn.clicked.connect(wind.actionActivity)
-		ac = toolBar.addWidget(btn)
+		self.btnActivity = PFSActivityButton()
+		ac = toolBar.addWidget(self.btnActivity)
 		ac.setVisible(True)
-		btn = PFSDistributorButton()
-		btn.clicked.connect(wind.actionDistributor)
-		ac = toolBar.addWidget(btn)
+		self.btnDistributor = PFSDistributorButton()
+		ac = toolBar.addWidget(self.btnDistributor)
 		ac.setVisible(True)
 		ac = toolBar.addWidget(PFSRelationButton())
 		ac.setVisible(True)		
+		self.setCentralWidget(self.wind)
 		
-		self.setCentralWidget(wind)
+	def setStateMachine(self, sm):
+		self.wind.setStateMachine(sm)
 
 if __name__ == "__main__":
 	import sys
 	app = QApplication(sys.argv)
 	win = PFSMain()
+	stateMachine = PFSStateMachine(win)
+	win.setStateMachine(stateMachine)
+	stateMachine.start()
 	win.show()
 	sys.exit(app.exec_())
