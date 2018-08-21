@@ -1,7 +1,7 @@
 from generic import *
 from xml import PFSXmlBase
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QFont, QFontMetricqs
+from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush
 
 class PFSActivity(PFSNode):
 	
@@ -47,21 +47,25 @@ class PFSActivity(PFSNode):
 		
 class PFSDistributor(PFSNode):
 	STANDARD_SIZE = 20
+	STANDARD_PEN = QPen(Qt.black)
+	STANDARD_BRUSH = QBrush(Qt.transparent, Qt.SolidPattern)
 	def __init__(self, id, x, y):
 		PFSNode.__init__(self, id, x, y)
 		self._tooltip = ""
 		self._diameter = self.STANDARD_SIZE
+		if self.STANDARD_PEN.color().
 		
 	def setTooltip(self, text):
 		self._tooltip = text
+		
 	
 	def generateXml(self, xml):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("distributor")
 		xml.writeAttribute("id", selt._id)
 		xml.writeStartElement("graphics")
-		xml.writeStartElement("pos")
-		xml.writeAttribute("x", self.sceneRect().x())
+		PFSXmlBase.rect(xml, self.mapRectFromScene(), self._pen)
+		xml.writeEndElement() #fecha graphics
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
 	
