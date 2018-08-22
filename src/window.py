@@ -1,8 +1,10 @@
 from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction
+from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter
 from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton
 from page import PFSPage
 from PyQt5.QtGui import QIcon, QKeySequence
 from statemachine import PFSStateMachine
+from xml import PFSXmlBase
 
 class PFSWindow(QWidget):
 	def __init__(self):
@@ -20,6 +22,21 @@ class PFSWindow(QWidget):
 		w = PFSPage.newPage(self._sm)
 		self._tab.addTab(w, w.getTabName())
 		self._sm.fixTransitions(w._scene)		
+	
+	def savePage(self):
+		file = QFile("./test.xml")
+		file.open(QIODevice.WriteOnly)
+		xml = QXmlStreamWriter(file)
+		xml.writeStartDocument()
+		xml.writeStartElement("PetriNetDoc")
+		xml.writeStartElement("net")
+		xml.writeAttribute("id", "n1")
+		PFSXmlBase.text(xml, "MODEL TEST", 20, 2000, tag="name")
+		self._tab.currentWidget().generateXml(xml)
+		xml.writeEndElement()
+		xml.writeEndElement()
+		xml.writeEndDocument()
+		file.close()
 		
 class PFSMain(QMainWindow):
 	def __init__(self):
@@ -30,8 +47,14 @@ class PFSMain(QMainWindow):
 		actNew.setShortcuts(QKeySequence.New)
 		actNew.setStatusTip("Cria um novo arquivo de modelo")
 		actNew.triggered.connect(self.wind.newPage)
+		icoSave = QIcon.fromTheme("document-save", QIcon())
+		actSave = QAction(icoSave, "Save Model", self)
+		actSave.setShortcuts(QKeySequence.Save)
+		actSave.setStatusTip("Salva o modelo em um arquivo")
+		actSave.triggered.connect(self.wind.savePage)		
 		toolBar = self.addToolBar("Basic")
 		toolBar.addAction(actNew)
+		toolBar.addAction(actSave)
 		toolBar = self.addToolBar("Elements")
 		self.btnActivity = PFSActivityButton()
 		ac = toolBar.addWidget(self.btnActivity)

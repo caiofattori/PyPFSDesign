@@ -17,7 +17,7 @@ class PFSXmlBase:
 		xml.writeAttribute("y", str(y))
 		xml.writeEndElement() #fecha pos
 		
-	def font(xml, font, align="left", tag="font"):
+	def font(xml, font, align="left", rotation=0, tag="font"):
 		xml.writeStartElement("font")
 		xml.writeAttribute("family", font.family())
 		if font.style() == QFont.StyleItalic:
@@ -42,12 +42,12 @@ class PFSXmlBase:
 		if len(dec) > 0:
 			xml.writeAttribute("decoration", ";".join(dec))
 		xml.writeAttribute("align", align)
-		xml.writeAttribute("rotation", rotation)
+		xml.writeAttribute("rotation", str(rotation))
 		xml.writeEndElement() #fecha font
 	
 	def line(xml, pen, tag="line"):
 		xml.writeStartElement(tag)
-		xml.writeAttribute("color", pen.color().rgb())
+		xml.writeAttribute("color", pen.color().name())
 		xml.writeAttribute("width", str(pen.width()))
 		if pen.style() == Qt.DashLine:
 			xml.writeAttribute("style", "dash")
@@ -59,7 +59,7 @@ class PFSXmlBase:
 		
 	def fill(xml, brush, tag="fill"):
 		xml.writeStartElement(tag)
-		if brush.gradient().type() != QGradient.NoGradient:
+		if brush.gradient() is not None and brush.gradient().type() != QGradient.NoGradient:
 			grad = brush.gradient()
 			if grad.type() != QGradient.LinearGradient:
 				xml.writeAttribute("gradient-rotation", "diagonal")
@@ -70,12 +70,12 @@ class PFSXmlBase:
 					xml.writeAttribute("gradient-rotation", "horizontal")
 				else:
 					xml.writeAttribute("gradient-rotation", "diagonal")
-			xml.writeAttribute("color", grad.stops()[0][1].rgb())
-			xml.writeAttribute("gradient-color", grad.stops()[1][1].rgb())
-		elif brush.textureImage() is not None:
-			xml.writeAttribute("image", brush.textureImage().uri())
+			xml.writeAttribute("color", grad.stops()[0][1].name())
+			xml.writeAttribute("gradient-color", grad.stops()[1][1].name())
+		#elif brush.textureImage() is not None:
+		#	xml.writeAttribute("image", brush.textureImage().uri())
 		else:
-			xml.writeAttribute("color", brush.color().rgb())
+			xml.writeAttribute("color", brush.color().name())
 		xml.writeEndElement() #fecha fill
 	
 	def graphicsNode(xml, rect, pen, brush):
@@ -88,7 +88,7 @@ class PFSXmlBase:
 			PFSXmlBase.line(xml, pen)
 		xml.writeEndElement() #fecha graphics
 		
-	def graphicsText(xml, x, y, font, pen, brush, align):
+	def graphicsText(xml, x, y, font, pen, brush, align, rotation):
 		xml.writeStartElement("graphics")
 		PFSXmlBase.position(xml, x, y, "offset")
 		if font is None:
@@ -100,10 +100,11 @@ class PFSXmlBase:
 			PFSXmlBase.line(xml, pen)
 		xml.writeEndElement() #fecha graphics
 		
-	def text(xml, text, x, y, font= None, pen=None, tag="name", tagPos="offset", align="left"):
+	def text(xml, text, x, y, font= None, rotation=0, pen=None, brush=None, tag="name", align="left"):
 		xml.writeStartElement(tag)
 		xml.writeStartElement("annotation")
 		xml.writeCharacters(text)
 		xml.writeEndElement() #fecha annotation
-		PFSXmlBase.graphicsText(xml, x, y, font, pen, brush, align)
+		PFSXmlBase.graphicsText(xml, x, y, font, pen, brush, align, rotation)
 		xml.writeEndElement() #fecha text
+		

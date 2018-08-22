@@ -4,7 +4,8 @@ from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush
 
 class PFSActivity(PFSNode):
-	
+	STANDARD_PEN = QPen(Qt.black)
+	STANDARD_BRUSH = QBrush(Qt.transparent, Qt.SolidPattern)	
 	def __init__(self, id, x, y, text="Atividade"):
 		PFSNode.__init__(self, id, x, y)
 		self._subNet = None
@@ -14,12 +15,18 @@ class PFSActivity(PFSNode):
 		self._charsNumbers = 0
 		self.setText(text)
 		self._fontMetrics = QFontMetrics(self._textFont)
+		self._pen = self.STANDARD_PEN
+		self._brush = self.STANDARD_BRUSH
 		
 	def generateXml(self, xml):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("activity")
-		xml.writeAttribute("id", selt._id)
-		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text")
+		xml.writeAttribute("id", self._id)
+		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._pen, self._brush)
+		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text", align="center")
+		xml.writeStartElement("tooltip")
+		xml.writeCharacters(self._tooltip)
+		xml.writeEndElement()
 		xml.writeEndElement() #fecha activity
 		PFSXmlBase.close(xml)
 		
@@ -53,19 +60,17 @@ class PFSDistributor(PFSNode):
 		PFSNode.__init__(self, id, x, y)
 		self._tooltip = ""
 		self._diameter = self.STANDARD_SIZE
-		if self.STANDARD_PEN.color().
+		self._pen = self.STANDARD_PEN
+		self._brush = self.STANDARD_BRUSH
 		
 	def setTooltip(self, text):
 		self._tooltip = text
-		
-	
+
 	def generateXml(self, xml):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("distributor")
-		xml.writeAttribute("id", selt._id)
-		xml.writeStartElement("graphics")
-		PFSXmlBase.rect(xml, self.mapRectFromScene(), self._pen)
-		xml.writeEndElement() #fecha graphics
+		xml.writeAttribute("id", self._id)
+		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._pen, self._brush)
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
 	

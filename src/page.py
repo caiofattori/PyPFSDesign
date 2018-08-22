@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 from element import PFSActivity, PFSDistributor
+from xml import PFSXmlBase
 
 class PFSScene(QGraphicsScene):
     DELTA = 20.0
@@ -85,6 +86,23 @@ class PFSPage(QWidget):
         layout.addWidget(self._view)
         self.setLayout(layout)
         self._sdistributor = False
+        
+    def generateXml(self, xml):
+        xml.writeStartElement("page")
+        PFSXmlBase.open(xml)
+        xml.writeStartElement("pagetype")
+        xml.writeAttribute("mainpage", "true")
+        xml.writeAttribute("id", "pg0")
+        xml.writeAttribute("ref", "")
+        xml.writeEndElement() #fim da pagetype
+        xml.writeStartElement("pagegraphics")
+        PFSXmlBase.position(xml, self.txtWidth.text(), self.txtHeight.text(), "dimension")
+        xml.writeEndElement() #fim da pagegraphics
+        PFSXmlBase.close(xml)
+        for e in self._scene.items():
+            if isinstance(e, PFSActivity) or isinstance(e, PFSDistributor):
+                e.generateXml(xml)
+        xml.writeEndElement() #fim da page
         
     def resizeScene(self):
         self._scene.resize(int(self.txtWidth.text()), int(self.txtHeight.text()))
