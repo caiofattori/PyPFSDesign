@@ -127,7 +127,16 @@ class PFSNet(QWidget):
 		self._sm = sm
 		
 	def generateXml(self, xml):
-		
+		xml.writeStartDocument()
+		xml.writeStartElement("PetriNetDoc")
+		xml.writeStartElement("net")
+		xml.writeAttribute("id", self._id)
+		for p in self._pages:
+			p.generateXml(xml)
+		xml.writeEndElement()
+		xml.writeEndElement()
+		xml.writeEndDocument()
+		file.close()
 		
 	def newNet(id, sm):
 		ans = PFSNet(id, sm)

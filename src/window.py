@@ -14,14 +14,16 @@ class PFSWindow(QWidget):
 		self._tab = QTabWidget()
 		mainLayout.addWidget(self._tab)
 		self._sm = None
+		self.idNet = 0
 	
 	def setStateMachine(self, sm):
 		self._sm = sm
 		
-	def newPage(self):
-		w = PFSPage.newPage(self._sm)
+	def newNet(self):
+		w = PFSNet.newNet("n" + str(self._idNet), self._sm)
+		self._idNet = self._idNet + 1
 		self._tab.addTab(w, w.getTabName())
-		self._sm.fixTransitions(w._scene)
+		self._sm.fixTransitions(w._pages[0]._scene)
 	
 	def savePage(self):
 		filename, filter = QFileDialog.getSaveFileName(self, "Salvar arquivo...", "./", "XML files (*.xml)")
@@ -30,15 +32,7 @@ class PFSWindow(QWidget):
 		file = QFile(filename)
 		file.open(QIODevice.WriteOnly)
 		xml = QXmlStreamWriter(file)
-		xml.writeStartDocument()
-		xml.writeStartElement("PetriNetDoc")
-		xml.writeStartElement("net")
-		xml.writeAttribute("id", "n1")
-		PFSXmlBase.text(xml, "MODEL TEST", 20, 2000, tag="name")
 		self._tab.currentWidget().generateXml(xml)
-		xml.writeEndElement()
-		xml.writeEndElement()
-		xml.writeEndDocument()
 		file.close()
 		
 class PFSMain(QMainWindow):
