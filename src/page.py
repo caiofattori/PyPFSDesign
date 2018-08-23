@@ -114,3 +114,25 @@ class PFSPage(QWidget):
     
     def newPage(sm):
         return PFSPage(4000, 4000, sm)
+
+class PFSNet(QWidget):
+	def __init__(self, id, sm):
+		super(QWidget, self).__init__()
+		self._id = id
+		self._layout = QHBoxLayout()
+		self._tab = QTabWidget()
+		self.setLayout(self._layout)
+		self._pages = []
+		self._idPage = 0
+		self._sm = sm
+		
+	def generateXml(self, xml):
+		
+		
+	def newNet(id, sm):
+		ans = PFSNet(id, sm)
+		page = PFSPage.newPage("pg" + str(ans._idPage), sm)
+		ans._idPage = ans._idPage + 1
+		self._pages.append(page)
+		self._layout.addWidget(page)
+		

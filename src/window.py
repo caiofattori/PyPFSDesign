@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction
+from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog
 from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter
 from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton
 from page import PFSPage
@@ -21,10 +21,13 @@ class PFSWindow(QWidget):
 	def newPage(self):
 		w = PFSPage.newPage(self._sm)
 		self._tab.addTab(w, w.getTabName())
-		self._sm.fixTransitions(w._scene)		
+		self._sm.fixTransitions(w._scene)
 	
 	def savePage(self):
-		file = QFile("./test.xml")
+		filename, filter = QFileDialog.getSaveFileName(self, "Salvar arquivo...", "./", "XML files (*.xml)")
+		if filename is None:
+			return
+		file = QFile(filename)
 		file.open(QIODevice.WriteOnly)
 		xml = QXmlStreamWriter(file)
 		xml.writeStartDocument()
