@@ -19,7 +19,7 @@ class PFSWindow(QWidget):
 		self._tab.currentChanged.connect(self.changeTab)
 	
 	def changeTab(self, index):
-		net = self._tab.currentWidget()
+		net = self._tab.widget(index)
 		if net._filepath is not None:
 			self._lastPath = net._filepath
 	
@@ -30,7 +30,8 @@ class PFSWindow(QWidget):
 		w = PFSNet.newNet("n" + str(self._idNet), self._sm)
 		w.changed.connect(self.changeCurrentTabName)
 		self._idNet = self._idNet + 1
-		self._tab.addTab(w, w.getTabName())
+		i = self._tab.addTab(w, w.getTabName())
+		self._tab.setCurrentIndex(i)
 		self._sm.fixTransitions(w._pages[0]._scene)
 	
 	def saveNet(self):
