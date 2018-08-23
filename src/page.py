@@ -111,6 +111,34 @@ class PFSPage(QWidget):
 	
 	def newPage(id, sm, net):
 		return PFSPage(id, 4000, 4000, sm, net)
+		
+	def createFromXml(xml, sm, net):
+		success = True
+		if PFSXmlBase.nextTool(xml) and xml.name() == "pagetype":
+			id = xml.attributes().value("id")
+			if id is None:
+				success = False
+			xml.readNextStartElement()
+			pos = PFSXmlBase.getPosition(xml, dimension)
+			if pos is None:
+				h = 4000
+				w = 4000
+			else:
+				w = pos.x
+				h = pos.y
+			page = PFSPage(id, w, h, sm, net)
+			if PFSXmlBase.nextTool(xml):
+				if xml.name() == "activity":
+					ac = PFSActivity.createFromXml(xml)
+					if ac is not None:
+						page._scene.addItem(ac)
+				if xml.name() == "distributor":
+					di = PFSDistributor.createFromXml(xml)
+					if di is not None:
+						page._scene.addItem(di)
+		if success:
+			return page
+		return None
 
 class PFSNet(QWidget):
 	changed = pyqtSignal()
@@ -140,6 +168,35 @@ class PFSNet(QWidget):
 		xml.writeEndElement()
 		xml.writeEndElement()
 		xml.writeEndDocument()
+		
+	def createFromXml(xml, sm):
+		xml.readNextStartElement()
+		if xml.name() != "PetriNetDoc":
+			return None
+		xml.readNextStartElement()
+		nets = []
+		while xml.name() == "net":
+			success = True
+			xml.readNextStartElement()
+			id = xml.attributes().value("id")
+			if id == None:
+				success = False
+			net = PFSNet(id, sm)
+			xml.readNextStartElement()
+			while xml.name() != "page":
+				xml.readNextStartElement()
+			pages = []
+			while xml.name() == "page":
+				page = PFSPage.createFromXml(xml, sm, net)
+				if page is None and len(pages) == 0:
+					success = False
+				if page is not None:
+					pages.append(page)
+			if len(pages) > 0 and succes:
+				net._pages = pages
+				net._layout.addWidget(pages[0])
+				nets.append(net)
+		return nets
 		
 	def isSaved(self):
 		return self._saved
