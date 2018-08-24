@@ -8,7 +8,7 @@ from statemachine import PFSStateMachine
 class PFSScene(QGraphicsScene):
 	DELTA = 20.0
 	inserted = pyqtSignal()
-	def __init__(self, w: int, h: int, parentState: PFSStateMachine, net: PFSNet):
+	def __init__(self, w: int, h: int, parentState: PFSStateMachine, net):
 		super(QGraphicsScene, self).__init__()
 		self._backgroundPoints: [QPoint] = []
 		self.resize(w,h)
@@ -61,7 +61,7 @@ class PFSView(QGraphicsView):
 		super(QGraphicsView, self).__init__(scene)
 
 class PFSPage(QWidget):
-	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net: PFSNet):
+	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net):
 		super(QWidget, self).__init__()
 		self._id = id
 		self._scene = PFSScene(w, h, stateMachine, net)
@@ -111,10 +111,10 @@ class PFSPage(QWidget):
 			return "New_Model"
 		return "New_Model"
 	
-	def newPage(id: str, sm: PFSStateMachine, net: PFSNet) -> PFSPage:
+	def newPage(id: str, sm: PFSStateMachine, net):
 		return PFSPage(id, 4000, 4000, sm, net)
 		
-	def createFromXml(xml: QXmlStreamReader, sm: PFSStateMachine, net: PFSNet) -> PFSPage:
+	def createFromXml(xml: QXmlStreamReader, sm: PFSStateMachine, net):
 		success = True
 		if PFSXmlBase.nextTool(xml) and xml.name() == "pagetype":
 			if not xml.attributes().hasAttribute("id"):
@@ -172,7 +172,7 @@ class PFSNet(QWidget):
 		xml.writeEndElement()
 		xml.writeEndDocument()
 		
-	def createFromXml(xml: QXmlStreamReader, sm: PFSStateMachine) -> PFSNet:
+	def createFromXml(xml: QXmlStreamReader, sm: PFSStateMachine):
 		xml.readNextStartElement()
 		if xml.name() != "PetriNetDoc":
 			return None
@@ -213,7 +213,7 @@ class PFSNet(QWidget):
 			return ans
 		return ans + "*"
 		
-	def newNet(id, sm: PFSStateMachine) -> PFSNet:
+	def newNet(id, sm: PFSStateMachine):
 		ans = PFSNet(id, sm)
 		page = PFSPage.newPage("pg" + str(ans._idPage), sm, ans)
 		ans._idPage = ans._idPage + 1

@@ -3,14 +3,13 @@ from xml import PFSXmlBase
 from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
-from page import PFSPage
 
 class PFSActivity(PFSNode):
 	STANDARD_PEN = QPen(Qt.black)
 	STANDARD_BRUSH = QBrush(Qt.transparent, Qt.SolidPattern)	
 	def __init__(self, id: str, x: int, y: int, text: str="Atividade"):
 		PFSNode.__init__(self, id, x, y)
-		self._subNet: PFSPage = None
+		self._subNet= None
 		self._tooltip = ""
 		self._textFont = QFont("Helvetica", 15)
 		self._lineNumbers = 1
@@ -32,7 +31,7 @@ class PFSActivity(PFSNode):
 		xml.writeEndElement() #fecha activity
 		PFSXmlBase.close(xml)
 		
-	def createFromXml(xml: QXmlStreamReader) -> PFSActivity:
+	def createFromXml(xml: QXmlStreamReader):
 		id = xml.attributes().value("id")
 		rect = None
 		pen = None
@@ -113,7 +112,7 @@ class PFSDistributor(PFSNode):
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
 		
-	def createFromXml(xml: QXmlStreamReader) -> PFSDistributor:
+	def createFromXml(xml: QXmlStreamReader):
 		id = xml.attributes().value("id")
 		rect = None
 		pen = None
@@ -160,7 +159,7 @@ class PFSRelation(PFSElement):
 		self._source.remInRelation(self)
 		self._target.remOutRelation(self)
 		
-	def createRelation(id: str, source: PFSNode, target: PFSNode) -> PFSRelation:
+	def createRelation(id: str, source: PFSNode, target: PFSNode):
 		if isinstance(source, PFSActivity):
 			if isinstance(source, PFSDistributor):
 				r = PFSRelation(id, source, target)

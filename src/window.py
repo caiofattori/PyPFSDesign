@@ -59,6 +59,28 @@ class PFSWindow(QWidget):
 		net.setSaved(True)
 		self._lastPath = net._filepath
 		
+	def openNet(self):
+		filename, filter = QFileDialog.getOpenFileName(self, "Abrir arquivo...", self._lastPath, "XML files (*.xml *.pnml)")
+		if filename is None or filename == "":
+			return
+		if not (filename.endswith(".xml") or filename.endswith(".pnml")):
+			filename = filename + ".xml"
+		file = QFile(filename)
+		file.open(QIODevice.ReadOnly)
+		xml = QXmlStreamReader(file)
+		net = PFSNet.createFromXml(xml)
+		if net is None:
+			return
+		f = QFileInfo(filename)
+		net._filename = f.fileName()
+		net._filepath = f.absolutePath()
+		file.close()
+		self._lastPath = net._filepath
+		net.changed.connect(self.changeCurrentTabName)
+		self._idNet = self._idNet + 1
+		i = self._tab.addTab(net, net.getTabName())
+		self._tab.setCurrentIndex(i)
+		
 	def changeCurrentTabName(self):
 		self._tab.setTabText(self._tab.currentIndex(), self._tab.currentWidget().getTabName())
 		
@@ -75,10 +97,16 @@ class PFSMain(QMainWindow):
 		actSave = QAction(icoSave, "Save Model", self)
 		actSave.setShortcuts(QKeySequence.Save)
 		actSave.setStatusTip("Salva o modelo em um arquivo")
-		actSave.triggered.connect(self.wind.saveNet)		
+		actSave.triggered.connect(self.wind.saveNet)
+		icoOpen = QIcon.fromTheme("document-open", QIcon())
+		actOpen = QAction(icoOpen, "Open Model", self)
+		actOpen.setShortcuts(QKeySequence.Open)
+		actOpen.setStatusTip("Abre um arquivo com modelo")
+		actOpen.triggered.connect(self.wind.openNet)
 		toolBar = self.addToolBar("Basic")
 		toolBar.addAction(actNew)
 		toolBar.addAction(actSave)
+		toolBar.addAction(actOpen)
 		toolBar = self.addToolBar("Elements")
 		self.btnActivity = PFSActivityButton()
 		ac = toolBar.addWidget(self.btnActivity)
