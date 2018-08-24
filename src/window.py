@@ -18,12 +18,12 @@ class PFSWindow(QWidget):
 		self._lastPath = "./"
 		self._tab.currentChanged.connect(self.changeTab)
 	
-	def changeTab(self, index):
+	def changeTab(self, index: int):
 		net = self._tab.widget(index)
 		if net._filepath is not None:
 			self._lastPath = net._filepath
 	
-	def setStateMachine(self, sm):
+	def setStateMachine(self, sm: PFSStateMachine):
 		self._sm = sm
 		
 	def newNet(self):
@@ -90,7 +90,7 @@ class PFSMain(QMainWindow):
 		ac.setVisible(True)		
 		self.setCentralWidget(self.wind)
 		
-	def setStateMachine(self, sm):
+	def setStateMachine(self, sm: PFSStateMachine):
 		self.wind.setStateMachine(sm)
 
 if __name__ == "__main__":

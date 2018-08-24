@@ -1,4 +1,6 @@
-from PyQt5.QtCore import QStateMachine, QState
+from PyQt5.QtCore import QStateMachine, QState, QEvent
+from window import PFSMain
+from page import PFSScene
 
 class PFSStateNormal(QState):
     def __init__(self):
@@ -8,24 +10,24 @@ class PFSStateInsActivity(QState):
     def __init__(self):
         super(QState, self).__init__()
         
-    def onEntry(self, ev):
+    def onEntry(self, ev: QEvent):
         self.machine()._sActivity = True
         
-    def onExit(self, ev):
+    def onExit(self, ev: QEvent):
         self.machine()._sActivity = False    
 
 class PFSStateInsDistributor(QState):
     def __init__(self):
         super(QState, self).__init__()    
     
-    def onEntry(self, ev):
+    def onEntry(self, ev: QEvent):
         self.machine()._sDistributor = True
         
-    def onExit(self, ev):
+    def onExit(self, ev: QEvent):
         self.machine()._sDistributor = False
 
 class PFSStateMachine(QStateMachine):
-    def __init__(self, window):
+    def __init__(self, window: PFSMain):
         super(QStateMachine, self).__init__()
         self._sDistributor = False
         self._sActivity = False
@@ -46,7 +48,7 @@ class PFSStateMachine(QStateMachine):
         self.addState(insDistributor)
         self.setInitialState(normal)
         
-    def fixTransitions(self, scene):
+    def fixTransitions(self, scene: PFSScene):
         if self.trans1 is not None:
             self.insActivity.removeTransition(self.trans1)
             self.insDistributor.removeTransition(self.trans2)

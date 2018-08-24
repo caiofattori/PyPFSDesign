@@ -1,14 +1,16 @@
 from generic import *
 from xml import PFSXmlBase
-from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush
+from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter
+from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter
+from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
+from page import PFSPage
 
 class PFSActivity(PFSNode):
 	STANDARD_PEN = QPen(Qt.black)
 	STANDARD_BRUSH = QBrush(Qt.transparent, Qt.SolidPattern)	
-	def __init__(self, id, x, y, text="Atividade"):
+	def __init__(self, id: str, x: int, y: int, text: str="Atividade"):
 		PFSNode.__init__(self, id, x, y)
-		self._subNet = None
+		self._subNet: PFSPage = None
 		self._tooltip = ""
 		self._textFont = QFont("Helvetica", 15)
 		self._lineNumbers = 1
@@ -18,7 +20,7 @@ class PFSActivity(PFSNode):
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
 		
-	def generateXml(self, xml):
+	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("activity")
 		xml.writeAttribute("id", self._id)
@@ -30,7 +32,7 @@ class PFSActivity(PFSNode):
 		xml.writeEndElement() #fecha activity
 		PFSXmlBase.close(xml)
 		
-	def createFromXml(xml):
+	def createFromXml(xml: QXmlStreamReader) -> PFSActivity:
 		id = xml.attributes().value("id")
 		rect = None
 		pen = None
@@ -40,7 +42,7 @@ class PFSActivity(PFSNode):
 		tooltip = None
 		while xml.name() in ["text", "tooltip", "graphics"]:
 			if xml.name() == "tooltip":
-				tooltip = xml.getCharacters()
+				tooltip = xml.text()
 			elif xml.name() == "text":
 				val = PFSXmlBase.getText(xml)
 				if val is not None:
@@ -67,7 +69,7 @@ class PFSActivity(PFSNode):
 			ac._brush = brush
 		return ac
 		
-	def paint(self, p, o, w):
+	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		p.setPen(Qt.black)
 		p.setFont(self._textFont)
 		rect = self.sceneBoundingRect()
@@ -79,10 +81,10 @@ class PFSActivity(PFSNode):
 		p.drawLine(rect.right() - 1, rect.bottom() - 1, rect.right() - 6, rect.bottom() - 1)
 		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 1, rect.bottom() - 1)		
 		
-	def setText(self, text):
+	def setText(self, text: str):
 		self._text = text
 		
-	def setTooltip(self, text):
+	def setTooltip(self, text: str):
 		self._tooltip = text
 		
 	def boundingRect(self):
@@ -93,17 +95,17 @@ class PFSDistributor(PFSNode):
 	STANDARD_SIZE = 20
 	STANDARD_PEN = QPen(Qt.black)
 	STANDARD_BRUSH = QBrush(Qt.transparent, Qt.SolidPattern)
-	def __init__(self, id, x, y):
+	def __init__(self, id: str, x: int, y: int):
 		PFSNode.__init__(self, id, x, y)
 		self._tooltip = ""
 		self._diameter = self.STANDARD_SIZE
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
 		
-	def setTooltip(self, text):
+	def setTooltip(self, text: str):
 		self._tooltip = text
 
-	def generateXml(self, xml):
+	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("distributor")
 		xml.writeAttribute("id", self._id)
@@ -111,7 +113,7 @@ class PFSDistributor(PFSNode):
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
 		
-	def createFromXml(xml):
+	def createFromXml(xml: QXmlStreamReader) -> PFSDistributor:
 		id = xml.attributes().value("id")
 		rect = None
 		pen = None
@@ -119,7 +121,7 @@ class PFSDistributor(PFSNode):
 		tooltip = None
 		while xml.name() in [ "tooltip", "graphics"]:
 			if xml.name() == "tooltip":
-				tooltip = xml.getCharacters()
+				tooltip = xml.text()
 			else:
 				val = PFSXmlBase.getNode(xml)
 				if val is not None:
@@ -140,7 +142,7 @@ class PFSDistributor(PFSNode):
 			di._brush = brush
 		return di
 	
-	def paint(self, p, o, w):
+	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		p.setPen(Qt.black)
 		rect = self.sceneBoundingRect()
 		p.drawEllipse(rect.left(), rect.top(), rect.width() - 2, rect.height() - 2)
@@ -149,7 +151,7 @@ class PFSDistributor(PFSNode):
 		return QRectF(self._x, self._y, self._diameter + 2, self._diameter + 2)
 		
 class PFSRelation(PFSElement):
-	def __init__(self, id, source, target):
+	def __init__(self, id: str, source: PFSNode, target: PFSNode):
 		super(PFSElement, self).__init__(id)
 		self._source = source
 		self._target = target
@@ -158,7 +160,7 @@ class PFSRelation(PFSElement):
 		self._source.remInRelation(self)
 		self._target.remOutRelation(self)
 		
-	def createRelation(id, source, target):
+	def createRelation(id: str, source: PFSNode, target: PFSNode) -> PFSRelation:
 		if isinstance(source, PFSActivity):
 			if isinstance(source, PFSDistributor):
 				r = PFSRelation(id, source, target)

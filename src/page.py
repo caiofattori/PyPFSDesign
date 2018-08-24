@@ -1,41 +1,43 @@
 from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget
-from PyQt5.QtCore import Qt, QPoint, pyqtSignal
+from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QXmlStreamReader
+from PyQt5.QtGui import QMouseEvent, QPainter
 from element import PFSActivity, PFSDistributor
 from xml import PFSXmlBase
+from statemachine import PFSStateMachine
 
 class PFSScene(QGraphicsScene):
 	DELTA = 20.0
 	inserted = pyqtSignal()
-	def __init__(self, w, h, parentState, net):
+	def __init__(self, w: int, h: int, parentState: PFSStateMachine, net: PFSNet):
 		super(QGraphicsScene, self).__init__()
-		self._backgroundPoints = []
+		self._backgroundPoints: [QPoint] = []
 		self.resize(w,h)
 		self._paintGrid = True
 		self._parentState = parentState
 		self._net = net
 		
-	def getNewDistributorId(self):
+	def getNewDistributorId(self) -> str:
 		ans = "D" + str(self._net._distributorId)
 		self._net._distributorId = self._net._distributorId + 1
 		return ans
 	
-	def getNewActivityId(self):
+	def getNewActivityId(self) -> str:
 		ans = "A" + str(self._net._activityId)
 		self._net._activityId = self._net._activityId + 1
 		return ans	
 		
-	def setPaintGrid(self, v = True):
+	def setPaintGrid(self, v: bool= True):
 		self._paintGrid = v
 		self.update()
 		
-	def resize(self, w, h):
+	def resize(self, w: int, h: int):
 		self.setSceneRect(0, 0, w, h)
 		sx = int(w/self.DELTA - 1)
 		sy = int(h/self.DELTA - 1)
 		self._backgroundPoints = [QPoint((i+0.5)*self.DELTA, (j+0.5)*self.DELTA) for i in range(sx) for j in range(sy)]
 		self.update()
 		
-	def mousePressEvent(self, ev):
+	def mousePressEvent(self, ev: QMouseEvent):
 		if self._parentState._sDistributor:
 			pos = ev.scenePos()
 			self.addItem(PFSDistributor(self.getNewDistributorId(), pos.x(), pos.y()))
@@ -47,7 +49,7 @@ class PFSScene(QGraphicsScene):
 			self.inserted.emit()
 			self._net.setSaved(False)
 	
-	def drawBackground(self, p, r):
+	def drawBackground(self, p: QPainter, r: QRect):
 		if not self._paintGrid:
 			return
 		p.setPen(Qt.SolidLine)
@@ -55,11 +57,11 @@ class PFSScene(QGraphicsScene):
 			p.drawPoint(point)
 
 class PFSView(QGraphicsView):
-	def __init__(self, scene):
+	def __init__(self, scene: PFSScene):
 		super(QGraphicsView, self).__init__(scene)
 
 class PFSPage(QWidget):
-	def __init__(self, id, w, h, stateMachine, net):
+	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net: PFSNet):
 		super(QWidget, self).__init__()
 		self._id = id
 		self._scene = PFSScene(w, h, stateMachine, net)
@@ -84,7 +86,7 @@ class PFSPage(QWidget):
 		layout.addWidget(self._view)
 		self.setLayout(layout)
 		
-	def generateXml(self, xml):
+	def generateXml(self, xml: QXmlStreamWriter):
 		xml.writeStartElement("page")
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("pagetype")
@@ -104,22 +106,23 @@ class PFSPage(QWidget):
 	def resizeScene(self):
 		self._scene.resize(int(self.txtWidth.text()), int(self.txtHeight.text()))
 	
-	def getTabName(self):
+	def getTabName(self) -> str:
 		if self._file is None:
 			return "New_Model"
 		return "New_Model"
 	
-	def newPage(id, sm, net):
+	def newPage(id: str, sm: PFSStateMachine, net: PFSNet) -> PFSPage:
 		return PFSPage(id, 4000, 4000, sm, net)
 		
-	def createFromXml(xml, sm, net):
+	def createFromXml(xml: QXmlStreamReader, sm: PFSStateMachine, net: PFSNet) -> PFSPage:
 		success = True
 		if PFSXmlBase.nextTool(xml) and xml.name() == "pagetype":
+			if not xml.attributes().hasAttribute("id"):
+				success = False			
 			id = xml.attributes().value("id")
-			if id is None:
-				success = False
+			
 			xml.readNextStartElement()
-			pos = PFSXmlBase.getPosition(xml, "dimension")
+			pos = PFSXmlBase.getPosition(xml)
 			if pos is None:
 				h = 4000
 				w = 4000
@@ -142,15 +145,15 @@ class PFSPage(QWidget):
 
 class PFSNet(QWidget):
 	changed = pyqtSignal()
-	def __init__(self, id, sm):
+	def __init__(self, id: str, sm: PFSStateMachine):
 		super(QWidget, self).__init__()
-		self._filename = None
-		self._filepath = None
+		self._filename: str = None
+		self._filepath: str = None
 		self._id = id
 		self._layout = QHBoxLayout()
 		self._tab = QTabWidget()
 		self.setLayout(self._layout)
-		self._pages = []
+		self._pages: [PFSPage] = []
 		self._idPage = 0
 		self._sm = sm
 		self._saved = True
@@ -158,7 +161,7 @@ class PFSNet(QWidget):
 		self._activityId = 0
 		self._relationId = 0		
 		
-	def generateXml(self, xml):
+	def generateXml(self, xml: QXmlStreamWriter):
 		xml.writeStartDocument()
 		xml.writeStartElement("PetriNetDoc")
 		xml.writeStartElement("net")
@@ -169,7 +172,7 @@ class PFSNet(QWidget):
 		xml.writeEndElement()
 		xml.writeEndDocument()
 		
-	def createFromXml(xml, sm):
+	def createFromXml(xml: QXmlStreamReader, sm: PFSStateMachine) -> PFSNet:
 		xml.readNextStartElement()
 		if xml.name() != "PetriNetDoc":
 			return None
@@ -198,10 +201,10 @@ class PFSNet(QWidget):
 				nets.append(net)
 		return nets
 		
-	def isSaved(self):
+	def isSaved(self) -> bool:
 		return self._saved
 	
-	def getTabName(self):
+	def getTabName(self) -> str:
 		if self._filename is None:
 			ans = "New model"
 		else:
@@ -210,7 +213,7 @@ class PFSNet(QWidget):
 			return ans
 		return ans + "*"
 		
-	def newNet(id, sm):
+	def newNet(id, sm: PFSStateMachine) -> PFSNet:
 		ans = PFSNet(id, sm)
 		page = PFSPage.newPage("pg" + str(ans._idPage), sm, ans)
 		ans._idPage = ans._idPage + 1
@@ -218,6 +221,6 @@ class PFSNet(QWidget):
 		ans._layout.addWidget(page)
 		return ans
 	
-	def setSaved(self, value=True):
+	def setSaved(self, value: bool=True):
 		self._saved = value
 		self.changed.emit()
