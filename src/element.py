@@ -30,6 +30,43 @@ class PFSActivity(PFSNode):
 		xml.writeEndElement() #fecha activity
 		PFSXmlBase.close(xml)
 		
+	def createFromXml(xml):
+		id = xml.attributes().value("id")
+		rect = None
+		pen = None
+		brush = None
+		font = None
+		text = None
+		tooltip = None
+		while xml.name() in ["text", "tooltip", "graphics"]:
+			if xml.name() == "tooltip":
+				tooltip = xml.getCharacters()
+			elif xml.name() == "text":
+				val = PFSXmlBase.getText(xml)
+				if val is not None:
+					font = val.font
+					text = val.text
+			else:
+				val = PFSXmlBase.getNode(xml)
+				if val is not None:
+					rect = val.rect
+					pen = val.pen
+					brush = val.brush
+			xml.readNextStartElement()
+		if id is None or text is None or rect is None:
+			return None
+		ac = PFSActivity(id, rect.x(), rect.y())
+		ac.setText(text)
+		if tooltip is not None:
+			ac._tooltip = tooltip
+		if font is not None:
+			ac._textFont = font
+		if pen is not None:
+			ac._pen = pen
+		if brush is not None:
+			ac._brush = brush
+		return ac
+		
 	def paint(self, p, o, w):
 		p.setPen(Qt.black)
 		p.setFont(self._textFont)
@@ -73,6 +110,35 @@ class PFSDistributor(PFSNode):
 		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._pen, self._brush)
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
+		
+	def createFromXml(xml):
+		id = xml.attributes().value("id")
+		rect = None
+		pen = None
+		brush = None
+		tooltip = None
+		while xml.name() in [ "tooltip", "graphics"]:
+			if xml.name() == "tooltip":
+				tooltip = xml.getCharacters()
+			else:
+				val = PFSXmlBase.getNode(xml)
+				if val is not None:
+					rect = val.rect
+					pen = val.pen
+					brush = val.brush
+			xml.readNextStartElement()
+		if id is None or rect is None:
+			return None
+		di = PFSDistributor(id, rect.x(), rect.y())
+		di._diameterX = rect.width()
+		di._diameterY = rect.height()
+		if tooltip is not None:
+			di._tooltip = tooltip
+		if pen is not None:
+			di._pen = pen
+		if brush is not None:
+			di._brush = brush
+		return di
 	
 	def paint(self, p, o, w):
 		p.setPen(Qt.black)

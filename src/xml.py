@@ -7,7 +7,19 @@ class PFSXmlBase:
 		xml.writeStartElement("toolspecific")
 		xml.writeAttribute("tool", "PFS")
 		xml.writeAttribute("version", "1.0.0")
-		
+	
+	def nextTool(xml):
+		if xml.name() == "toolspecific":
+			if xml.attributes().value("tool") == "PFS" and xml.attributes().value("version") == "1.0.0":
+				xml.readNextStartElement()
+				return True
+		xml.readNextStartElement()
+		if xml.name() == "toolspecific":
+			if xml.attributes().value("tool") == "PFS" and xml.attributes().value("version") == "1.0.0":
+				xml.readNextStartElement()
+				return True
+		return False
+				
 	def close(xml):
 		xml.writeEndElement()
 		

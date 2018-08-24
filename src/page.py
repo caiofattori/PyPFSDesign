@@ -119,7 +119,7 @@ class PFSPage(QWidget):
 			if id is None:
 				success = False
 			xml.readNextStartElement()
-			pos = PFSXmlBase.getPosition(xml, dimension)
+			pos = PFSXmlBase.getPosition(xml, "dimension")
 			if pos is None:
 				h = 4000
 				w = 4000
