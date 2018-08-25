@@ -1,5 +1,6 @@
 from generic import *
 from xml import PFSXmlBase
+from PyQt5.QtXml import QDomNode
 from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
@@ -30,43 +31,38 @@ class PFSActivity(PFSNode):
 		xml.writeEndElement()
 		xml.writeEndElement() #fecha activity
 		PFSXmlBase.close(xml)
-		
-	def createFromXml(xml: QXmlStreamReader):
-		id = xml.attributes().value("id")
-		rect = None
-		pen = None
-		brush = None
-		font = None
+	
+	def createFromXml(node: QDomNode):
+		if node.nodeName() != "activity":
+			return None
+		if not (node.hasAttributes() and node.attributes().contains("id")):
+			return None
+		id = node.attributes().namedItem("id").nodeValue()
+		childs = node.childNodes()
+		graphics = None
 		text = None
 		tooltip = None
-		while xml.name() in ["text", "tooltip", "graphics"]:
-			if xml.name() == "tooltip":
-				tooltip = xml.text()
-			elif xml.name() == "text":
-				val = PFSXmlBase.getText(xml)
-				if val is not None:
-					font = val.font
-					text = val.text
-			else:
-				val = PFSXmlBase.getNode(xml)
-				if val is not None:
-					rect = val.rect
-					pen = val.pen
-					brush = val.brush
-			xml.readNextStartElement()
-		if id is None or text is None or rect is None:
-			return None
-		ac = PFSActivity(id, rect.x(), rect.y())
-		ac.setText(text)
-		if tooltip is not None:
-			ac._tooltip = tooltip
-		if font is not None:
-			ac._textFont = font
-		if pen is not None:
-			ac._pen = pen
-		if brush is not None:
-			ac._brush = brush
-		return ac
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "graphics":
+				graphics = PFSXmlBase.getNode(child)
+			if child.nodeName() == "text":
+				text = PFSXmlBase.getText(child)
+			if child.nodeName() == "tooltip":
+				tooltip = child.nodeValue()
+		if graphics is not None and text is not None:
+			ac = PFSActivity(id, graphics.rect.x(), graphics.rect.y())
+			ac.setText(text.annotation)
+			if tooltip is not None:
+				ac._tooltip = tooltip
+			if text.font is not None:
+				ac._textFont = text.font
+			if graphics.line is not None:
+				ac._pen = graphics.line
+			if graphics.brush is not None:
+				ac._brush = graphics.brush
+			return ac			
+		return None
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		p.setPen(Qt.black)
@@ -111,35 +107,32 @@ class PFSDistributor(PFSNode):
 		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._pen, self._brush)
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
-		
-	def createFromXml(xml: QXmlStreamReader):
-		id = xml.attributes().value("id")
-		rect = None
-		pen = None
-		brush = None
-		tooltip = None
-		while xml.name() in [ "tooltip", "graphics"]:
-			if xml.name() == "tooltip":
-				tooltip = xml.text()
-			else:
-				val = PFSXmlBase.getNode(xml)
-				if val is not None:
-					rect = val.rect
-					pen = val.pen
-					brush = val.brush
-			xml.readNextStartElement()
-		if id is None or rect is None:
+	
+	def createFromXml(node: QDomNode):
+		if node.nodeName() != "distributor":
 			return None
-		di = PFSDistributor(id, rect.x(), rect.y())
-		di._diameterX = rect.width()
-		di._diameterY = rect.height()
-		if tooltip is not None:
-			di._tooltip = tooltip
-		if pen is not None:
-			di._pen = pen
-		if brush is not None:
-			di._brush = brush
-		return di
+		if not (node.hasAttributes() and node.attributes().contains("id")):
+			return None
+		id = node.attributes().namedItem("id").nodeValue()
+		childs = node.childNodes()
+		graphics = None
+		tooltip = None
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "graphics":
+				graphics = PFSXmlBase.getNode(child)
+			if child.nodeName() == "tooltip":
+				tooltip = child.nodeValue()
+		if graphics is not None:
+			di = PFSDistributor(id, graphics.rect.x(), graphics.rect.y())
+			if tooltip is not None:
+				di._tooltip = tooltip
+			if graphics.line is not None:
+				di._pen = graphics.line
+			if graphics.brush is not None:
+				di._brush = graphics.brush
+			return di			
+		return None
 	
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		p.setPen(Qt.black)

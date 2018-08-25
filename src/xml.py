@@ -1,5 +1,6 @@
 from PyQt5.QtGui import QFont, QGradient, QPen, QBrush, QColor
 from PyQt5.QtCore import Qt, QRect, QXmlStreamReader, QXmlStreamWriter
+from PyQt5.QtXml import QDomNode
 
 class PFSAux:
 	def __init__(self):
@@ -12,15 +13,19 @@ class PFSXmlBase:
 		xml.writeAttribute("tool", "PFS")
 		xml.writeAttribute("version", "1.0.0")
 	
-	def nextTool(xml: QXmlStreamReader):
-		if xml.name() == "toolspecific":
-			if xml.attributes().value("tool") == "PFS" and xml.attributes().value("version") == "1.0.0":
-				xml.readNextStartElement()
-				return True
-		xml.readNextStartElement()
-		if xml.name() == "toolspecific":
-			if xml.attributes().value("tool") == "PFS" and xml.attributes().value("version") == "1.0.0":
-				xml.readNextStartElement()
+	def toolHasChild(node: QDomNode, value: str) -> bool:
+		if node.nodeName() != "toolspecific":
+			return False
+		attr = node.attributes()
+		if not (node.hasAttributes() and attr.contains("tool") and attr.namedItem("tool").nodeValue() == "PFS"):
+			return False
+		if not (node.hasAttributes() and attr.contains("version") and attr.namedItem("version").nodeValue() == "1.0.0"):
+			return False
+		if not node.hasChildNodes():
+			return False
+		childs = node.childNodes()
+		for i in range(childs.count()):
+			if childs.at(i).nodeName() == value:
 				return True
 		return False
 				
@@ -32,15 +37,15 @@ class PFSXmlBase:
 		xml.writeAttribute("x", str(x))
 		xml.writeAttribute("y", str(y))
 		xml.writeEndElement() #fecha pos
-		
-	def getPosition(xml: QXmlStreamReader):
-		xml.readNextStartElement()
-		attr = xml.attributes()
-		if not (attr.hasAttribute("x") and attr.hasAttribute("y")):
+	
+	def getPosition(node: QDomNode):
+		if node.nodeName() not in ["position", "dimension", "offset"]:
+			return None
+		if not (node.hasAttributes() and node.attributes().contains("x") and node.attributes().contains("y")):
 			return None
 		ans = PFSAux()
-		ans.x = int(attr.value("x"))
-		ans.y = int(attr.value("y"))
+		ans.x = int(float(node.attributes().namedItem("x").nodeValue()))
+		ans.y = int(float(node.attributes().namedItem("y").nodeValue()))
 		return ans
 		
 	def font(xml: QXmlStreamWriter, font: QFont, align: str="left", rotation: int=0, tag: str="font"):
@@ -71,38 +76,39 @@ class PFSXmlBase:
 		xml.writeAttribute("rotation", str(rotation))
 		xml.writeEndElement() #fecha font
 		
-	def getFont(xml: QXmlStreamReader):
-		xml.readNextStartElement()
-		attr = xml.attributes()
-		if not (attr.hasAttribute("family") and attr.hasAttribute("size")):
+	def getFont(node: QDomNode):
+		if node.nodeName() != "font":
 			return None
-		font = QFont(attr.value("family"), int(attr.value("size")))
-		align = None
-		rotation = None
-		if attr.hasAttribute("style"):
-			if attr.value("style") == "italic":
-				font.setStyle(QFont.StyleItalic)
-			elif attr.value("style") == "oblique":
-				font.setStyle(QFont.StyleOblique)
-		if attr.hasAttribute("weight"):
-			v = ["bold", "bolder", "lighter", "100", "200", "300", "400", "500", "600", "700", "800", "900", "900"]
-			if attr.value("weight") in v:
-				font.setWeight(v.index(attr.value("weight"))*4+50)
-		if attr.hasAttribute("decoration"):
-			if attr.value("decoration").find("underline") > 0:
-				font.setUnderline(True)
-			if attr.value("decoration").find("overline") > 0:
-				font.setOverline(True)
-			if attr.value("decoration").find("line-through") > 0:
-				font.setStrikeOut(True)
-		if attr.hasAttribute("align"):
-			align = attr.value("align")
-		if attr.hasAttribute("rotation"):
-			rotation = attr.value("rotation")		
+		attr = node.attributes()
+		if not (node.hasAttributes() and attr.contains("family") and attr.contains("size")):
+			return None
 		ans = PFSAux()
-		ans.font = font
-		ans.align = align
-		ans.rotation = rotation
+		ans.font = QFont(attr.namedItem("family").nodeValue(), int(attr.namedItem("size").nodeValue()))
+		if attr.contains("style"):
+			if attr.namedItem("style").nodeValue() == "italic":
+				ans.font.setStyle(QFont.StyleItalic)
+			elif attr.namedItem("style").nodeValue() == "oblique":
+				ans.font.setStyle(QFont.StyleOblique)
+		if attr.contains("weight"):
+			v = ["bold", "bolder", "lighter", "100", "200", "300", "400", "500", "600", "700", "800", "900", "900"]
+			if attr.namedItem("weight").nodeValue() in v:
+				ans.font.setWeight(v.index(attr.namedItem("weight").nodeValue())*4+50)
+		if attr.contains("decoration"):
+			decor = attr.namedItem("decoration").nodeValue()
+			if decor.find("underline") > 0:
+				ans.font.setUnderline(True)
+			if decor.find("overline") > 0:
+				ans.font.setOverline(True)
+			if decor.find("line-through") > 0:
+				ans.font.setStrikeOut(True)
+		if attr.contains("align"):
+			ans.align = attr.namedItem("align").nodeValue()
+		else:
+			ans.align = None
+		if attr.contains("rotation"):
+			ans.rotation = int(attr.namedItem("rotation").nodeValue())
+		else:
+			ans.rotation = None
 		return ans
 	
 	def line(xml: QXmlStreamWriter, pen: QPen, tag: str="line"):
@@ -117,18 +123,19 @@ class PFSXmlBase:
 			xml.writeAttribute("style", "solid")
 		xml.writeEndElement() #fecha line
 		
-	def getLine(xml: QXmlStreamReader):
-		xml.readNextStartElement()
-		attr = xml.attributes()
-		if not attr.hasAttribute("color"):
+	def getLine(node: QDomNode):
+		if node.nodeName() not in ["line"]:
 			return None
-		pen = QPen(QColor(attr.value("color")))
-		if attr.hasAttribute("width"):
-			pen.setWidth(int(attr.value("width")))
-		if attr.hasAttribute("style"):
-			if attr.value("style") == "dash":
+		attr = node.attributes()
+		if not (node.hasAttributes() and attr.contains("color")):
+			return None
+		pen = QPen(QColor(attr.namedItem("color").nodeValue()))
+		if attr.contains("width"):
+			pen.setWidth(int(attr.namedItem("width").nodeValue()))
+		if attr.contains("style"):
+			if attr.namedItem("style").nodeValue() == "dash":
 				pen.setStyle(Qt.DashLine)
-			if attr.value("style") == "dot":
+			if attr.namedItem("style").nodeValue() == "dot":
 				pen.setStyle(Qt.DotLine)
 		return pen
 		
@@ -153,13 +160,14 @@ class PFSXmlBase:
 			xml.writeAttribute("color", brush.color().name())
 		xml.writeEndElement() #fecha fill
 		
-	def getFill(xml: QXmlStreamReader):
-		xml.readNextStartElement()
-		attr = xml.attributes()
-		if not attr.hasAttribute("color"):
+	def getFill(node: QDomNode):
+		if node.nodeName() != "fill":
+			return None
+		attr = node.attributes()
+		if not (node.hasAttributes() and attr.contains("color")):
 			return None
 		brush = QBrush()
-		brush.setColor(QColor(attr.value("color")))
+		brush.setColor(QColor(attr.namedItem("color").nodeValue()))
 		return brush
 	
 	def graphicsNode(xml: QXmlStreamWriter, rect: QRect, pen: QPen, brush: QBrush):
@@ -172,37 +180,39 @@ class PFSXmlBase:
 			PFSXmlBase.line(xml, pen)
 		xml.writeEndElement() #fecha graphics
 	
-	def getNode(xml: QXmlStreamReader):
-		xml.readNextStartElement()
+	def getNode(node: QDomNode):
+		if node.nodeName() != "graphics":
+			return None
 		x = None
 		y = None
 		w = None
 		h = None
 		brush = None
 		line = None
-		while xml.name() in ["position", "dimension", "fill", "line"]:
-			if xml.name() == "position":
-				pos = PFSXmlBase.getPosition(xml)
+		childs = node.childNodes()
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "position":
+				pos = PFSXmlBase.getPosition(child)
 				if pos is not None:
 					x = pos.x
 					y = pos.y
-			if xml.name() == "dimension":
-				pos = PFSXmlBase.getPosition(xml)
+			if child.nodeName() == "dimension":
+				pos = PFSXmlBase.getPosition(child)
 				if pos is not None:
 					w = pos.x
 					h = pos.y
-			if xml.name() == "fill":
-				brush = PFSXmlBase.getFill(xml)
-			if xml.name() == "line":
-				line = PFSXmlBase.getLine(xml)
-			xml.readNextStartElement()
+			if child.nodeName() == "fill":
+				brush = PFSXmlBase.getFill(child)
+			if child.nodeName() == "line":
+				line = PFSXmlBase.getLine(child)
 		if x is None or y is None or w is None or h is None:
 			return None
 		ans = PFSAux()
 		ans.rect = QRect(x, y, w, h)
 		ans.line = line
 		ans.brush = brush
-		return ans
+		return ans		
 		
 	def graphicsText(xml: QXmlStreamWriter, x: int, y: int, font: QFont, pen: QPen, brush: QBrush, align: str, rotation: int):
 		xml.writeStartElement("graphics")
@@ -216,8 +226,7 @@ class PFSXmlBase:
 			PFSXmlBase.line(xml, pen)
 		xml.writeEndElement() #fecha graphics
 	
-	def getGraphicsText(xml: QXmlStreamReader):
-		xml.readNextStartElement()
+	def getGraphicsText(node: QDomNode):
 		x = None
 		y = None
 		font = None
@@ -225,23 +234,24 @@ class PFSXmlBase:
 		line = None
 		align = None
 		rotation = None
-		while xml.name() in ["offset", "font", "fill", "line"]:
-			if xml.name() == "offset":
-				pos = PFSXmlBase.getPosition(xml)
+		childs = node.childNodes()
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "offset":
+				pos = PFSXmlBase.getPosition(child)
 				if pos is not None:
 					x = pos.x
 					y = pos.y
-			if xml.name() == "font":
-				f = PFSXmlBase.getFont(xml)					
+			if child.nodeName() == "font":
+				f = PFSXmlBase.getFont(child)					
 				if f is not None:
 					font = f.font
 					align = f.align
 					rotation = f.rotation
-			if xml.name() == "fill":
-				brush = PFSXmlBase.getFill(xml)
-			if xml.name() == "line":
-				line = PFSXmlBase.getLine(xml)
-			xml.readNextStartElement()
+			if child.nodeName() == "fill":
+				brush = PFSXmlBase.getFill(child)
+			if child.nodeName() == "line":
+				line = PFSXmlBase.getLine(child)
 		if x is None or y is None:
 			return None
 		ans = PFSAux()
@@ -262,25 +272,25 @@ class PFSXmlBase:
 		PFSXmlBase.graphicsText(xml, x, y, font, pen, brush, align, rotation)
 		xml.writeEndElement() #fecha text	
 		
-	def getText(xml: QXmlStreamReader):
-		xml.readNextStartElement()
+	def getText(node: QDomNode):
 		graphics = None
 		text = None
-		while xml.name() in ["graphics", "annotation"]:
-			if xml.name() == "annotation":
-				text = xml.text()
-			else:
-				graphics = PFSXmlBase.getGraphicsText(xml)
-			xml.readNextStartElement()
+		childs = node.childNodes()
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "annotation":
+				text = child.toElement().text()
+			if child.nodeName() == "graphics":
+				graphics = PFSXmlBase.getGraphicsText(child)
 		if text is None or graphics is None:
 			return None
 		ans = PFSAux()
-		ans.text = text
+		ans.annotation = text
 		ans.x = graphics.x
 		ans.y = graphics.y
 		ans.font = graphics.font
 		ans.align = graphics.align
 		ans.rotation = graphics.rotation
 		ans.line = graphics.line
-		ans.brush = graphics.brush		
+		ans.brush = graphics.brush
 		return ans
