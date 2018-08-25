@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog
-from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QFileInfo, QDir
+from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir
+from PyQt5.QtXml import QDomDocument
 from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton
 from page import PFSNet
 from PyQt5.QtGui import QIcon, QKeySequence
@@ -18,12 +19,12 @@ class PFSWindow(QWidget):
 		self._lastPath = "./"
 		self._tab.currentChanged.connect(self.changeTab)
 	
-	def changeTab(self, index):
+	def changeTab(self, index: int):
 		net = self._tab.widget(index)
 		if net._filepath is not None:
 			self._lastPath = net._filepath
 	
-	def setStateMachine(self, sm):
+	def setStateMachine(self, sm: PFSStateMachine):
 		self._sm = sm
 		
 	def newNet(self):
@@ -59,6 +60,33 @@ class PFSWindow(QWidget):
 		net.setSaved(True)
 		self._lastPath = net._filepath
 		
+	def openNet(self):
+		filename, filter = QFileDialog.getOpenFileName(self, "Abrir arquivo...", self._lastPath, "XML files (*.xml *.pnml)")
+		if filename is None or filename == "":
+			return
+		if not (filename.endswith(".xml") or filename.endswith(".pnml")):
+			filename = filename + ".xml"
+		file = QFile(filename)
+		if not file.open(QIODevice.ReadOnly):
+			return
+		doc = QDomDocument("PetriNetDoc")
+		ans, errMsg, errLine, errColl = doc.setContent(file)
+		if not ans:
+			return
+		nets = PFSNet.createFromXml(doc, self._sm)
+		if len(nets) == 0:
+			return
+		for net in nets:
+			f = QFileInfo(filename)
+			net._filename = f.fileName()
+			net._filepath = f.absolutePath()
+			file.close()
+			self._lastPath = net._filepath
+			net.changed.connect(self.changeCurrentTabName)
+			self._idNet = self._idNet + 1
+			i = self._tab.addTab(net, net.getTabName())
+			self._tab.setCurrentIndex(i)
+		
 	def changeCurrentTabName(self):
 		self._tab.setTabText(self._tab.currentIndex(), self._tab.currentWidget().getTabName())
 		
@@ -75,10 +103,16 @@ class PFSMain(QMainWindow):
 		actSave = QAction(icoSave, "Save Model", self)
 		actSave.setShortcuts(QKeySequence.Save)
 		actSave.setStatusTip("Salva o modelo em um arquivo")
-		actSave.triggered.connect(self.wind.saveNet)		
+		actSave.triggered.connect(self.wind.saveNet)
+		icoOpen = QIcon.fromTheme("document-open", QIcon())
+		actOpen = QAction(icoOpen, "Open Model", self)
+		actOpen.setShortcuts(QKeySequence.Open)
+		actOpen.setStatusTip("Abre um arquivo com modelo")
+		actOpen.triggered.connect(self.wind.openNet)
 		toolBar = self.addToolBar("Basic")
 		toolBar.addAction(actNew)
 		toolBar.addAction(actSave)
+		toolBar.addAction(actOpen)
 		toolBar = self.addToolBar("Elements")
 		self.btnActivity = PFSActivityButton()
 		ac = toolBar.addWidget(self.btnActivity)
@@ -90,7 +124,7 @@ class PFSMain(QMainWindow):
 		ac.setVisible(True)		
 		self.setCentralWidget(self.wind)
 		
-	def setStateMachine(self, sm):
+	def setStateMachine(self, sm: PFSStateMachine):
 		self.wind.setStateMachine(sm)
 
 if __name__ == "__main__":

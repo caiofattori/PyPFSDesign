@@ -1,12 +1,12 @@
 from PyQt5.QtWidgets import QToolButton
-from PyQt5.QtGui import QPainter, QFont
+from PyQt5.QtGui import QPainter, QFont, QPaintEvent
 from PyQt5.QtCore import Qt
 
 class PFSActivityButton(QToolButton):
 	def __init__(self):
 		super(QToolButton, self).__init__()
 	
-	def paintEvent(self, ev):
+	def paintEvent(self, ev: QPaintEvent):
 		p = QPainter(self)
 		p.setPen(Qt.black)
 		p.setFont(QFont("Helvetica", 12))
@@ -16,7 +16,7 @@ class PFSDistributorButton(QToolButton):
 	def __init__(self):
 		super(QToolButton, self).__init__()
 	
-	def paintEvent(self, ev):
+	def paintEvent(self, ev: QPaintEvent):
 		p = QPainter(self)
 		p.setPen(Qt.black)
 		r = self.rect()
@@ -26,7 +26,7 @@ class PFSRelationButton(QToolButton):
 	def __init__(self):
 		super(QToolButton, self).__init__()
 	
-	def paintEvent(self, ev):
+	def paintEvent(self, ev: QPaintEvent):
 		p = QPainter(self)
 		p.setPen(Qt.black)
 		r = self.rect()
