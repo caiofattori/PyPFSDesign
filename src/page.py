@@ -74,7 +74,18 @@ class PFSScene(QGraphicsScene):
 			self.inserted.emit()
 			self._tempSource = None
 			return
-	
+		if self._parentState._sNormal:
+			pos = ev.scenePos()
+			it = self.itemAt(pos, QTransform())
+			itList = self.selectedItems()
+			for i in itList:
+				i.setSelected(False)
+				i.update()
+			if it is not None:
+				it.setSelected(True)
+				it.update()
+			return
+		
 	def drawBackground(self, p: QPainter, r: QRect):
 		if not self._paintGrid:
 			return

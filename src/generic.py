@@ -1,6 +1,9 @@
 from PyQt5.QtWidgets import QGraphicsItem
+from PyQt5.QtGui import QPen
+from PyQt5.QtCore import Qt
 
 class PFSElement(QGraphicsItem):
+	SELECTED_PEN = QPen(Qt.red)
 	def __init__(self, id: str):
 		super(QGraphicsItem, self).__init__()
 		self._id = id

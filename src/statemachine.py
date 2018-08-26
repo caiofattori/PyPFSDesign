@@ -5,6 +5,12 @@ class PFSStateNormal(QState):
     def __init__(self):
         super(QState, self).__init__()
         
+    def onEntry(self, ev: QEvent):
+        self.machine()._sNormal = True
+        
+    def onExit(self, ev: QEvent):
+        self.machine()._sNormal = False
+        
 class PFSStateInsActivity(QState):
     def __init__(self, statusBar: QStatusBar):
         super(QState, self).__init__()
@@ -16,7 +22,7 @@ class PFSStateInsActivity(QState):
         
     def onExit(self, ev: QEvent):
         self._statusBar.showMessage("")
-        self.machine()._sActivity = False    
+        self.machine()._sActivity = False
 
 class PFSStateInsDistributor(QState):
     def __init__(self, statusBar: QStatusBar):
@@ -60,6 +66,7 @@ class PFSStateInsRelationTarget(QState):
 class PFSStateMachine(QStateMachine):
     def __init__(self, window):
         super(QStateMachine, self).__init__()
+        self._sNormal = False
         self._sDistributor = False
         self._sActivity = False
         self._sRelationS = False
