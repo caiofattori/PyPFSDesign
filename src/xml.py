@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QFont, QGradient, QPen, QBrush, QColor
-from PyQt5.QtCore import Qt, QRect, QXmlStreamReader, QXmlStreamWriter
+from PyQt5.QtCore import Qt, QRect, QXmlStreamReader, QXmlStreamWriter, QPoint
 from PyQt5.QtXml import QDomNode
 
 class PFSAux:
@@ -212,7 +212,34 @@ class PFSXmlBase:
 		ans.rect = QRect(x, y, w, h)
 		ans.line = line
 		ans.brush = brush
-		return ans		
+		return ans
+	
+	def graphicsArc(xml: QXmlStreamWriter, points: [QPoint], pen: QPen):
+		xml.writeStartElement("graphics")
+		for p in points:
+			PFSXmlBase.position(xml, p.x(), p.y())
+		if pen is not None:
+			PFSXmlBase.line(xml, pen)
+		xml.writeEndElement() #fecha graphics
+	
+	def getArc(node: QDomNode):
+		if node.nodeName() != "graphics":
+			return None
+		p = []
+		line = None
+		childs = node.childNodes()
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "position":
+				pos = PFSXmlBase.getPosition(child)
+				if pos is not None:
+					p.append(pos)
+			if child.nodeName() == "line":
+				line = PFSXmlBase.getLine(child)
+		ans = PFSAux()
+		ans.pos = p
+		ans.line = line
+		return ans
 		
 	def graphicsText(xml: QXmlStreamWriter, x: int, y: int, font: QFont, pen: QPen, brush: QBrush, align: str, rotation: int):
 		xml.writeStartElement("graphics")

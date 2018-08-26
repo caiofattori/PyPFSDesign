@@ -120,7 +120,8 @@ class PFSMain(QMainWindow):
 		self.btnDistributor = PFSDistributorButton()
 		ac = toolBar.addWidget(self.btnDistributor)
 		ac.setVisible(True)
-		ac = toolBar.addWidget(PFSRelationButton())
+		self.btnRelation = PFSRelationButton()
+		ac = toolBar.addWidget(self.btnRelation)
 		ac.setVisible(True)		
 		self.setCentralWidget(self.wind)
 		
@@ -134,5 +135,5 @@ if __name__ == "__main__":
 	stateMachine = PFSStateMachine(win)
 	win.setStateMachine(stateMachine)
 	stateMachine.start()
-	win.show()
+	win.showMaximized()
 	sys.exit(app.exec_())

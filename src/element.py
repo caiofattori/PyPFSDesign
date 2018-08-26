@@ -1,9 +1,14 @@
 from generic import *
 from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
-from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter
+from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
+import math
+
+class PFSAux:
+	def __init__(self):
+		pass
 
 class PFSActivity(PFSNode):
 	STANDARD_PEN = QPen(Qt.black)
@@ -85,6 +90,19 @@ class PFSActivity(PFSNode):
 	def boundingRect(self):
 		s = self._fontMetrics.size(Qt.TextExpandTabs, self._text)
 		return QRectF(self._x, self._y, s.width() + 15, s.height() + 4)
+	
+	def getBestRelationPoint(self, p: QPoint) -> QPoint:
+		b = self.sceneBoundingRect()
+		if p.x() > b.center().x():
+			x = b.right()
+		else:
+			x = b.left()
+		y = p.y()
+		if p.y() < b.top():
+			y = b.top()
+		elif p.y() > b.bottom():
+			y = b.bottom()
+		return QPoint(x, y)	
 		
 class PFSDistributor(PFSNode):
 	STANDARD_SIZE = 20
@@ -93,7 +111,8 @@ class PFSDistributor(PFSNode):
 	def __init__(self, id: str, x: int, y: int):
 		PFSNode.__init__(self, id, x, y)
 		self._tooltip = ""
-		self._diameter = self.STANDARD_SIZE
+		self._diameterX = self.STANDARD_SIZE
+		self._diameterY = self.STANDARD_SIZE
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
 		
@@ -140,13 +159,23 @@ class PFSDistributor(PFSNode):
 		p.drawEllipse(rect.left(), rect.top(), rect.width() - 2, rect.height() - 2)
 	
 	def boundingRect(self):
-		return QRectF(self._x, self._y, self._diameter + 2, self._diameter + 2)
+		return QRectF(self._x, self._y, self._diameterX + 2, self._diameterY + 2)
+	
+	def getBestRelationPoint(self, p: QPoint) -> QPoint:
+		c = self.sceneBoundingRect().center()
+		ang = math.atan2(p.y()-c.y(), p.x()-c.x())
+		return QPoint(self._diameterX/2*math.cos(ang) + c.x(), self._diameterY/2*math.sin(ang) + c.y())
 		
 class PFSRelation(PFSElement):
 	def __init__(self, id: str, source: PFSNode, target: PFSNode):
-		super(PFSElement, self).__init__(id)
+		PFSElement.__init__(self,id)
 		self._source = source
 		self._target = target
+		self._midPoints = []
+		self._firstPoint = None
+		self._lastPoint = None
+		self.updatePoints()
+		self._pen = QPen(Qt.black)
 		
 	def __del__(self):
 		self._source.remInRelation(self)
@@ -154,14 +183,95 @@ class PFSRelation(PFSElement):
 		
 	def createRelation(id: str, source: PFSNode, target: PFSNode):
 		if isinstance(source, PFSActivity):
-			if isinstance(source, PFSDistributor):
+			if isinstance(target, PFSDistributor):
 				r = PFSRelation(id, source, target)
 				if source.addInRelation(r) and target.addOutRelation(r):
 					return r
 		elif isinstance(source, PFSDistributor):
-			if isinstance(source, PFSActivity):
+			if isinstance(target, PFSActivity):
 				r = PFSRelation(id, source, target)
 				if source.addInRelation(r) and target.addOutRelation(r):
 					return r
 		return None
-		
+	
+	def updatePoints(self):
+		if len(self._midPoints) == 0:
+			self._firstPoint = self._source.getBestRelationPoint(self._target.sceneBoundingRect().center())
+			self._lastPoint = self._target.getBestRelationPoint(self._source.sceneBoundingRect().center())
+		else:
+			self._firstPoint = self._source.getBestRelationPoint(self._midPoints[0])
+			self._lastPoint = self._target.getBestRelationPoint(self._midPoints[-1])
+	
+	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
+		lastPoint = self._firstPoint
+		for point in self._midPoints:
+			p.drawLine(lastPoint, point)
+			lastPoint = point
+		p.drawLine(lastPoint, self._lastPoint)
+		ang = math.atan2(self._lastPoint.y()-lastPoint.y(), self._lastPoint.x()-lastPoint.x())
+		p.save()
+		p.translate(self._lastPoint)
+		p.rotate(ang*180/math.pi)
+		self.drawArrow(p)
+		p.restore()
+	
+	def drawArrow(self, p:QPainter):
+		p.drawLine(-10, -6, 0, 0)
+		p.drawLine(-10, 6, 0, 0)
+	
+	def boundingRect(self):
+		t = min(self._firstPoint.y(),self._lastPoint.y())
+		b = max(self._firstPoint.y(),self._lastPoint.y())
+		l = min(self._firstPoint.x(),self._lastPoint.x())
+		r = max(self._firstPoint.x(),self._lastPoint.x())
+		for p in self._midPoints:
+			if p.x() < l:
+				l = p.x()
+			if p.x() > r:
+				r = p.x()
+			if p.y() < t:
+				t = p.y()
+			if p.y() > b:
+				b = p.y()
+		return QRectF(l, t, r-l, b-t)
+	
+	def generateXml(self, xml: QXmlStreamWriter):
+		PFSXmlBase.open(xml)
+		xml.writeStartElement("relation")
+		xml.writeAttribute("id", self._id)
+		xml.writeAttribute("source", self._source._id)
+		xml.writeAttribute("target", self._target._id)
+		PFSXmlBase.graphicsArc(xml, self._midPoints, self._pen)
+		xml.writeEndElement() #fecha distributor
+		PFSXmlBase.close(xml)
+	
+	def createFromXml(node: QDomNode):
+		if node.nodeName() != "relation":
+			return None
+		attr = node.attributes()
+		if not (node.hasAttributes() and attr.contains("id")):
+			return None
+		id = attr.namedItem("id").nodeValue()
+		if not (attr.contains("source") and attr.contains("target")):
+			return None
+		source = attr.namedItem("source").nodeValue()
+		target = attr.namedItem("target").nodeValue()
+		graphics = None
+		childs = node.childNodes()
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "graphics":
+				graphics = PFSXmlBase.getArc(child)
+		re = PFSAux()
+		re.id = id
+		re.source = source
+		re.target = target
+		if graphics is not None and graphics.line is not None:
+			re.pen = graphics.line
+		else:
+			re.pen = None
+		if graphics is not None and graphics.pos is not None:
+			re.midPoints = graphics.pos
+		else:
+			re.midPoints = []
+		return re
