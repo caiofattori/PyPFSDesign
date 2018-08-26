@@ -2,7 +2,7 @@ from generic import *
 from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
 from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint
-from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter
+from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
 import math
 
@@ -24,6 +24,7 @@ class PFSActivity(PFSNode):
 		self._fontMetrics = QFontMetrics(self._textFont)
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
+		self.setFlag(QGraphicsItem.ItemIsSelectable)
 		
 	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
@@ -74,12 +75,16 @@ class PFSActivity(PFSNode):
 		p.setFont(self._textFont)
 		rect = self.sceneBoundingRect()
 		p.drawText(rect, Qt.AlignCenter, self._text)
+		p.save()
+		if self.isSelected():
+			p.setPen(PFSElement.SELECTED_PEN)
 		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 6, rect.top() + 1)
 		p.drawLine(rect.left() + 1, rect.bottom() - 1, rect.left() + 6, rect.bottom() - 1)
 		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 1, rect.bottom() - 1)
 		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 6, rect.top() + 1)
 		p.drawLine(rect.right() - 1, rect.bottom() - 1, rect.right() - 6, rect.bottom() - 1)
 		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 1, rect.bottom() - 1)		
+		p.restore()
 		
 	def setText(self, text: str):
 		self._text = text
@@ -115,6 +120,7 @@ class PFSDistributor(PFSNode):
 		self._diameterY = self.STANDARD_SIZE
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
+		self.setFlag(QGraphicsItem.ItemIsSelectable)
 		
 	def setTooltip(self, text: str):
 		self._tooltip = text
@@ -154,7 +160,10 @@ class PFSDistributor(PFSNode):
 		return None
 	
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
-		p.setPen(Qt.black)
+		if self.isSelected():
+			p.setPen(PFSElement.SELECTED_PEN)
+		else:
+			p.setPen(Qt.black)
 		rect = self.sceneBoundingRect()
 		p.drawEllipse(rect.left(), rect.top(), rect.width() - 2, rect.height() - 2)
 	
@@ -176,6 +185,7 @@ class PFSRelation(PFSElement):
 		self._lastPoint = None
 		self.updatePoints()
 		self._pen = QPen(Qt.black)
+		self.setFlag(QGraphicsItem.ItemIsSelectable)
 		
 	def __del__(self):
 		self._source.remInRelation(self)
@@ -203,6 +213,10 @@ class PFSRelation(PFSElement):
 			self._lastPoint = self._target.getBestRelationPoint(self._midPoints[-1])
 	
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
+		if self.isSelected():
+			p.setPen(PFSElement.SELECTED_PEN)
+		else:
+			p.setPen(Qt.black)
 		lastPoint = self._firstPoint
 		for point in self._midPoints:
 			p.drawLine(lastPoint, point)
@@ -275,3 +289,25 @@ class PFSRelation(PFSElement):
 		else:
 			re.midPoints = []
 		return re
+	
+	def shape(self) -> QPainterPath:
+		path = QPainterPath()
+		p = QPolygon()
+		p.append(self._firstPoint)
+		for m in self._midPoints:
+			p.append(m)
+		p.append(self._lastPoint)
+		p.translate(0, -5)
+		n = p.count()
+		finalPolygon = QPolygonF()
+		finalPolygon.append(self._firstPoint)
+		for i in range(n):
+			finalPolygon.append(p.point(i))
+		finalPolygon.append(self._lastPoint)
+		p.translate(0, 10)
+		for i in range(n):
+			finalPolygon.append(p.point(n-i-1))
+		finalPolygon.append(self._firstPoint)
+		path.addPolygon(finalPolygon)
+		return path
+		
