@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QPushButton
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QXmlStreamReader
-from PyQt5.QtGui import QMouseEvent, QPainter
+from PyQt5.QtGui import QMouseEvent, QPainter, QTransform
 from PyQt5.QtXml import QDomDocument, QDomNode
-from element import PFSActivity, PFSDistributor
+from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 
@@ -16,6 +16,7 @@ class PFSScene(QGraphicsScene):
 		self._paintGrid = True
 		self._parentState = parentState
 		self._net = net
+		self._tempSource = None
 		
 	def getNewDistributorId(self) -> str:
 		ans = "D" + str(self._net._distributorId)
@@ -25,7 +26,12 @@ class PFSScene(QGraphicsScene):
 	def getNewActivityId(self) -> str:
 		ans = "A" + str(self._net._activityId)
 		self._net._activityId = self._net._activityId + 1
-		return ans	
+		return ans
+	
+	def getNewRelationId(self) -> str:
+		ans = "R" + str(self._net._relationId)
+		self._net._relationId = self._net._relationId + 1
+		return ans
 		
 	def setPaintGrid(self, v: bool= True):
 		self._paintGrid = v
@@ -44,11 +50,30 @@ class PFSScene(QGraphicsScene):
 			self.addItem(PFSDistributor(self.getNewDistributorId(), pos.x(), pos.y()))
 			self.inserted.emit()
 			self._net.setSaved(False)
+			return
 		if self._parentState._sActivity:
 			pos = ev.scenePos()
 			self.addItem(PFSActivity(self.getNewActivityId(), pos.x(), pos.y(), "Activity"))
 			self.inserted.emit()
 			self._net.setSaved(False)
+			return
+		if self._parentState._sRelationS:
+			pos = ev.scenePos()
+			it = self.itemAt(pos, QTransform())
+			if it is not None:
+				self._tempSource = it
+				self.inserted.emit()
+			return
+		if self._parentState._sRelationT:
+			pos = ev.scenePos()
+			it = self.itemAt(pos, QTransform())
+			if it is not None:
+				rel = PFSRelation.createRelation(self.getNewRelationId(), self._tempSource, it)
+				self.addItem(rel)
+				self._net.setSaved(False)
+			self.inserted.emit()
+			self._tempSource = None
+			return
 	
 	def drawBackground(self, p: QPainter, r: QRect):
 		if not self._paintGrid:
@@ -104,7 +129,7 @@ class PFSPage(QWidget):
 		xml.writeEndElement() #fim da pagegraphics
 		PFSXmlBase.close(xml)
 		for e in self._scene.items():
-			if isinstance(e, PFSActivity) or isinstance(e, PFSDistributor):
+			if isinstance(e, PFSActivity) or isinstance(e, PFSDistributor) or isinstance(e, PFSRelation):
 				e.generateXml(xml)
 		xml.writeEndElement() #fim da page
 	
@@ -150,6 +175,7 @@ class PFSPage(QWidget):
 		height = None
 		activities = []
 		distributors = []
+		relations = []
 		childs = node.childNodes()
 		for i in range(childs.count()):
 			child = childs.at(i)
@@ -183,16 +209,55 @@ class PFSPage(QWidget):
 					distributor = PFSDistributor.createFromXml(confChilds.at(0))
 					if distributor is not None:
 						distributors.append(distributor)
+			elif PFSXmlBase.toolHasChild(child, "relation"):
+				confChilds = child.childNodes()
+				if confChilds.at(0).nodeName() == "relation":
+					relation = PFSRelation.createFromXml(confChilds.at(0))
+					if relation is not None:
+						relations.append(relation)
 		if id is not None and id != "" and mainpage is not None:
 			if width is None:
 				width = 4000
 			if height is None:
 				height = 4000
 			page = PFSPage(id, width, height, sm, net)
+			aId = []
 			for activity in activities:
 				page._scene.addItem(activity)
+				aId.append(activity._id)
+			dId = []
 			for distributor in distributors:
 				page._scene.addItem(distributor)
+				dId.append(distributor._id)
+			rId = []
+			for relation in relations:
+				a = 0
+				d = 0
+				s = None
+				if aId.count(relation.source) > 0:
+					s = activities[aId.index(relation.source)]
+					a = a + 1
+				elif dId.count(relation.source) > 0:
+					s = distributors[dId.index(relation.source)]
+					d = d + 1
+				else:
+					continue
+				t = None
+				if aId.count(relation.target) > 0:
+					t = activities[aId.index(relation.target)]
+					a = a + 1
+				elif dId.count(relation.target) > 0:
+					t = distributors[dId.index(relation.target)]
+					d = d + 1
+				else:
+					continue				
+				if d == 1 and a == 1:
+					rel = PFSRelation.createRelation(relation.id, s, t)
+					rel._midPoints = relation.midPoints
+					if relation.pen is not None:
+						rel._pen = relation.pen
+					page._scene.addItem(rel)
+					rId.append(relation.id)
 			return page
 		return None	
 
