@@ -1,7 +1,15 @@
-from PyQt5.QtWidgets import QToolButton
+from PyQt5.QtWidgets import QToolButton, QGraphicsSimpleTextItem
 from PyQt5.QtGui import QPainter, QFont, QPaintEvent
 from PyQt5.QtCore import Qt
 
+class PFSTextBox(QGraphicsSimpleTextItem):
+	def __init__(self, scene, activity):
+		super(QGraphicsSimpleTextItem, self).__init__(activity._text)
+		self._activity = activity
+		
+	def boundingRect(self):
+		return self._activity.boundingRect()
+		
 class PFSActivityButton(QToolButton):
 	def __init__(self):
 		super(QToolButton, self).__init__()

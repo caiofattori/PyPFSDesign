@@ -88,6 +88,7 @@ class PFSActivity(PFSNode):
 		
 	def setText(self, text: str):
 		self._text = text
+		self.update()
 		
 	def setTooltip(self, text: str):
 		self._tooltip = text

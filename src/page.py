@@ -5,10 +5,12 @@ from PyQt5.QtXml import QDomDocument, QDomNode
 from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
+from toolbutton import PFSTextBox
 
 class PFSScene(QGraphicsScene):
 	DELTA = 20.0
 	inserted = pyqtSignal()
+	edited = pyqtSignal()
 	def __init__(self, w: int, h: int, parentState: PFSStateMachine, net):
 		super(QGraphicsScene, self).__init__()
 		self._backgroundPoints = []
@@ -17,6 +19,7 @@ class PFSScene(QGraphicsScene):
 		self._parentState = parentState
 		self._net = net
 		self._tempSource = None
+		self._tempActivity = None
 		
 	def getNewDistributorId(self) -> str:
 		ans = "D" + str(self._net._distributorId)
@@ -85,6 +88,26 @@ class PFSScene(QGraphicsScene):
 				it.setSelected(True)
 				it.update()
 			return
+		if self._parentState._sTiping:
+			pos = ev.scenePos()
+			it = self.itemAt(pos, QTransform())
+			if it is not None and not isinstance(it, PFSTextBox):
+				if self._tempActivity is not None:
+					self._tempActivity.setText(self._line.text())
+				
+				self.inserted.emit()
+			
+			return
+			
+	def mouseDoubleClickEvent(self, e):
+		if self._parentState._sNormal:
+			pos = ev.scenePos()
+			it = self.itemAt(pos, QTransform())
+			if isinstance(it, PFSActivity):
+				self.edited.emit()
+				self._line = PFSTextBox(self, it)
+				self._tempActivity = it
+				self.addItem(self._line)
 		
 	def drawBackground(self, p: QPainter, r: QRect):
 		if not self._paintGrid:
