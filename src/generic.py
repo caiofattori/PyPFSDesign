@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QGraphicsItem
 from PyQt5.QtGui import QPen
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
 class PFSElement(QGraphicsItem):
 	SELECTED_PEN = QPen(Qt.red)
@@ -19,7 +19,11 @@ class PFSNode(QGraphicsItem):
 		
 	def move(self, x, y):
 		self._x = self._x + x
-		self._y = self._y + y	
+		self._y = self._y + y
+		for r in self._inRelations:
+			r.updatePoints()
+		for r in self._outRelations:
+			r.updatePoints()
 		
 	def addInRelation(self, relat):
 		if relat not in self._inRelations:
