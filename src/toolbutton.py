@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QToolButton, QTextEdit, QGraphicsProxyWidget
-from PyQt5.QtGui import QPainter, QFont, QPaintEvent, QTextOption
+from PyQt5.QtGui import QPainter, QFont, QPaintEvent, QTextOption, QBrush
 from PyQt5.QtCore import Qt
 
 class PFSTextBox(QGraphicsProxyWidget):
@@ -47,9 +47,12 @@ class PFSTextBox(QGraphicsProxyWidget):
 class PFSActivityButton(QToolButton):
 	def __init__(self):
 		super(QToolButton, self).__init__()
+		self.setCheckable(True)
 	
 	def paintEvent(self, ev: QPaintEvent):
 		p = QPainter(self)
+		if self.isChecked():
+			p.setBrush(QBrush(Qt.gray, Qt.SolidPattern))
 		p.setPen(Qt.black)
 		p.setFont(QFont("Helvetica", 12))
 		p.drawText(self.rect(), Qt.AlignCenter, "[Ac]")
