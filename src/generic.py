@@ -17,6 +17,10 @@ class PFSNode(QGraphicsItem):
 		self._y = y
 		self._id = id
 		
+	def move(self, x, y):
+		self._x = self._x + x
+		self._y = self._y + y	
+		
 	def addInRelation(self, relat):
 		if relat not in self._inRelations:
 			self._inRelations.append(relat)
