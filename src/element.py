@@ -88,7 +88,8 @@ class PFSActivity(PFSNode):
 		
 	def setText(self, text: str):
 		self._text = text
-		self.update()
+		if self.scene() is not None:
+			self.scene().update()
 		
 	def setTooltip(self, text: str):
 		self._tooltip = text

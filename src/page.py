@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QPushButton
+from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QPushButton, QGraphicsProxyWidget
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QXmlStreamReader
 from PyQt5.QtGui import QMouseEvent, QPainter, QTransform
 from PyQt5.QtXml import QDomDocument, QDomNode
@@ -87,19 +87,21 @@ class PFSScene(QGraphicsScene):
 			if it is not None:
 				it.setSelected(True)
 				it.update()
+			QGraphicsScene.mousePressEvent(self, ev)
 			return
 		if self._parentState._sTiping:
 			pos = ev.scenePos()
 			it = self.itemAt(pos, QTransform())
-			if it is not None and not isinstance(it, PFSTextBox):
+			if it is None or not isinstance(it, QGraphicsProxyWidget):
 				if self._tempActivity is not None:
-					self._tempActivity.setText(self._line.text())
-				
+					self._tempActivity.setText(self._line.widget().toPlainText())
+				self.removeItem(self._line)
 				self.inserted.emit()
-			
+			QGraphicsScene.mousePressEvent(self, ev)
 			return
+		QGraphicsScene.mousePressEvent(self, ev)
 			
-	def mouseDoubleClickEvent(self, e):
+	def mouseDoubleClickEvent(self, ev):
 		if self._parentState._sNormal:
 			pos = ev.scenePos()
 			it = self.itemAt(pos, QTransform())
@@ -108,6 +110,9 @@ class PFSScene(QGraphicsScene):
 				self._line = PFSTextBox(self, it)
 				self._tempActivity = it
 				self.addItem(self._line)
+				self._line.setGeometry(it.sceneBoundingRect())
+				self.setFocusItem(self._line)
+		QGraphicsScene.mouseDoubleClickEvent(self, ev)
 		
 	def drawBackground(self, p: QPainter, r: QRect):
 		if not self._paintGrid:
@@ -186,6 +191,8 @@ class PFSPage(QWidget):
 		if l is not None and r is not None and t is not None and b is not None:
 			self._scene.resize(r-l, b-t, l, t)
 			self._net.setSaved(False)
+			self.txtWidth.setText(str(r-l))
+			self.txtHeight.setText(str(b-t))
 	
 	def resizeScene(self):
 		self._scene.resize(int(self.txtWidth.text()), int(self.txtHeight.text()))
