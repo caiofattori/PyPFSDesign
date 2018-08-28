@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QPushButton, QGraphicsProxyWidget, QGraphicsSceneMouseEvent
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QXmlStreamReader
-from PyQt5.QtGui import QMouseEvent, QPainter, QTransform
+from PyQt5.QtGui import QMouseEvent, QPainter, QTransform, QKeyEvent
 from PyQt5.QtXml import QDomDocument, QDomNode
 from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
@@ -11,6 +11,7 @@ class PFSScene(QGraphicsScene):
 	DELTA = 20.0
 	inserted = pyqtSignal()
 	edited = pyqtSignal()
+	shiftInserted = pyqtSignal()
 	def __init__(self, w: int, h: int, parentState: PFSStateMachine, net):
 		super(QGraphicsScene, self).__init__()
 		self._backgroundPoints = []
@@ -21,6 +22,7 @@ class PFSScene(QGraphicsScene):
 		self._tempSource = None
 		self._tempActivity = None
 		self._lastPos = QPoint(0,0)
+		self._lastItemClicked = None
 		
 	def getNewDistributorId(self) -> str:
 		ans = "D" + str(self._net._distributorId)
@@ -49,51 +51,52 @@ class PFSScene(QGraphicsScene):
 		self.update()
 		
 	def mousePressEvent(self, ev: QGraphicsSceneMouseEvent):
-		self._lastPos = ev.screenPos()
+		self._lastPos = ev.scenePos()
+		self._lastItemClicked = self.itemAt(ev.scenePos(), QTransform())
 		if self._parentState._sDistributor:
 			pos = ev.scenePos()
 			self.addItem(PFSDistributor(self.getNewDistributorId(), pos.x(), pos.y()))
-			self.inserted.emit()
+			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
+				self.inserted.emit()
 			self._net.setSaved(False)
 			return
 		if self._parentState._sActivity:
 			pos = ev.scenePos()
 			self.addItem(PFSActivity(self.getNewActivityId(), pos.x(), pos.y(), "Activity"))
-			self.inserted.emit()
+			x = int(ev.modifiers())
+			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
+				self.inserted.emit()
 			self._net.setSaved(False)
 			return
 		if self._parentState._sRelationS:
-			pos = ev.scenePos()
-			it = self.itemAt(pos, QTransform())
+			it = self._lastItemClicked
 			if it is not None:
 				self._tempSource = it
 				self.inserted.emit()
 			return
 		if self._parentState._sRelationT:
-			pos = ev.scenePos()
-			it = self.itemAt(pos, QTransform())
+			it = self._lastItemClicked
 			if it is not None:
 				rel = PFSRelation.createRelation(self.getNewRelationId(), self._tempSource, it)
 				self.addItem(rel)
 				self._net.setSaved(False)
-			self.inserted.emit()
+			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
+				self.inserted.emit()
+			else:
+				self.shiftInserted.emit()
 			self._tempSource = None
 			return
 		if self._parentState._sNormal:
-			pos = ev.scenePos()
-			it = self.itemAt(pos, QTransform())
-			itList = self.selectedItems()
-			for i in itList:
-				i.setSelected(False)
-				i.update()
+			it = self._lastItemClicked
+			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
+				self.clearSelection()
+				QGraphicsScene.mousePressEvent(self, ev)
 			if it is not None:
 				it.setSelected(True)
-				it.update()
-			QGraphicsScene.mousePressEvent(self, ev)
+			self.update()
 			return
 		if self._parentState._sTiping:
-			pos = ev.scenePos()
-			it = self.itemAt(pos, QTransform())
+			it = self._lastItemClicked
 			if it is None or not isinstance(it, QGraphicsProxyWidget):
 				if self._tempActivity is not None:
 					self._tempActivity.setText(self._line.widget().toPlainText())
@@ -102,7 +105,51 @@ class PFSScene(QGraphicsScene):
 			QGraphicsScene.mousePressEvent(self, ev)
 			return
 		QGraphicsScene.mousePressEvent(self, ev)
-			
+	
+	def keyPressEvent(self, ev:QKeyEvent):
+		if self._parentState._sTiping:
+			QGraphicsScene.keyPressEvent(self, ev)
+			return
+		if ev.key() == Qt.Key_Delete:
+			itList = self.selectedItems()
+			for item in itList:
+				self.removeItem(item)
+			self.update()
+			return
+		if ev.key() == Qt.Key_Up:
+			itList = self.selectedItems()
+			for item in itList:
+				item.move(0,-10)
+			self.update()
+			if len(itList) == 0:
+				QGraphicsScene.keyPressEvent(self, ev)
+			return
+		if ev.key() == Qt.Key_Down:
+			itList = self.selectedItems()
+			for item in itList:
+				item.move(0,10)
+			self.update()
+			if len(itList) == 0:
+				QGraphicsScene.keyPressEvent(self, ev)
+			return
+		if ev.key() == Qt.Key_Left:
+			itList = self.selectedItems()
+			for item in itList:
+				item.move(-10,0)
+			self.update()
+			if len(itList) == 0:
+				QGraphicsScene.keyPressEvent(self, ev)
+			return
+		if ev.key() == Qt.Key_Right:
+			itList = self.selectedItems()
+			for item in itList:
+				item.move(10,0)
+			self.update()
+			if len(itList) == 0:
+				QGraphicsScene.keyPressEvent(self, ev)
+			return
+		QGraphicsScene.keyPressEvent(self, ev)
+	
 	def mouseDoubleClickEvent(self, ev):
 		if self._parentState._sNormal:
 			pos = ev.scenePos()
@@ -116,9 +163,14 @@ class PFSScene(QGraphicsScene):
 				self.setFocusItem(self._line)
 		QGraphicsScene.mouseDoubleClickEvent(self, ev)
 	
-	def mouseMoveEvent(self, ev):
+	def mouseMoveEvent(self, ev: QGraphicsSceneMouseEvent):
+		if ev.buttons() == Qt.NoButton:
+			return
+		pos = ev.scenePos()
+		if self._lastItemClicked is None or not self._lastItemClicked.isSelected():
+			return
 		itList = self.selectedItems()
-		pos = ev.screenPos()
+		pos = ev.scenePos()
 		x = pos.x() - self._lastPos.x()
 		y = pos.y() - self._lastPos.y()
 		for item in itList:

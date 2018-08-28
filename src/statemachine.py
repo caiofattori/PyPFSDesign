@@ -76,6 +76,61 @@ class PFSStateTiping(QState):
         self._statusBar.showMessage("")
         self.machine()._sTiping = False
 
+'''class PFSStateKeyNormal(QState):
+    def __init__(self, statusBar: QStatusBar):
+        super(QState, self).__init__()
+
+class PFSStateKeyShift(QState):
+    def __init__(self, statusBar: QStatusBar):
+        super(QState, self).__init__()
+    
+    def onEntry(self, ev: QEvent):
+        self.machine()._sShift = True
+        
+    def onExit(self, ev: QEvent):
+        self.machine()._sShift = False
+        
+class PFSStateKeyControl(QState):
+    def __init__(self, statusBar: QStatusBar):
+        super(QState, self).__init__()
+    
+    def onEntry(self, ev: QEvent):
+        self.machine()._sControl = True
+        
+    def onExit(self, ev: QEvent):
+        self.machine()._sControl = False
+
+class PFSStateMachineKey(QStateMachine):
+    def __init__(self):
+        super(QStateMachine, self).__init__()
+        self._sNormal = False
+        self._sShift = False
+        normal = PFSStateKeyNormal()
+        shift = PFSStateKeyShift()
+        control = normal = PFSStateKeyControl()
+        self.trans1 = None
+        self.trans2 = None
+        self.trans3 = None
+        self.trans4 = None
+        self.normal = normal
+        self.shift = shift
+        self.control = control
+        self.addState(normal)
+        self.addState(shift)
+        self.addState(control)
+        self.setInitialState(normal)
+    
+    def fixTransitions(self, scene):
+        if self.trans1 is not None:
+            self.normal.removeTransition(self.trans1)
+            self.shift.removeTransition(self.trans2)
+            self.normal.removeTransition(self.trans3)
+            self.control.removeTransition(self.trans4)
+        self.trans1 = self.normal.addTransition(scene.shiftKey, self.shift)
+        self.trans2 = self.shift.addTransition(scene.releaseKey, self.normal)
+        self.trans3 = self.normal.addTransition(scene.controlKey, self.control)
+        self.trans4 = self.control.addTransition(scene.releaseKey, self.normal)'''
+
 class PFSStateMachine(QStateMachine):
     def __init__(self, window):
         super(QStateMachine, self).__init__()
@@ -121,6 +176,7 @@ class PFSStateMachine(QStateMachine):
         self.addState(insRelationT)
         self.addState(tiping)
         self.setInitialState(normal)
+        #self.keys = PFSStateMachineKey()
         
     def fixTransitions(self, scene):
         if self.trans1 is not None:
@@ -136,3 +192,5 @@ class PFSStateMachine(QStateMachine):
         self.trans4 = self.insRelationT.addTransition(scene.inserted, self.normal)
         self.trans5 = self.tiping.addTransition(scene.inserted, self.normal)
         self.trans6 = self.normal.addTransition(scene.edited, self.tiping)
+        self.trans7 = self.insRelationT.addTransition(scene.shiftInserted, self.insRelationS)
+        #self.keys.fixTransitions(scene)
