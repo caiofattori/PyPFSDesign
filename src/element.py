@@ -260,6 +260,11 @@ class PFSRelation(PFSElement):
 		PFSXmlBase.graphicsArc(xml, self._midPoints, self._pen)
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
+		
+	def move(self, x, y):
+		delta = QPoint(x, y)
+		for p in self._midPoints:
+			p += delta
 	
 	def createFromXml(node: QDomNode):
 		if node.nodeName() != "relation":

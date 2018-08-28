@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QPushButton, QGraphicsProxyWidget
+from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QPushButton, QGraphicsProxyWidget, QGraphicsSceneMouseEvent
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QXmlStreamReader
 from PyQt5.QtGui import QMouseEvent, QPainter, QTransform
 from PyQt5.QtXml import QDomDocument, QDomNode
@@ -20,6 +20,7 @@ class PFSScene(QGraphicsScene):
 		self._net = net
 		self._tempSource = None
 		self._tempActivity = None
+		self._lastPos = QPoint(0,0)
 		
 	def getNewDistributorId(self) -> str:
 		ans = "D" + str(self._net._distributorId)
@@ -47,7 +48,8 @@ class PFSScene(QGraphicsScene):
 		self._backgroundPoints = [QPoint((i+0.5)*self.DELTA, (j+0.5)*self.DELTA) for i in range(sx) for j in range(sy)]
 		self.update()
 		
-	def mousePressEvent(self, ev: QMouseEvent):
+	def mousePressEvent(self, ev: QGraphicsSceneMouseEvent):
+		self._lastPos = ev.screenPos()
 		if self._parentState._sDistributor:
 			pos = ev.scenePos()
 			self.addItem(PFSDistributor(self.getNewDistributorId(), pos.x(), pos.y()))
@@ -113,6 +115,16 @@ class PFSScene(QGraphicsScene):
 				self._line.setGeometry(it.sceneBoundingRect())
 				self.setFocusItem(self._line)
 		QGraphicsScene.mouseDoubleClickEvent(self, ev)
+	
+	def mouseMoveEvent(self, ev):
+		itList = self.selectedItems()
+		pos = ev.screenPos()
+		x = pos.x() - self._lastPos.x()
+		y = pos.y() - self._lastPos.y()
+		for item in itList:
+			item.move(x, y)
+		self._lastPos = pos
+		self.update()
 		
 	def drawBackground(self, p: QPainter, r: QRect):
 		if not self._paintGrid:

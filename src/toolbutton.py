@@ -28,6 +28,10 @@ class PFSTextBox(QGraphicsProxyWidget):
 			self._scene.inserted.emit()
 			self._scene.removeItem(self)
 			return
+		if ev.key() == Qt.Key_Escape:
+			self._scene.inserted.emit()
+			self._scene.removeItem(self)
+			return			
 		QGraphicsProxyWidget.keyPressEvent(self, ev)
 		r = self._item.fontMetrics().size(Qt.TextExpandTabs, self._item.toPlainText())
 		self._item.setMinimumSize(r.width() + 20, r.height() + 20)
