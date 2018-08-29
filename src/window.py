@@ -111,6 +111,9 @@ class PFSWindow(QWidget):
 		
 	def changeCurrentTabName(self):
 		self._tab.setTabText(self._tab.currentIndex(), self._tab.currentWidget().getTabName())
+	
+	def deleteElements(self):
+		self._tab.currentWidget().deleteElements()
 		
 class PFSMain(QMainWindow):
 	def __init__(self):
@@ -142,12 +145,20 @@ class PFSMain(QMainWindow):
 		self.btnRelation = PFSRelationButton()
 		ac = toolBar.addWidget(self.btnRelation)
 		ac.setVisible(True)
+		toolBar = self.addToolBar("Editing")
+		icoDelete = QIcon.fromTheme("edit-delete", QIcon())
+		actDelete = QAction(icoDelete, "Delete Element", self)
+		actDelete.setShortcuts(QKeySequence.Delete)
+		actDelete.setStatusTip("Remove os elementos do modelo atual")		
+		toolBar.addAction(actDelete)
+		self.actDelete = actDelete
 		self.wind = PFSWindow()
 		self.wind.empty.connect(self.disableButtons)
 		self.wind.nonempty.connect(self.enableButtons)
 		actNew.triggered.connect(self.wind.newNet)
 		actOpen.triggered.connect(self.wind.openNet)
 		actSave.triggered.connect(self.wind.saveNet)
+		actDelete.triggered.connect(self.wind.deleteElements)
 		self.setCentralWidget(self.wind)
 		self.disableButtons()
 		
@@ -159,12 +170,14 @@ class PFSMain(QMainWindow):
 		self.btnDistributor.setEnabled(False)
 		self.btnRelation.setEnabled(False)
 		self.actSave.setEnabled(False)
+		self.actDelete.setEnabled(False)
 		
 	def enableButtons(self):
 		self.btnActivity.setEnabled(True)
 		self.btnDistributor.setEnabled(True)
 		self.btnRelation.setEnabled(True)
-		self.actSave.setEnabled(True)	
+		self.actSave.setEnabled(True)
+		self.actDelete.setEnabled(True)
 
 if __name__ == "__main__":
 	import sys

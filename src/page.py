@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QPushButton, QGraphicsProxyWidget, QGraphicsSceneMouseEvent
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QXmlStreamReader
-from PyQt5.QtGui import QMouseEvent, QPainter, QTransform, QKeyEvent
+from PyQt5.QtGui import QMouseEvent, QPainter, QTransform, QKeyEvent, QKeySequence
 from PyQt5.QtXml import QDomDocument, QDomNode
 from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
@@ -110,12 +110,12 @@ class PFSScene(QGraphicsScene):
 		if self._parentState._sTiping:
 			QGraphicsScene.keyPressEvent(self, ev)
 			return
-		if ev.key() == Qt.Key_Delete:
+		'''if ev.key() == Qt.Key_Delete:
 			itList = self.selectedItems()
 			for item in itList:
 				self.removeItem(item)
 			self.update()
-			return
+			return'''
 		if ev.key() == Qt.Key_Up:
 			itList = self.selectedItems()
 			for item in itList:
@@ -382,7 +382,10 @@ class PFSNet(QWidget):
 		self._saved = True
 		self._distributorId = 0
 		self._activityId = 0
-		self._relationId = 0		
+		self._relationId = 0
+		#self.undoStack = QUndoStack(self)
+		#self.undoAction = self.undoStack.createUndoAction(self, "Desfazer")
+		#self.undoAction.setShortcuts(QKeySequence.Undo)
 		
 	def generateXml(self, xml: QXmlStreamWriter):
 		xml.writeStartDocument()
@@ -445,3 +448,7 @@ class PFSNet(QWidget):
 	def setSaved(self, value: bool=True):
 		self._saved = value
 		self.changed.emit()
+		
+	def deleteElements(self):
+		for item in self._pages[0]._scene.selectedItems():
+			self._pages[0]._scene.removeItem(item)
