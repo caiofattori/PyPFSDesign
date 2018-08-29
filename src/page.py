@@ -5,7 +5,7 @@ from PyQt5.QtXml import QDomDocument, QDomNode
 from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
-from toolbutton import PFSTextBox
+from extra import PFSTextBox
 
 class PFSScene(QGraphicsScene):
 	DELTA = 20.0
