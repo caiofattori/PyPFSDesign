@@ -61,8 +61,10 @@ class PFSScene(QGraphicsScene):
 			self._net.setSaved(False)
 			return
 		if self._parentState._sActivity:
+			print("aqui1")
 			pos = ev.scenePos()
 			self.addItem(PFSActivity(self.getNewActivityId(), pos.x(), pos.y(), "Activity"))
+			print("aqui2")
 			x = int(ev.modifiers())
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.inserted.emit()

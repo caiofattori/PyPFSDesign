@@ -146,7 +146,7 @@ class PFSMain(QMainWindow):
 		ac = toolBar.addWidget(self.btnRelation)
 		ac.setVisible(True)
 		toolBar = self.addToolBar("Editing")
-		icoDelete = QIcon.fromTheme("edit-delete", QIcon())
+		icoDelete = QIcon.fromTheme("edit-delete", QIcon("../icons/edit-delete.svg"))
 		actDelete = QAction(icoDelete, "Delete Element", self)
 		actDelete.setShortcuts(QKeySequence.Delete)
 		actDelete.setStatusTip("Remove os elementos do modelo atual")		
