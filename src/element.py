@@ -196,12 +196,16 @@ class PFSRelation(PFSElement):
 				r = PFSRelation(id, source, target)
 				source.changed.connect(r.updatePoints)
 				target.changed.connect(r.updatePoints)
+				source.deleted.connect(r.putInDeleted)
+				target.deleted.connect(r.putInDeleted)
 				return r
 		elif isinstance(source, PFSDistributor):
 			if isinstance(target, PFSActivity):
 				r = PFSRelation(id, source, target)
 				source.changed.connect(r.updatePoints)
 				target.changed.connect(r.updatePoints)
+				source.deleted.connect(r.putInDeleted)
+				target.deleted.connect(r.putInDeleted)
 				return r
 		return None
 	
@@ -320,4 +324,10 @@ class PFSRelation(PFSElement):
 		finalPolygon.append(self._firstPoint)
 		path.addPolygon(finalPolygon)
 		return path
+		
+	def putInDelete(self):
+		if self.scene() is not None:
+			lst = self.scene()._itemsDeleted
+			if self not in lst:
+				lst.append(self)
 		

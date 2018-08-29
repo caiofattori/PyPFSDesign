@@ -6,6 +6,7 @@ from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from extra import PFSTextBox
+from undo import PFSUndoDelete
 
 class PFSScene(QGraphicsScene):
 	DELTA = 20.0
@@ -61,10 +62,8 @@ class PFSScene(QGraphicsScene):
 			self._net.setSaved(False)
 			return
 		if self._parentState._sActivity:
-			print("aqui1")
 			pos = ev.scenePos()
 			self.addItem(PFSActivity(self.getNewActivityId(), pos.x(), pos.y(), "Activity"))
-			print("aqui2")
 			x = int(ev.modifiers())
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.inserted.emit()
@@ -452,5 +451,8 @@ class PFSNet(QWidget):
 		self.changed.emit()
 		
 	def deleteElements(self):
-		for item in self._pages[0]._scene.selectedItems():
-			self._pages[0]._scene.removeItem(item)
+		self._itemsDeleted = self._pages[0]._scene.selectedItems()
+		for item in self._itemsDeleted:
+			if isinstance(item, PFSNode):
+				item.deleted.emit()
+		x = PFSUndoDelete(self._itemsDeleted)

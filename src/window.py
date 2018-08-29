@@ -149,9 +149,15 @@ class PFSMain(QMainWindow):
 		icoDelete = QIcon.fromTheme("edit-delete", QIcon("../icons/edit-delete.svg"))
 		actDelete = QAction(icoDelete, "Delete Element", self)
 		actDelete.setShortcuts(QKeySequence.Delete)
-		actDelete.setStatusTip("Remove os elementos do modelo atual")		
+		actDelete.setStatusTip("Remove os elementos do modelo atual")
 		toolBar.addAction(actDelete)
 		self.actDelete = actDelete
+		icoUndo = QIcon.fromTheme("edit-undo", QIcon("../icons/edit-undo.svg"))
+		actUndo = QAction(icoUndo, "Undo Command", self)
+		actUndo.setShortcuts(QKeySequence.Undo)
+		actUndo.setStatusTip("Desfaz última ação")
+		toolBar.addAction(actUndo)
+		self.actUndo = actUndo
 		self.wind = PFSWindow()
 		self.wind.empty.connect(self.disableButtons)
 		self.wind.nonempty.connect(self.enableButtons)

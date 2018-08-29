@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QObject
 
 class PFSSenderSignal(QObject):
 	changed = pyqtSignal()
+	deleted = pyqtSignal()
 	def __init__(self):
 		super(QObject, self).__init__()
 
@@ -21,6 +22,7 @@ class PFSNode(QGraphicsItem):
 		self._id = id
 		self.emitter = PFSSenderSignal()
 		self.changed = self.emitter.changed
+		self.deleted = self.emitter.deleted
 		
 	def move(self, x, y):
 		self._x = self._x + x
