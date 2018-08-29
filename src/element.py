@@ -90,6 +90,10 @@ class PFSActivity(PFSNode):
 		self._text = text
 		if self.scene() is not None:
 			self.scene().update()
+		for r in self._inRelations:
+			r.updatePoints()
+		for r in self._outRelations:
+			r.updatePoints()
 		
 	def setTooltip(self, text: str):
 		self._tooltip = text
@@ -167,15 +171,15 @@ class PFSDistributor(PFSNode):
 		else:
 			p.setPen(Qt.black)
 		rect = self.sceneBoundingRect()
-		p.drawEllipse(rect.left(), rect.top(), rect.width() - 2, rect.height() - 2)
+		p.drawEllipse(rect.left()+1, rect.top()+1, rect.width() - 2, rect.height() - 2)
 	
 	def boundingRect(self):
 		return QRectF(self._x, self._y, self._diameterX + 2, self._diameterY + 2)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
 		c = self.sceneBoundingRect().center()
-		ang = math.atan2(p.y()-c.y(), p.x()-c.x())
-		return QPoint(self._diameterX/2*math.cos(ang) + c.x(), self._diameterY/2*math.sin(ang) + c.y())
+		ang = math.atan2(p.y()-c.y()+1, p.x()-c.x()+1)
+		return QPoint(math.cos(ang)*self._diameterX/2 + c.x() - 1, math.sin(ang)*self._diameterY/2 + c.y()-1)
 		
 class PFSRelation(PFSElement):
 	def __init__(self, id: str, source: PFSNode, target: PFSNode):
@@ -208,8 +212,12 @@ class PFSRelation(PFSElement):
 	
 	def updatePoints(self):
 		if len(self._midPoints) == 0:
-			self._firstPoint = self._source.getBestRelationPoint(self._target.sceneBoundingRect().center())
-			self._lastPoint = self._target.getBestRelationPoint(self._source.sceneBoundingRect().center())
+			if isinstance(self._source, PFSActivity):
+				self._firstPoint = self._source.getBestRelationPoint(self._target.sceneBoundingRect().center())
+				self._lastPoint = self._target.getBestRelationPoint(self._firstPoint)
+			else:
+				self._lastPoint = self._target.getBestRelationPoint(self._source.sceneBoundingRect().center())
+				self._firstPoint = self._source.getBestRelationPoint(self._lastPoint)
 		else:
 			self._firstPoint = self._source.getBestRelationPoint(self._midPoints[0])
 			self._lastPoint = self._target.getBestRelationPoint(self._midPoints[-1])

@@ -12,61 +12,73 @@ class PFSStateNormal(QState):
         self.machine()._sNormal = False
         
 class PFSStateInsActivity(QState):
-    def __init__(self, statusBar: QStatusBar):
+    def __init__(self, window):
         super(QState, self).__init__()
-        self._statusBar = statusBar
+        self._statusBar = window.statusBar()
+        self._button = window.btnActivity
         
     def onEntry(self, ev: QEvent):
         self._statusBar.showMessage("Clique na tela para adicionar uma Atividade")
+        self._button.setChecked(True)
         self.machine()._sActivity = True
         
     def onExit(self, ev: QEvent):
         self._statusBar.showMessage("")
+        self._button.setChecked(False)
         self.machine()._sActivity = False
 
 class PFSStateInsDistributor(QState):
-    def __init__(self, statusBar: QStatusBar):
+    def __init__(self, window):
         super(QState, self).__init__()
-        self._statusBar = statusBar
+        self._statusBar = window.statusBar()
+        self._button = window.btnDistributor
     
     def onEntry(self, ev: QEvent):
         self._statusBar.showMessage("Clique na tela para adicionar um Distribuidor")
+        self._button.setChecked(True)
         self.machine()._sDistributor = True
         
     def onExit(self, ev: QEvent):
         self._statusBar.showMessage("")
+        self._button.setChecked(False)
         self.machine()._sDistributor = False
 
 class PFSStateInsRelationSource(QState):
-    def __init__(self, statusBar: QStatusBar):
+    def __init__(self, window):
         super(QState, self).__init__()
-        self._statusBar = statusBar
+        self._statusBar = window.statusBar()
+        self._button = window.btnRelation
     
     def onEntry(self, ev: QEvent):
         self._statusBar.showMessage("Selecione o nó de origem")
+        self._button.setChecked(True)
         self.machine()._sRelationS = True
         
     def onExit(self, ev: QEvent):
         self._statusBar.showMessage("")
+        self._button.setChecked(False)
         self.machine()._sRelationS = False
 
 class PFSStateInsRelationTarget(QState):
-    def __init__(self, statusBar: QStatusBar):
+    def __init__(self, window):
         super(QState, self).__init__()
-        self._statusBar = statusBar
+        self._statusBar = window.statusBar()
+        self._button = window.btnRelation
     
     def onEntry(self, ev: QEvent):
         self._statusBar.showMessage("Selecione o nó de destino")
+        self._button.setChecked(True)
         self.machine()._sRelationT = True
         
     def onExit(self, ev: QEvent):
         self._statusBar.showMessage("")
+        self._button.setChecked(False)
         self.machine()._sRelationT = False
         
 class PFSStateTiping(QState):
-    def __init__(self, statusBar: QStatusBar):
+    def __init__(self, window):
         super(QState, self).__init__()
-        self._statusBar = statusBar
+        self._statusBar = window.statusBar()
     
     def onEntry(self, ev: QEvent):
         self._statusBar.showMessage("Editando atividade")
@@ -75,61 +87,6 @@ class PFSStateTiping(QState):
     def onExit(self, ev: QEvent):
         self._statusBar.showMessage("")
         self.machine()._sTiping = False
-
-'''class PFSStateKeyNormal(QState):
-    def __init__(self, statusBar: QStatusBar):
-        super(QState, self).__init__()
-
-class PFSStateKeyShift(QState):
-    def __init__(self, statusBar: QStatusBar):
-        super(QState, self).__init__()
-    
-    def onEntry(self, ev: QEvent):
-        self.machine()._sShift = True
-        
-    def onExit(self, ev: QEvent):
-        self.machine()._sShift = False
-        
-class PFSStateKeyControl(QState):
-    def __init__(self, statusBar: QStatusBar):
-        super(QState, self).__init__()
-    
-    def onEntry(self, ev: QEvent):
-        self.machine()._sControl = True
-        
-    def onExit(self, ev: QEvent):
-        self.machine()._sControl = False
-
-class PFSStateMachineKey(QStateMachine):
-    def __init__(self):
-        super(QStateMachine, self).__init__()
-        self._sNormal = False
-        self._sShift = False
-        normal = PFSStateKeyNormal()
-        shift = PFSStateKeyShift()
-        control = normal = PFSStateKeyControl()
-        self.trans1 = None
-        self.trans2 = None
-        self.trans3 = None
-        self.trans4 = None
-        self.normal = normal
-        self.shift = shift
-        self.control = control
-        self.addState(normal)
-        self.addState(shift)
-        self.addState(control)
-        self.setInitialState(normal)
-    
-    def fixTransitions(self, scene):
-        if self.trans1 is not None:
-            self.normal.removeTransition(self.trans1)
-            self.shift.removeTransition(self.trans2)
-            self.normal.removeTransition(self.trans3)
-            self.control.removeTransition(self.trans4)
-        self.trans1 = self.normal.addTransition(scene.shiftKey, self.shift)
-        self.trans2 = self.shift.addTransition(scene.releaseKey, self.normal)
-        self.trans3 = self.normal.addTransition(scene.controlKey, self.control)
-        self.trans4 = self.control.addTransition(scene.releaseKey, self.normal)'''
 
 class PFSStateMachine(QStateMachine):
     def __init__(self, window):
@@ -141,19 +98,23 @@ class PFSStateMachine(QStateMachine):
         self._sRelationT = False
         self._sTiping = False
         normal = PFSStateNormal()
-        insActivity = PFSStateInsActivity(window.statusBar())
-        insDistributor = PFSStateInsDistributor(window.statusBar())
-        insRelationS = PFSStateInsRelationSource(window.statusBar())
-        insRelationT = PFSStateInsRelationTarget(window.statusBar())
-        tiping = PFSStateTiping(window.statusBar())
+        insActivity = PFSStateInsActivity(window)
+        insDistributor = PFSStateInsDistributor(window)
+        insRelationS = PFSStateInsRelationSource(window)
+        insRelationT = PFSStateInsRelationTarget(window)
+        tiping = PFSStateTiping(window)
         normal.addTransition(window.btnActivity.clicked, insActivity)
         normal.addTransition(window.btnDistributor.clicked, insDistributor)
         normal.addTransition(window.btnRelation.clicked, insRelationS)
         insDistributor.addTransition(window.btnActivity.clicked, insActivity)
+        insDistributor.addTransition(window.btnDistributor.clicked, normal)
         insActivity.addTransition(window.btnDistributor.clicked, insDistributor)
+        insActivity.addTransition(window.btnActivity.clicked, normal)
         insDistributor.addTransition(window.btnRelation.clicked, insRelationS)
         insRelationS.addTransition(window.btnDistributor.clicked, insDistributor)
+        insRelationS.addTransition(window.btnRelation.clicked, normal)
         insRelationT.addTransition(window.btnDistributor.clicked, insDistributor)
+        insRelationT.addTransition(window.btnRelation.clicked, normal)
         insActivity.addTransition(window.btnRelation.clicked, insRelationS)
         insRelationS.addTransition(window.btnActivity.clicked, insActivity)
         insRelationT.addTransition(window.btnActivity.clicked, insActivity)
@@ -176,7 +137,6 @@ class PFSStateMachine(QStateMachine):
         self.addState(insRelationT)
         self.addState(tiping)
         self.setInitialState(normal)
-        #self.keys = PFSStateMachineKey()
         
     def fixTransitions(self, scene):
         if self.trans1 is not None:
@@ -193,4 +153,3 @@ class PFSStateMachine(QStateMachine):
         self.trans5 = self.tiping.addTransition(scene.inserted, self.normal)
         self.trans6 = self.normal.addTransition(scene.edited, self.tiping)
         self.trans7 = self.insRelationT.addTransition(scene.shiftInserted, self.insRelationS)
-        #self.keys.fixTransitions(scene)

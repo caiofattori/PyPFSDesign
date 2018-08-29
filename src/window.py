@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog
-from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir
+from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog, QMessageBox
+from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir, pyqtSignal
 from PyQt5.QtXml import QDomDocument
 from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton
 from page import PFSNet
@@ -8,6 +8,8 @@ from statemachine import PFSStateMachine
 from xml import PFSXmlBase
 
 class PFSWindow(QWidget):
+	empty = pyqtSignal()
+	nonempty = pyqtSignal()
 	def __init__(self):
 		super(QWidget, self).__init__()
 		mainLayout = QHBoxLayout()
@@ -18,11 +20,29 @@ class PFSWindow(QWidget):
 		self._idNet = 0
 		self._lastPath = "./"
 		self._tab.currentChanged.connect(self.changeTab)
+		self._tab.tabCloseRequested.connect(self.closeTab)
+		self._tab.setTabsClosable(True)
 	
 	def changeTab(self, index: int):
+		if index <= 0:
+			return
 		net = self._tab.widget(index)
 		if net._filepath is not None:
 			self._lastPath = net._filepath
+			
+	def closeTab(self, index: int):
+		self._tab.setCurrentIndex(index)
+		if not self._tab.widget(index).isSaved():
+			ans = QMessageBox.question(self, "Arquivo não salvo...", "Deseja salvar o arquivo antes de fechá-lo?", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+			if ans == QMessageBox.Cancel:
+				return
+			if ans == QMessageBox.Save:
+				self.saveNet()
+		if self._tab.count() == 1:
+			self.empty.emit()
+		self._tab.removeTab(index)
+
+			
 	
 	def setStateMachine(self, sm: PFSStateMachine):
 		self._sm = sm
@@ -34,6 +54,7 @@ class PFSWindow(QWidget):
 		i = self._tab.addTab(w, w.getTabName())
 		self._tab.setCurrentIndex(i)
 		self._sm.fixTransitions(w._pages[0]._scene)
+		self.nonempty.emit()
 	
 	def saveNet(self):
 		net = self._tab.currentWidget()
@@ -76,6 +97,7 @@ class PFSWindow(QWidget):
 		nets = PFSNet.createFromXml(doc, self._sm)
 		if len(nets) == 0:
 			return
+		self.nonempty.emit()
 		for net in nets:
 			f = QFileInfo(filename)
 			net._filename = f.fileName()
@@ -93,26 +115,23 @@ class PFSWindow(QWidget):
 class PFSMain(QMainWindow):
 	def __init__(self):
 		super(QMainWindow, self).__init__()
-		self.wind = PFSWindow()
 		icoNew = QIcon.fromTheme("document-new", QIcon("../icons/document-new.svg"))
 		actNew = QAction(icoNew, "New Model", self)
 		actNew.setShortcuts(QKeySequence.New)
 		actNew.setStatusTip("Cria um novo arquivo de modelo")
-		actNew.triggered.connect(self.wind.newNet)
-		icoSave = QIcon.fromTheme("document-save", QIcon("../icons/document-save.svg"))
-		actSave = QAction(icoSave, "Save Model", self)
-		actSave.setShortcuts(QKeySequence.Save)
-		actSave.setStatusTip("Salva o modelo em um arquivo")
-		actSave.triggered.connect(self.wind.saveNet)
 		icoOpen = QIcon.fromTheme("document-open", QIcon("../icons/document-open.svg"))
 		actOpen = QAction(icoOpen, "Open Model", self)
 		actOpen.setShortcuts(QKeySequence.Open)
 		actOpen.setStatusTip("Abre um arquivo com modelo")
-		actOpen.triggered.connect(self.wind.openNet)
+		icoSave = QIcon.fromTheme("document-save", QIcon("../icons/document-save.svg"))
+		actSave = QAction(icoSave, "Save Model", self)
+		actSave.setShortcuts(QKeySequence.Save)
+		actSave.setStatusTip("Salva o modelo em um arquivo")
+		self.actSave = actSave		
 		toolBar = self.addToolBar("Basic")
 		toolBar.addAction(actNew)
-		toolBar.addAction(actSave)
 		toolBar.addAction(actOpen)
+		toolBar.addAction(actSave)
 		toolBar = self.addToolBar("Elements")
 		self.btnActivity = PFSActivityButton()
 		ac = toolBar.addWidget(self.btnActivity)
@@ -122,11 +141,30 @@ class PFSMain(QMainWindow):
 		ac.setVisible(True)
 		self.btnRelation = PFSRelationButton()
 		ac = toolBar.addWidget(self.btnRelation)
-		ac.setVisible(True)		
+		ac.setVisible(True)
+		self.wind = PFSWindow()
+		self.wind.empty.connect(self.disableButtons)
+		self.wind.nonempty.connect(self.enableButtons)
+		actNew.triggered.connect(self.wind.newNet)
+		actOpen.triggered.connect(self.wind.openNet)
+		actSave.triggered.connect(self.wind.saveNet)
 		self.setCentralWidget(self.wind)
+		self.disableButtons()
 		
 	def setStateMachine(self, sm: PFSStateMachine):
 		self.wind.setStateMachine(sm)
+		
+	def disableButtons(self):
+		self.btnActivity.setEnabled(False)
+		self.btnDistributor.setEnabled(False)
+		self.btnRelation.setEnabled(False)
+		self.actSave.setEnabled(False)
+		
+	def enableButtons(self):
+		self.btnActivity.setEnabled(True)
+		self.btnDistributor.setEnabled(True)
+		self.btnRelation.setEnabled(True)
+		self.actSave.setEnabled(True)	
 
 if __name__ == "__main__":
 	import sys
