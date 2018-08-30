@@ -10,7 +10,7 @@ from xml import PFSXmlBase
 class PFSWindow(QWidget):
 	empty = pyqtSignal()
 	nonempty = pyqtSignal()
-	def __init__(self):
+	def __init__(self, main):
 		super(QWidget, self).__init__()
 		mainLayout = QHBoxLayout()
 		self.setLayout(mainLayout)
@@ -22,17 +22,19 @@ class PFSWindow(QWidget):
 		self._tab.currentChanged.connect(self.changeTab)
 		self._tab.tabCloseRequested.connect(self.closeTab)
 		self._tab.setTabsClosable(True)
+		self._main = main
 	
 	def changeTab(self, index: int):
 		if index <= 0:
 			return
 		net = self._tab.widget(index)
+		self.updateUndoRedoAction()
 		if net._filepath is not None:
 			self._lastPath = net._filepath
 			
 	def closeTab(self, index: int):
 		self._tab.setCurrentIndex(index)
-		if not self._tab.widget(index).isSaved():
+		if not self._tab.widget(index).undoStack.isClean():
 			ans = QMessageBox.question(self, "Arquivo não salvo...", "Deseja salvar o arquivo antes de fechá-lo?", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
 			if ans == QMessageBox.Cancel:
 				return
@@ -41,20 +43,20 @@ class PFSWindow(QWidget):
 		if self._tab.count() == 1:
 			self.empty.emit()
 		self._tab.removeTab(index)
-
-			
 	
 	def setStateMachine(self, sm: PFSStateMachine):
 		self._sm = sm
 		
 	def newNet(self):
 		w = PFSNet.newNet("n" + str(self._idNet), self._sm)
-		w.changed.connect(self.changeCurrentTabName)
+		w.undoStack.cleanChanged.connect(self.changeCurrentTabName)
 		self._idNet = self._idNet + 1
 		i = self._tab.addTab(w, w.getTabName())
 		self._tab.setCurrentIndex(i)
 		self._sm.fixTransitions(w._pages[0]._scene)
 		self.nonempty.emit()
+		if self._tab.count() == 1:
+			self.updateUndoRedoAction()
 	
 	def saveNet(self):
 		net = self._tab.currentWidget()
@@ -78,7 +80,7 @@ class PFSWindow(QWidget):
 			xml = QXmlStreamWriter(file)
 			net.generateXml(xml)
 			file.close()
-		net.setSaved(True)
+		net.undoStack.setClean()
 		self._lastPath = net._filepath
 		
 	def openNet(self):
@@ -104,13 +106,23 @@ class PFSWindow(QWidget):
 			net._filepath = f.absolutePath()
 			file.close()
 			self._lastPath = net._filepath
-			net.changed.connect(self.changeCurrentTabName)
+			net.undoStack.cleanChanged.connect(self.changeCurrentTabName)
 			self._idNet = self._idNet + 1
 			i = self._tab.addTab(net, net.getTabName())
 			self._tab.setCurrentIndex(i)
-		
-	def changeCurrentTabName(self):
+			if self._tab.count() == 1:
+				self.updateUndoRedoAction()
+	
+	def updateUndoRedoAction(self):
+		self._main.undoToolBar.clear()
+		self._main.undoToolBar.addAction(self._tab.currentWidget().undoAction)
+		self._main.undoToolBar.addAction(self._tab.currentWidget().redoAction)
+	
+	def changeCurrentTabName(self, value):
 		self._tab.setTabText(self._tab.currentIndex(), self._tab.currentWidget().getTabName())
+	
+	def deleteElements(self):
+		self._tab.currentWidget().deleteElements()
 		
 class PFSMain(QMainWindow):
 	def __init__(self):
@@ -142,12 +154,21 @@ class PFSMain(QMainWindow):
 		self.btnRelation = PFSRelationButton()
 		ac = toolBar.addWidget(self.btnRelation)
 		ac.setVisible(True)
-		self.wind = PFSWindow()
+		toolBar = self.addToolBar("Editing")
+		icoDelete = QIcon.fromTheme("edit-delete", QIcon("../icons/edit-delete.svg"))
+		actDelete = QAction(icoDelete, "Delete Element", self)
+		actDelete.setShortcuts(QKeySequence.Delete)
+		actDelete.setStatusTip("Remove os elementos do modelo atual")
+		toolBar.addAction(actDelete)
+		self.actDelete = actDelete
+		self.undoToolBar = self.addToolBar("Undo-Redo")
+		self.wind = PFSWindow(self)
 		self.wind.empty.connect(self.disableButtons)
 		self.wind.nonempty.connect(self.enableButtons)
 		actNew.triggered.connect(self.wind.newNet)
 		actOpen.triggered.connect(self.wind.openNet)
 		actSave.triggered.connect(self.wind.saveNet)
+		actDelete.triggered.connect(self.wind.deleteElements)
 		self.setCentralWidget(self.wind)
 		self.disableButtons()
 		
@@ -159,12 +180,14 @@ class PFSMain(QMainWindow):
 		self.btnDistributor.setEnabled(False)
 		self.btnRelation.setEnabled(False)
 		self.actSave.setEnabled(False)
+		self.actDelete.setEnabled(False)
 		
 	def enableButtons(self):
 		self.btnActivity.setEnabled(True)
 		self.btnDistributor.setEnabled(True)
 		self.btnRelation.setEnabled(True)
-		self.actSave.setEnabled(True)	
+		self.actSave.setEnabled(True)
+		self.actDelete.setEnabled(True)
 
 if __name__ == "__main__":
 	import sys

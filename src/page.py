@@ -1,11 +1,16 @@
-from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QPushButton, QGraphicsProxyWidget, QGraphicsSceneMouseEvent
+from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout
+from PyQt5.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget
+from PyQt5.QtWidgets import QPushButton, QGraphicsProxyWidget, QGraphicsSceneMouseEvent
+from PyQt5.QtWidgets import QUndoStack
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QXmlStreamReader
-from PyQt5.QtGui import QMouseEvent, QPainter, QTransform, QKeyEvent
+from PyQt5.QtGui import QMouseEvent, QPainter, QTransform, QKeyEvent, QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
+from generic import PFSNode
 from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from extra import PFSTextBox
+from undo import *
 
 class PFSScene(QGraphicsScene):
 	DELTA = 20.0
@@ -55,18 +60,19 @@ class PFSScene(QGraphicsScene):
 		self._lastItemClicked = self.itemAt(ev.scenePos(), QTransform())
 		if self._parentState._sDistributor:
 			pos = ev.scenePos()
-			self.addItem(PFSDistributor(self.getNewDistributorId(), pos.x(), pos.y()))
+			elem = PFSDistributor(self.getNewDistributorId(), pos.x(), pos.y())
+			x = PFSUndoAdd([elem], self)
+			self._net.undoStack.push(x)
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.inserted.emit()
-			self._net.setSaved(False)
 			return
 		if self._parentState._sActivity:
 			pos = ev.scenePos()
-			self.addItem(PFSActivity(self.getNewActivityId(), pos.x(), pos.y(), "Activity"))
-			x = int(ev.modifiers())
+			elem = PFSActivity(self.getNewActivityId(), pos.x(), pos.y(), "Activity")
+			x = PFSUndoAdd([elem], self)
+			self._net.undoStack.push(x)
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.inserted.emit()
-			self._net.setSaved(False)
 			return
 		if self._parentState._sRelationS:
 			it = self._lastItemClicked
@@ -77,9 +83,10 @@ class PFSScene(QGraphicsScene):
 		if self._parentState._sRelationT:
 			it = self._lastItemClicked
 			if it is not None:
-				rel = PFSRelation.createRelation(self.getNewRelationId(), self._tempSource, it)
-				self.addItem(rel)
-				self._net.setSaved(False)
+				elem = PFSRelation.createRelation(self.getNewRelationId(), self._tempSource, it)
+				if elem is not None:
+					x = PFSUndoAdd([elem], self)
+					self._net.undoStack.push(x)				
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.inserted.emit()
 			else:
@@ -99,7 +106,8 @@ class PFSScene(QGraphicsScene):
 			it = self._lastItemClicked
 			if it is None or not isinstance(it, QGraphicsProxyWidget):
 				if self._tempActivity is not None:
-					self._tempActivity.setText(self._line.widget().toPlainText())
+					x = PFSUndoSetText(self._tempActivity, self._line.widget().toPlainText(), self)
+					self._net.undoStack.push(x)					
 				self.removeItem(self._line)
 				self.inserted.emit()
 			QGraphicsScene.mousePressEvent(self, ev)
@@ -110,42 +118,36 @@ class PFSScene(QGraphicsScene):
 		if self._parentState._sTiping:
 			QGraphicsScene.keyPressEvent(self, ev)
 			return
-		if ev.key() == Qt.Key_Delete:
-			itList = self.selectedItems()
-			for item in itList:
-				self.removeItem(item)
-			self.update()
-			return
 		if ev.key() == Qt.Key_Up:
 			itList = self.selectedItems()
-			for item in itList:
-				item.move(0,-10)
-			self.update()
-			if len(itList) == 0:
+			if len(itList) > 0:
+				x = PFSUndoKeyMove(itList, 0, -10)
+				self._net.undoStack.push(x)
+			else:
 				QGraphicsScene.keyPressEvent(self, ev)
 			return
 		if ev.key() == Qt.Key_Down:
 			itList = self.selectedItems()
-			for item in itList:
-				item.move(0,10)
-			self.update()
-			if len(itList) == 0:
+			if len(itList) > 0:
+				x = PFSUndoKeyMove(itList, 0, 10)
+				self._net.undoStack.push(x)
+			else:
 				QGraphicsScene.keyPressEvent(self, ev)
 			return
 		if ev.key() == Qt.Key_Left:
 			itList = self.selectedItems()
-			for item in itList:
-				item.move(-10,0)
-			self.update()
-			if len(itList) == 0:
+			if len(itList) > 0:
+				x = PFSUndoKeyMove(itList, -10, 0)
+				self._net.undoStack.push(x)
+			else:
 				QGraphicsScene.keyPressEvent(self, ev)
 			return
 		if ev.key() == Qt.Key_Right:
 			itList = self.selectedItems()
-			for item in itList:
-				item.move(10,0)
-			self.update()
-			if len(itList) == 0:
+			if len(itList) > 0:
+				x = PFSUndoKeyMove(itList, 10, 0)
+				self._net.undoStack.push(x)
+			else:
 				QGraphicsScene.keyPressEvent(self, ev)
 			return
 		QGraphicsScene.keyPressEvent(self, ev)
@@ -170,13 +172,14 @@ class PFSScene(QGraphicsScene):
 		if self._lastItemClicked is None or not self._lastItemClicked.isSelected():
 			return
 		itList = self.selectedItems()
-		pos = ev.scenePos()
-		x = pos.x() - self._lastPos.x()
-		y = pos.y() - self._lastPos.y()
-		for item in itList:
-			item.move(x, y)
-		self._lastPos = pos
-		self.update()
+		if len(itList) > 0:
+			pos = ev.scenePos()
+			x = pos.x() - self._lastPos.x()
+			y = pos.y() - self._lastPos.y()
+			x = PFSUndoMouseMove(itList, x, y)
+			self._net.undoStack.push(x)
+			self._lastPos = pos
+			self.update()
 		
 	def drawBackground(self, p: QPainter, r: QRect):
 		if not self._paintGrid:
@@ -253,14 +256,12 @@ class PFSPage(QWidget):
 				if r is None or rect.right() > r:
 					r = rect.right()
 		if l is not None and r is not None and t is not None and b is not None:
-			self._scene.resize(r-l, b-t, l, t)
-			self._net.setSaved(False)
-			self.txtWidth.setText(str(r-l))
-			self.txtHeight.setText(str(b-t))
+			x = PFSUndoRectPage(self._scene, self.txtWidth, self.txtHeight, QRect(l, t, r-l, b-t,))
+			self._net.undoStack.push(x)
 	
 	def resizeScene(self):
-		self._scene.resize(int(self.txtWidth.text()), int(self.txtHeight.text()))
-		self._net.setSaved(False)
+		x = PFSUndoResizePage(self._scene, self.txtWidth, self.txtHeight)
+		self._net.undoStack.push(x)
 	
 	def getTabName(self) -> str:
 		if self._file is None:
@@ -379,10 +380,16 @@ class PFSNet(QWidget):
 		self._pages = []
 		self._idPage = 0
 		self._sm = sm
-		self._saved = True
 		self._distributorId = 0
 		self._activityId = 0
-		self._relationId = 0		
+		self._relationId = 0
+		self.undoStack = QUndoStack(self)
+		self.undoAction = self.undoStack.createUndoAction(self, "Desfazer")
+		self.undoAction.setShortcuts(QKeySequence.Undo)
+		self.undoAction.setIcon(QIcon.fromTheme("edit-undo", QIcon("../icons/edit-undo.svg")))
+		self.redoAction = self.undoStack.createRedoAction(self, "Refazer")
+		self.redoAction.setShortcuts(QKeySequence.Redo)
+		self.redoAction.setIcon(QIcon.fromTheme("edit-redo", QIcon("../icons/edit-redo.svg")))		
 		
 	def generateXml(self, xml: QXmlStreamWriter):
 		xml.writeStartDocument()
@@ -421,16 +428,13 @@ class PFSNet(QWidget):
 				net._layout.addWidget(pages[0])
 				nets.append(net)
 		return nets	
-		
-	def isSaved(self) -> bool:
-		return self._saved
 	
 	def getTabName(self) -> str:
 		if self._filename is None:
 			ans = "New model"
 		else:
 			ans = self._filename
-		if self.isSaved():
+		if self.undoStack.isClean():
 			return ans
 		return ans + "*"
 		
@@ -441,7 +445,15 @@ class PFSNet(QWidget):
 		ans._pages.append(page)
 		ans._layout.addWidget(page)
 		return ans
-	
-	def setSaved(self, value: bool=True):
-		self._saved = value
-		self.changed.emit()
+		
+	def deleteElements(self):
+		if len(self._pages) > 1:
+			scene = self._tab.currentWidget()._scene
+		elif len(self._pages) == 1:
+			scene = self._pages[0]._scene
+		scene._itemsDeleted = scene.selectedItems()
+		for item in scene._itemsDeleted:
+			if isinstance(item, PFSNode):
+				item.deleted.emit()
+		x = PFSUndoDelete(scene._itemsDeleted)
+		self.undoStack.push(x)

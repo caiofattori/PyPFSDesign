@@ -90,10 +90,10 @@ class PFSActivity(PFSNode):
 		self._text = text
 		if self.scene() is not None:
 			self.scene().update()
-		for r in self._inRelations:
-			r.updatePoints()
-		for r in self._outRelations:
-			r.updatePoints()
+			self.changed.emit()
+	
+	def getText(self):
+		return self._text
 		
 	def setTooltip(self, text: str):
 		self._tooltip = text
@@ -193,21 +193,23 @@ class PFSRelation(PFSElement):
 		self._pen = QPen(Qt.black)
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 		
-	def __del__(self):
-		self._source.remInRelation(self)
-		self._target.remOutRelation(self)
-		
 	def createRelation(id: str, source: PFSNode, target: PFSNode):
 		if isinstance(source, PFSActivity):
 			if isinstance(target, PFSDistributor):
 				r = PFSRelation(id, source, target)
-				if source.addInRelation(r) and target.addOutRelation(r):
-					return r
+				source.changed.connect(r.updatePoints)
+				target.changed.connect(r.updatePoints)
+				source.deleted.connect(r.putInDelete)
+				target.deleted.connect(r.putInDelete)
+				return r
 		elif isinstance(source, PFSDistributor):
 			if isinstance(target, PFSActivity):
 				r = PFSRelation(id, source, target)
-				if source.addInRelation(r) and target.addOutRelation(r):
-					return r
+				source.changed.connect(r.updatePoints)
+				target.changed.connect(r.updatePoints)
+				source.deleted.connect(r.putInDelete)
+				target.deleted.connect(r.putInDelete)
+				return r
 		return None
 	
 	def updatePoints(self):
@@ -325,4 +327,10 @@ class PFSRelation(PFSElement):
 		finalPolygon.append(self._firstPoint)
 		path.addPolygon(finalPolygon)
 		return path
+		
+	def putInDelete(self):
+		if self.scene() is not None:
+			lst = self.scene()._itemsDeleted
+			if self not in lst:
+				lst.append(self)
 		
