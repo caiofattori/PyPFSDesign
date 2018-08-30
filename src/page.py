@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget
 from PyQt5.QtWidgets import QPushButton, QGraphicsProxyWidget, QGraphicsSceneMouseEvent
-from PyQt5.QtWidgets import QUndoStack
+from PyQt5.QtWidgets import QUndoStack, QTableWidget, QTableWidgetItem
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QXmlStreamReader
 from PyQt5.QtGui import QMouseEvent, QPainter, QTransform, QKeyEvent, QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
@@ -28,6 +28,22 @@ class PFSScene(QGraphicsScene):
 		self._tempActivity = None
 		self._lastPos = QPoint(0,0)
 		self._lastItemClicked = None
+		
+	def propertiesTable(self):
+		ans = []
+		lblType = QTableWidgetItem("Elemento")
+		lblValue = QTableWidgetItem("Page")
+		ans.append([lblType, lblValue])
+		lblType = QTableWidgetItem("ID")
+		lblValue = QTableWidgetItem(self._id)
+		ans.append([lblType, lblValue])
+		lblType = QTableWidgetItem("Largura")
+		lblValue = QTableWidgetItem(str(self.sceneRect().width()))
+		ans.append([lblType, lblValue])
+		lblType = QTableWidgetItem("Altura")
+		lblValue = QTableWidgetItem(str(self.sceneRect().height()))
+		ans.append([lblType, lblValue])
+		return ans
 		
 	def getNewDistributorId(self) -> str:
 		ans = "D" + str(self._net._distributorId)
@@ -94,12 +110,24 @@ class PFSScene(QGraphicsScene):
 			self._tempSource = None
 			return
 		if self._parentState._sNormal:
+			self._net._prop.clear()
 			it = self._lastItemClicked
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.clearSelection()
 				QGraphicsScene.mousePressEvent(self, ev)
 			if it is not None:
 				it.setSelected(True)
+			itList = self.selectedItems()
+			if len(itList) == 1:
+				i = 0
+				for line in itList[0].propertiesTable():
+					self._net._prop.setItem(i, 0, line[0])
+					self._net._prop.setItem(i, 1, line[1])
+			if len(itList) == 0:
+				i = 0
+				for line in self.propertiesTable():
+					self._net._prop.setItem(i, 0, line[0])
+					self._net._prop.setItem(i, 1, line[1])
 			self.update()
 			return
 		if self._parentState._sTiping:
@@ -377,6 +405,7 @@ class PFSNet(QWidget):
 		self._layout = QHBoxLayout()
 		self._tab = QTabWidget()
 		self.setLayout(self._layout)
+		self._prop = QTabWidget(20, 2)
 		self._pages = []
 		self._idPage = 0
 		self._sm = sm
@@ -426,6 +455,7 @@ class PFSNet(QWidget):
 			if len(pages) > 0:
 				net._pages = pages
 				net._layout.addWidget(pages[0])
+				net._layout.addWidget(net._prop)
 				nets.append(net)
 		return nets	
 	
@@ -444,6 +474,7 @@ class PFSNet(QWidget):
 		ans._idPage = ans._idPage + 1
 		ans._pages.append(page)
 		ans._layout.addWidget(page)
+		ans._layout.addWidget(ans._prop)
 		return ans
 		
 	def deleteElements(self):

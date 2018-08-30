@@ -113,7 +113,26 @@ class PFSActivity(PFSNode):
 			y = b.top()
 		elif p.y() > b.bottom():
 			y = b.bottom()
-		return QPoint(x, y)	
+		return QPoint(x, y)
+		
+	def propertiesTable(self):
+		ans = []
+		lblType = QTableWidgetItem("Elemento")
+		lblValue = QTableWidgetItem("Atividade")
+		ans.append([lblType, lblValue])
+		lblType = QTableWidgetItem("ID")
+		lblValue = QTableWidgetItem(self._id)
+		ans.append([lblType, lblValue])
+		lblType = QTableWidgetItem("Largura")
+		lblValue = QTableWidgetItem(str(self.sceneBoundingRect().width()))
+		ans.append([lblType, lblValue])
+		lblType = QTableWidgetItem("Altura")
+		lblValue = QTableWidgetItem(str(self.sceneBoundingRect().height()))
+		ans.append([lblType, lblValue])
+		lblType = QTableWidgetItem("Texto")
+		lblValue = QTableWidgetItem(self._text)
+		ans.append([lblType, lblValue])
+		return ans
 		
 class PFSDistributor(PFSNode):
 	STANDARD_SIZE = 20
