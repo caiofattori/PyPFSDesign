@@ -1,7 +1,11 @@
-from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QPushButton, QGraphicsProxyWidget, QGraphicsSceneMouseEvent
+from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QVBoxLayout
+from PyQt5.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget
+from PyQt5.QtWidgets import QPushButton, QGraphicsProxyWidget, QGraphicsSceneMouseEvent
+from PyQt5.QtWidgets import QUndoStack
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QXmlStreamReader
-from PyQt5.QtGui import QMouseEvent, QPainter, QTransform, QKeyEvent, QKeySequence
+from PyQt5.QtGui import QMouseEvent, QPainter, QTransform, QKeyEvent, QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
+from generic import PFSNode
 from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
@@ -384,9 +388,13 @@ class PFSNet(QWidget):
 		self._distributorId = 0
 		self._activityId = 0
 		self._relationId = 0
-		#self.undoStack = QUndoStack(self)
-		#self.undoAction = self.undoStack.createUndoAction(self, "Desfazer")
-		#self.undoAction.setShortcuts(QKeySequence.Undo)
+		self.undoStack = QUndoStack(self)
+		self.undoAction = self.undoStack.createUndoAction(self, "Desfazer")
+		self.undoAction.setShortcuts(QKeySequence.Undo)
+		self.undoAction.setIcon(QIcon.fromTheme("edit-undo", QIcon("../icons/edit-undo.svg")))
+		self.redoAction = self.undoStack.createRedoAction(self, "Refazer")
+		self.redoAction.setShortcuts(QKeySequence.Redo)
+		self.redoAction.setIcon(QIcon.fromTheme("edit-redo", QIcon("../icons/edit-redo.svg")))		
 		
 	def generateXml(self, xml: QXmlStreamWriter):
 		xml.writeStartDocument()
@@ -451,8 +459,13 @@ class PFSNet(QWidget):
 		self.changed.emit()
 		
 	def deleteElements(self):
-		self._itemsDeleted = self._pages[0]._scene.selectedItems()
-		for item in self._itemsDeleted:
+		if len(self._pages) > 1:
+			scene = self._tab.currentWidget()._scene
+		elif len(self._pages) == 1:
+			scene = self._pages[0]._scene
+		scene._itemsDeleted = scene.selectedItems()
+		for item in scene._itemsDeleted:
 			if isinstance(item, PFSNode):
 				item.deleted.emit()
-		x = PFSUndoDelete(self._itemsDeleted)
+		x = PFSUndoDelete(scene._itemsDeleted)
+		self.undoStack.push(x)

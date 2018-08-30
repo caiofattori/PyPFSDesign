@@ -196,16 +196,16 @@ class PFSRelation(PFSElement):
 				r = PFSRelation(id, source, target)
 				source.changed.connect(r.updatePoints)
 				target.changed.connect(r.updatePoints)
-				source.deleted.connect(r.putInDeleted)
-				target.deleted.connect(r.putInDeleted)
+				source.deleted.connect(r.putInDelete)
+				target.deleted.connect(r.putInDelete)
 				return r
 		elif isinstance(source, PFSDistributor):
 			if isinstance(target, PFSActivity):
 				r = PFSRelation(id, source, target)
 				source.changed.connect(r.updatePoints)
 				target.changed.connect(r.updatePoints)
-				source.deleted.connect(r.putInDeleted)
-				target.deleted.connect(r.putInDeleted)
+				source.deleted.connect(r.putInDelete)
+				target.deleted.connect(r.putInDelete)
 				return r
 		return None
 	

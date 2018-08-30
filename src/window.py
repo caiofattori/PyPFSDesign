@@ -10,7 +10,7 @@ from xml import PFSXmlBase
 class PFSWindow(QWidget):
 	empty = pyqtSignal()
 	nonempty = pyqtSignal()
-	def __init__(self):
+	def __init__(self, main):
 		super(QWidget, self).__init__()
 		mainLayout = QHBoxLayout()
 		self.setLayout(mainLayout)
@@ -22,11 +22,13 @@ class PFSWindow(QWidget):
 		self._tab.currentChanged.connect(self.changeTab)
 		self._tab.tabCloseRequested.connect(self.closeTab)
 		self._tab.setTabsClosable(True)
+		self._main = main
 	
 	def changeTab(self, index: int):
 		if index <= 0:
 			return
 		net = self._tab.widget(index)
+		self.updateUndoRedoAction()
 		if net._filepath is not None:
 			self._lastPath = net._filepath
 			
@@ -41,8 +43,6 @@ class PFSWindow(QWidget):
 		if self._tab.count() == 1:
 			self.empty.emit()
 		self._tab.removeTab(index)
-
-			
 	
 	def setStateMachine(self, sm: PFSStateMachine):
 		self._sm = sm
@@ -55,6 +55,8 @@ class PFSWindow(QWidget):
 		self._tab.setCurrentIndex(i)
 		self._sm.fixTransitions(w._pages[0]._scene)
 		self.nonempty.emit()
+		if self._tab.count() == 1:
+			self.updateUndoRedoAction()
 	
 	def saveNet(self):
 		net = self._tab.currentWidget()
@@ -108,7 +110,14 @@ class PFSWindow(QWidget):
 			self._idNet = self._idNet + 1
 			i = self._tab.addTab(net, net.getTabName())
 			self._tab.setCurrentIndex(i)
-		
+			if self._tab.count() == 1:
+				self.updateUndoRedoAction()
+	
+	def updateUndoRedoAction(self):
+		self._main.undoToolBar.clear()
+		self._main.undoToolBar.addAction(self._tab.currentWidget().undoAction)
+		self._main.undoToolBar.addAction(self._tab.currentWidget().redoAction)
+	
 	def changeCurrentTabName(self):
 		self._tab.setTabText(self._tab.currentIndex(), self._tab.currentWidget().getTabName())
 	
@@ -152,13 +161,8 @@ class PFSMain(QMainWindow):
 		actDelete.setStatusTip("Remove os elementos do modelo atual")
 		toolBar.addAction(actDelete)
 		self.actDelete = actDelete
-		icoUndo = QIcon.fromTheme("edit-undo", QIcon("../icons/edit-undo.svg"))
-		actUndo = QAction(icoUndo, "Undo Command", self)
-		actUndo.setShortcuts(QKeySequence.Undo)
-		actUndo.setStatusTip("Desfaz última ação")
-		toolBar.addAction(actUndo)
-		self.actUndo = actUndo
-		self.wind = PFSWindow()
+		self.undoToolBar = self.addToolBar("Undo-Redo")
+		self.wind = PFSWindow(self)
 		self.wind.empty.connect(self.disableButtons)
 		self.wind.nonempty.connect(self.enableButtons)
 		actNew.triggered.connect(self.wind.newNet)
