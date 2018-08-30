@@ -34,7 +34,7 @@ class PFSWindow(QWidget):
 			
 	def closeTab(self, index: int):
 		self._tab.setCurrentIndex(index)
-		if not self._tab.widget(index).isSaved():
+		if not self._tab.widget(index).undoStack.isClean():
 			ans = QMessageBox.question(self, "Arquivo não salvo...", "Deseja salvar o arquivo antes de fechá-lo?", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
 			if ans == QMessageBox.Cancel:
 				return
@@ -49,7 +49,7 @@ class PFSWindow(QWidget):
 		
 	def newNet(self):
 		w = PFSNet.newNet("n" + str(self._idNet), self._sm)
-		w.changed.connect(self.changeCurrentTabName)
+		w.undoStack.cleanChanged.connect(self.changeCurrentTabName)
 		self._idNet = self._idNet + 1
 		i = self._tab.addTab(w, w.getTabName())
 		self._tab.setCurrentIndex(i)
@@ -80,7 +80,7 @@ class PFSWindow(QWidget):
 			xml = QXmlStreamWriter(file)
 			net.generateXml(xml)
 			file.close()
-		net.setSaved(True)
+		net.undoStack.setClean()
 		self._lastPath = net._filepath
 		
 	def openNet(self):
@@ -106,7 +106,7 @@ class PFSWindow(QWidget):
 			net._filepath = f.absolutePath()
 			file.close()
 			self._lastPath = net._filepath
-			net.changed.connect(self.changeCurrentTabName)
+			net.undoStack.cleanChanged.connect(self.changeCurrentTabName)
 			self._idNet = self._idNet + 1
 			i = self._tab.addTab(net, net.getTabName())
 			self._tab.setCurrentIndex(i)
@@ -118,7 +118,7 @@ class PFSWindow(QWidget):
 		self._main.undoToolBar.addAction(self._tab.currentWidget().undoAction)
 		self._main.undoToolBar.addAction(self._tab.currentWidget().redoAction)
 	
-	def changeCurrentTabName(self):
+	def changeCurrentTabName(self, value):
 		self._tab.setTabText(self._tab.currentIndex(), self._tab.currentWidget().getTabName())
 	
 	def deleteElements(self):

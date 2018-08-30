@@ -91,6 +91,9 @@ class PFSActivity(PFSNode):
 		if self.scene() is not None:
 			self.scene().update()
 			self.changed.emit()
+	
+	def getText(self):
+		return self._text
 		
 	def setTooltip(self, text: str):
 		self._tooltip = text

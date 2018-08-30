@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QTextEdit, QGraphicsProxyWidget
 from PyQt5.QtCore import Qt
+from undo import *
 
 class PFSTextBox(QGraphicsProxyWidget):
 	def __init__(self, scene, activity):
@@ -23,7 +24,8 @@ class PFSTextBox(QGraphicsProxyWidget):
 		if ev.key() == Qt.Key_Shift:
 			self._shift = True
 		if (ev.key() == Qt.Key_Enter or ev.key() == Qt.Key_Return) and self._shift:
-			self._activity.setText(self._item.toPlainText())
+			x = PFSUndoSetText(self._activity, self._item.toPlainText(), self.scene())
+			self.scene()._net.undoStack.push(x)
 			self._activity.setSelected(False)
 			self._scene.inserted.emit()
 			self._scene.removeItem(self)
@@ -41,4 +43,3 @@ class PFSTextBox(QGraphicsProxyWidget):
 		if ev.key() == Qt.Key_Shift:
 			self._shift = False
 		QGraphicsProxyWidget.keyReleaseEvent(self, ev)
-
