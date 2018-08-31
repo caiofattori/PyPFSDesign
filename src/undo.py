@@ -166,3 +166,22 @@ class PFSUndoRectPage(QUndoCommand):
 		self._scene.resize(self._nRect.width(), self._nRect.height(), self._nRect.left(), self._nRect.top())
 		self._width.setText(str(self._nRect.width()))
 		self._height.setText(str(self._nRect.height()))
+		
+class PFSUndoPropertyText(QUndoCommand):
+	def __init__(self, prop):
+		super(QUndoCommand, self).__init__()
+		self._prop = prop
+		self._old = prop._text
+		self._new = prop.text()
+			
+	def undo(self):
+		self._prop._obj.blockSignals(True)
+		self._prop.setText(self._old)
+		self._prop._obj.blockSignals(False)
+		self._text = self._old
+		 
+	def redo(self):
+		self._prop._obj.blockSignals(True)
+		self._prop.setText(self._new)
+		self._prop._obj.blockSignals(False)
+		self._text = self._new

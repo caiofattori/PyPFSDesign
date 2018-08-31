@@ -210,7 +210,9 @@ class PFSPage(QWidget):
 		ans.append([lblType, lblValue])
 		return ans
 	
-	def changePageWidth(self, value: str):
+	def changePageWidth(self, prop):
+		x = PFSUndoPropertyText(prop, self)
+		self._net.undoStack.push(x)
 		self.resizeScene(width=int(float(value)))
 	
 	def changePageHeight(self, value: str):
