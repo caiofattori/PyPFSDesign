@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QTableWidgetItem, QPushButton
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
 
 class PFSTableLabel(QTableWidgetItem):
@@ -31,6 +31,20 @@ class PFSTableValueText(QTableWidgetItem):
 	
 	def comparePrevious(self):
 		return self._text != self.text()
+	
+	def value(self):
+		return self._text
+	
+class PFSTableValueButton(QTableWidgetItem):
+	def __init__(self, text):
+		QTableWidgetItem.__init__(self, text)
+		self._obj = PFSTableObject()
+		self.edited = self._obj.edited
+		self._button = QPushButton(text)
+		self.clicked = self._button.clicked
+	
+	def comparePrevious(self):
+		return False
 	
 	def value(self):
 		return self._text

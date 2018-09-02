@@ -5,6 +5,8 @@ from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
 import math
+from table import PFSTableLabel, PFSTableValueText, PFSTableNormal
+from undo import PFSUndoPropertyText
 
 class PFSAux:
 	def __init__(self):
@@ -25,6 +27,10 @@ class PFSActivity(PFSNode):
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
+		self._width = 0
+		self._height = 0
+		self._minWidth = 0
+		self._minHeight = 0
 		
 	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
@@ -91,6 +97,9 @@ class PFSActivity(PFSNode):
 		if self.scene() is not None:
 			self.scene().update()
 			self.changed.emit()
+			
+	def setFont(self, text: str):
+		pass
 	
 	def getText(self):
 		return self._text
@@ -98,9 +107,17 @@ class PFSActivity(PFSNode):
 	def setTooltip(self, text: str):
 		self._tooltip = text
 		
-	def boundingRect(self):
+	def minimunRect(self):
 		s = self._fontMetrics.size(Qt.TextExpandTabs, self._text)
+		self._minWidth = s.width()
+		self._minHeight = s.height()
 		return QRectF(self._x, self._y, s.width() + 15, s.height() + 4)
+	
+	def boundingRect(self):
+		r = self.minimunRect()
+		width = max(self._width,r.width()) 
+		height = max(self._height,r.height())
+		return QRectF(self._x, self._y, width, height)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
 		b = self.sceneBoundingRect()
@@ -114,25 +131,84 @@ class PFSActivity(PFSNode):
 		elif p.y() > b.bottom():
 			y = b.bottom()
 		return QPoint(x, y)
-		
+	
 	def propertiesTable(self):
 		ans = []
-		lblType = QTableWidgetItem("Elemento")
-		lblValue = QTableWidgetItem("Atividade")
+		lblType = PFSTableLabel("Elemento")
+		lblValue = PFSTableNormal("Atividade")
+		lblValue.setFlags(Qt.NoItemFlags)
 		ans.append([lblType, lblValue])
-		lblType = QTableWidgetItem("ID")
-		lblValue = QTableWidgetItem(self._id)
+		lblType = PFSTableLabel("ID")
+		lblValue = PFSTableNormal(self._id)
+		lblValue.setFlags(Qt.NoItemFlags)
 		ans.append([lblType, lblValue])
-		lblType = QTableWidgetItem("Largura")
-		lblValue = QTableWidgetItem(str(self.sceneBoundingRect().width()))
+		lblType = PFSTableLabel("Posição X")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().x()))
+		lblValue.edited.connect(self.changeElementPosX)
 		ans.append([lblType, lblValue])
-		lblType = QTableWidgetItem("Altura")
-		lblValue = QTableWidgetItem(str(self.sceneBoundingRect().height()))
+		lblType = PFSTableLabel("Posição Y")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().y()))
+		lblValue.edited.connect(self.changeElementPosY)
 		ans.append([lblType, lblValue])
-		lblType = QTableWidgetItem("Texto")
-		lblValue = QTableWidgetItem(self._text)
+		lblType = PFSTableLabel("Largura")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().width()))
+		lblValue.edited.connect(self.changeElementWidth)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Altura")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
+		lblValue.edited.connect(self.changeElementHeight)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Texto")
+		lblValue = PFSTableValueText(self._text)
+		lblValue.edited.connect(self.changeText)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Fonte")
+		lblValue = PFSTableValueText(self._textFont.toString())
+		lblValue.edited.connect(self.changeFont)
+		ans.append([lblType, lblValue])		
 		return ans
+	
+	def changeElementPosX(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveX)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementPosY(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveY)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementWidth(self, prop):
+		if float(prop.text()) > self._minWidth:
+			x = PFSUndoPropertyText(prop, self.resizeWidth)
+			self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementHeight(self, prop):
+		if float(prop.text()) > self._minHeight:
+			x = PFSUndoPropertyText(prop, self.resizeHeight)
+			self.scene()._page._net.undoStack.push(x)
+	
+	def changeText(self, prop):
+		x = PFSUndoPropertyText(prop, self.setText)
+		self.scene()._page._net.undoStack.push(x)
+		
+	def changeFont(self, prop):
+		x = PFSUndoPropertyText(prop, self.setFont)
+		self.scene()._page._net.undoStack.push(x)	
+	
+	def moveX(self, txt):
+		self._x = float(txt)
+		self.scene().update()
+	
+	def moveY(self, txt):
+		self._y = float(txt)
+		self.scene().update()	
+	
+	def resizeWidth(self, txt):
+		self._width = float(txt)
+		self.scene().update()
+		
+	def resizeHeight(self, txt):
+		self._height = float(txt)
+		self.scene().update()	
 		
 class PFSDistributor(PFSNode):
 	STANDARD_SIZE = 20
@@ -199,6 +275,66 @@ class PFSDistributor(PFSNode):
 		c = self.sceneBoundingRect().center()
 		ang = math.atan2(p.y()-c.y()+1, p.x()-c.x()+1)
 		return QPoint(math.cos(ang)*self._diameterX/2 + c.x() - 1, math.sin(ang)*self._diameterY/2 + c.y()-1)
+	
+	def propertiesTable(self):
+		ans = []
+		lblType = PFSTableLabel("Elemento")
+		lblValue = PFSTableNormal("Atividade")
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("ID")
+		lblValue = PFSTableNormal(self._id)
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição X")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().x()))
+		lblValue.edited.connect(self.changeElementPosX)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição Y")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().y()))
+		lblValue.edited.connect(self.changeElementPosY)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Largura")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().width()))
+		lblValue.edited.connect(self.changeElementWidth)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Altura")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
+		lblValue.edited.connect(self.changeElementHeight)
+		ans.append([lblType, lblValue])
+		return ans	
+	
+	def changeElementPosX(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveX)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementPosY(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveY)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementWidth(self, prop):
+		x = PFSUndoPropertyText(prop, self.resizeWidth)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementHeight(self, prop):
+		x = PFSUndoPropertyText(prop, self.resizeHeight)
+		self.scene()._page._net.undoStack.push(x)	
+	
+	def moveX(self, txt):
+		self._x = float(txt)
+		self.scene().update()
+	
+	def moveY(self, txt):
+		self._y = float(txt)
+		self.scene().update()	
+	
+	def resizeWidth(self, txt):
+		self._diameterX = float(txt)
+		self.scene().update()
+		
+	def resizeHeight(self, txt):
+		self._diameterY = float(txt)
+		self.scene().update()
 		
 class PFSRelation(PFSElement):
 	def __init__(self, id: str, source: PFSNode, target: PFSNode):

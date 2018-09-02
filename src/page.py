@@ -20,16 +20,6 @@ class PFSPage(QWidget):
 		self._view = PFSView(self._scene)
 		layout = QVBoxLayout()
 		layoutH = QHBoxLayout()
-		lblWidth = QLabel("Width: ")
-		layoutH.addWidget(lblWidth)
-		self.txtWidth = QLineEdit(str(w))
-		self.txtWidth.editingFinished.connect(self.resizeScene)
-		layoutH.addWidget(self.txtWidth)
-		lblHeight = QLabel("Height: ")
-		layoutH.addWidget(lblHeight)
-		self.txtHeight = QLineEdit(str(h))
-		self.txtHeight.editingFinished.connect(self.resizeScene)
-		layoutH.addWidget(self.txtHeight)
 		chkPaintGrid = QCheckBox("Show grid")
 		chkPaintGrid.setChecked(True)
 		chkPaintGrid.stateChanged.connect(self._scene.setPaintGrid)
@@ -83,8 +73,7 @@ class PFSPage(QWidget):
 			width = self._scene.sceneRect().width()
 		if height is None:
 			height = self._scene.sceneRect().height()
-		x = PFSUndoResizePage(self._scene, width, height)
-		self._net.undoStack.push(x)
+		self._scene.resize(int(float(width)), int(float(height)))
 	
 	def getTabName(self) -> str:
 		if self._file is None:
@@ -211,12 +200,18 @@ class PFSPage(QWidget):
 		return ans
 	
 	def changePageWidth(self, prop):
-		x = PFSUndoPropertyText(prop, self)
+		x = PFSUndoPropertyText(prop, self.resizeWidth)
 		self._net.undoStack.push(x)
-		self.resizeScene(width=int(float(value)))
-	
-	def changePageHeight(self, value: str):
-		self.resizeScene(height=int(float(value)))
+		
+	def changePageHeight(self, prop):
+		x = PFSUndoPropertyText(prop, self.resizeHeight)
+		self._net.undoStack.push(x)
+
+	def resizeWidth(self, txt):	
+		self.resizeScene(width=int(float(txt)))
+		
+	def resizeHeigh(self, txt):	
+		self.resizeScene(height=int(float(txt)))	
 
 class PFSNet(QWidget):
 	changed = pyqtSignal()
@@ -247,7 +242,7 @@ class PFSNet(QWidget):
 		
 	def propertiesItemChanged(self, item: PFSTableValueText):
 		if item.comparePrevious():
-			item.edited.emit(item.value())
+			item.edited.emit(item)
 		
 	def generateXml(self, xml: QXmlStreamWriter):
 		xml.writeStartDocument()
