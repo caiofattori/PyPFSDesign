@@ -189,3 +189,16 @@ class PFSUndoPropertyText(QUndoCommand):
 		self._prop._obj.blockSignals(False)
 		self._text = self._new
 		self._func(self._text)
+		
+class PFSUndoPropertyButton(QUndoCommand):
+	def __init__(self, newValue, oldValue, func):
+		super(QUndoCommand, self).__init__()
+		self._func = func
+		self._newValue = newValue
+		self._oldValue = oldValue
+			
+	def undo(self):
+		self._func(self._oldValue)
+		 
+	def redo(self):
+		self._func(self._newValue)

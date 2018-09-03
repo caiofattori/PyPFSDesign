@@ -100,14 +100,26 @@ class PFSScene(QGraphicsScene):
 			if len(itList) == 1:
 				i = 0
 				for line in itList[0].propertiesTable():
-					self._page._net._prop.setItem(i, 0, line[0])
-					self._page._net._prop.setItem(i, 1, line[1])
+					if isinstance(line[0], QTableWidgetItem):
+						self._page._net._prop.setItem(i, 0, line[0])
+					else:
+						self._page._net._prop.setCellWidget(i, 0, line[0])
+					if isinstance(line[1], QTableWidgetItem):
+						self._page._net._prop.setItem(i, 1, line[1])
+					else:
+						self._page._net._prop.setCellWidget(i, 1, line[1])
 					i = i + 1
 			if len(itList) == 0:
 				i = 0
 				for line in self._page.propertiesTable():
-					self._page._net._prop.setItem(i, 0, line[0])
-					self._page._net._prop.setItem(i, 1, line[1])
+					if isinstance(line[0], QTableWidgetItem):
+						self._page._net._prop.setItem(i, 0, line[0])
+					else:
+						self._page._net._prop.setCellWidget(i, 0, line[0])
+					if isinstance(line[1], QTableWidgetItem):
+						self._page._net._prop.setItem(i, 1, line[1])
+					else:
+						self._page._net._prop.setCellWidget(i, 1, line[1])
 					i = i + 1
 			self.update()
 			return

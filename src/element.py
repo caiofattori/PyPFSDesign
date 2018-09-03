@@ -3,10 +3,10 @@ from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
 from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF
-from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
+from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog
 import math
-from table import PFSTableLabel, PFSTableValueText, PFSTableNormal
-from undo import PFSUndoPropertyText
+from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton
+from undo import PFSUndoPropertyText, PFSUndoPropertyButton
 
 class PFSAux:
 	def __init__(self):
@@ -98,8 +98,10 @@ class PFSActivity(PFSNode):
 			self.scene().update()
 			self.changed.emit()
 			
-	def setFont(self, text: str):
-		pass
+	def setFont(self, font: QFont):
+		self._textFont = font
+		self._fontMetrics = QFontMetrics(font)
+		self.scene().update()
 	
 	def getText(self):
 		return self._text
@@ -163,8 +165,8 @@ class PFSActivity(PFSNode):
 		lblValue.edited.connect(self.changeText)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Fonte")
-		lblValue = PFSTableValueText(self._textFont.toString())
-		lblValue.edited.connect(self.changeFont)
+		lblValue = PFSTableValueButton(self._textFont.toString())
+		lblValue.clicked.connect(self.changeFont)
 		ans.append([lblType, lblValue])		
 		return ans
 	
@@ -191,8 +193,10 @@ class PFSActivity(PFSNode):
 		self.scene()._page._net.undoStack.push(x)
 		
 	def changeFont(self, prop):
-		x = PFSUndoPropertyText(prop, self.setFont)
-		self.scene()._page._net.undoStack.push(x)	
+		font, ans = QFontDialog.getFont(self._textFont, self.scene()._page._net, "Escolha a fonte do texto")
+		if ans:
+			x = PFSUndoPropertyButton(font, self._textFont, self.setFont)
+			self.scene()._page._net.undoStack.push(x)
 	
 	def moveX(self, txt):
 		self._x = float(txt)
