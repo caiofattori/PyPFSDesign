@@ -2,8 +2,8 @@ from generic import *
 from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
 from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint
-from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF
-from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog
+from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor
+from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog
 import math
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton
@@ -77,7 +77,7 @@ class PFSActivity(PFSNode):
 		return None
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
-		p.setPen(Qt.black)
+		p.setPen(self._pen)
 		p.setFont(self._textFont)
 		rect = self.sceneBoundingRect()
 		p.drawText(rect, Qt.AlignCenter, self._text)
@@ -101,6 +101,10 @@ class PFSActivity(PFSNode):
 	def setFont(self, font: QFont):
 		self._textFont = font
 		self._fontMetrics = QFontMetrics(font)
+		self.scene().update()
+		
+	def setPenColor(self, color: QColor):
+		self._pen.setColor(color)
 		self.scene().update()
 	
 	def getText(self):
@@ -167,7 +171,11 @@ class PFSActivity(PFSNode):
 		lblType = PFSTableLabel("Fonte")
 		lblValue = PFSTableValueButton(self._textFont.toString())
 		lblValue.clicked.connect(self.changeFont)
-		ans.append([lblType, lblValue])		
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Contorno")
+		lblValue = PFSTableValueButton(self._pen.color().name())
+		lblValue.clicked.connect(self.changeLineColor)
+		ans.append([lblType, lblValue])
 		return ans
 	
 	def changeElementPosX(self, prop):
@@ -192,10 +200,15 @@ class PFSActivity(PFSNode):
 		x = PFSUndoPropertyText(prop, self.setText)
 		self.scene()._page._net.undoStack.push(x)
 		
-	def changeFont(self, prop):
+	def changeFont(self):
 		font, ans = QFontDialog.getFont(self._textFont, self.scene()._page._net, "Escolha a fonte do texto")
 		if ans:
 			x = PFSUndoPropertyButton(font, self._textFont, self.setFont)
+			self.scene()._page._net.undoStack.push(x)
+	def changeLineColor(self):
+		color = QColorDialog.getColor(self._pen.color(), self.scene()._page._net, "Escolha a cor do contorno")
+		if color.isValid() and color != self._pen.color():
+			x = PFSUndoPropertyButton(color, self._pen.color(), self.setPenColor)
 			self.scene()._page._net.undoStack.push(x)
 	
 	def moveX(self, txt):
