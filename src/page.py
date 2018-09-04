@@ -40,7 +40,7 @@ class PFSPage(QWidget):
 		xml.writeAttribute("ref", "")
 		xml.writeEndElement() #fim da pagetype
 		xml.writeStartElement("pagegraphics")
-		PFSXmlBase.position(xml, self.txtWidth.text(), self.txtHeight.text(), "dimension")
+		PFSXmlBase.position(xml, str(self._scene.width()), str(self._scene.height()), "dimension")
 		xml.writeEndElement() #fim da pagegraphics
 		PFSXmlBase.close(xml)
 		for e in self._scene.items():
@@ -65,7 +65,7 @@ class PFSPage(QWidget):
 				if r is None or rect.right() > r:
 					r = rect.right()
 		if l is not None and r is not None and t is not None and b is not None:
-			x = PFSUndoRectPage(self._scene, self.txtWidth, self.txtHeight, QRect(l, t, r-l, b-t,))
+			x = PFSUndoRectPage(self._scene, QRect(l, t, r-l, b-t,))
 			self._net.undoStack.push(x)
 	
 	def resizeScene(self, width=None, height=None):
