@@ -125,10 +125,10 @@ class PFSWindow(QWidget):
 		self._tab.currentWidget().deleteElements()
 		
 	def exportNet(self):
-		filename, filter = QFileDialog.getSaveFileName(self, "Exportar arquivo...", self._lastPath, "SVG files (*.svg)")
+		filename, filter = QFileDialog.getSaveFileName(self, "Exportar arquivo...", self._lastPath, "SVG files (*.svg);; PNG files (*.png)")
 		if filename is None or filename == "":
 			return
-		if not filename.endswith(".svg"):
+		if not (filename.endswith(".svg") or filename.endswith(".png")):
 			filename = filename + ".svg"
 		self._tab.currentWidget().export(filename)
 		

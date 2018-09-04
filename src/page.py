@@ -1,9 +1,12 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget
 from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QUndoStack, QTableWidget
 from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
-from PyQt5.QtGui import QKeySequence, QIcon
+from PyQt5.QtGui import QKeySequence, QIcon, QImage
 from PyQt5.QtXml import QDomDocument, QDomNode
-from PyQt5.QtSvg import QSvgGenerator
+try:
+	from PyQt5.QtGui import QImage as QSvgGenerator
+except:
+	from element import QSvgGenerator
 from generic import PFSNode
 from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
@@ -321,15 +324,23 @@ class PFSNet(QWidget):
 			scene = self._pages[0]._scene
 		else:
 			return
-		svg = QSvgGenerator()
-		svg.setFileName(filename)
-		svg.setSize(QSize(scene.width(), scene.height()))
-		svg.setViewBox(QRect(0, 0, scene.width(), scene.height()))
-		painter = QPainter()
-		painter.begin(svg)
 		aux = scene._paintGrid
 		scene._paintGrid = False
 		scene.clearSelection()
-		scene.render(painter)
-		painter.end()
+		if filename.endswith(".png"):
+			img = QImage(scene.width(), scene.height(), QImage.Format_ARGB32_Premultiplied)
+			painter = QPainter()
+			painter.begin(img)
+			scene.render(painter)
+			painter.end()
+			img.save(filename)
+		else:
+			svg = QSvgGenerator()
+			svg.setFileName(filename)
+			svg.setSize(QSize(scene.width(), scene.height()))
+			svg.setViewBox(QRect(0, 0, scene.width(), scene.height()))
+			painter = QPainter()
+			painter.begin(svg)
+			scene.render(painter)
+			painter.end()
 		scene._paintGrid = aux
