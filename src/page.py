@@ -1,8 +1,9 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget
 from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QUndoStack, QTableWidget
-from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter
+from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
+from PyQt5.QtSvg import QSvgGenerator
 from generic import PFSNode
 from element import PFSActivity, PFSDistributor, PFSRelation
 from xml import PFSXmlBase
@@ -312,3 +313,23 @@ class PFSNet(QWidget):
 				item.deleted.emit()
 		x = PFSUndoDelete(scene._itemsDeleted)
 		self.undoStack.push(x)
+		
+	def export(self, filename):
+		if len(self._pages) > 1:
+			scene = self._tab.currentWidget()._scene
+		elif len(self._pages) == 1:
+			scene = self._pages[0]._scene
+		else:
+			return
+		svg = QSvgGenerator()
+		svg.setFileName(filename)
+		svg.setSize(QSize(scene.width(), scene.height()))
+		svg.setViewBox(QRect(0, 0, scene.width(), scene.height()))
+		painter = QPainter()
+		painter.begin(svg)
+		aux = scene._paintGrid
+		scene._paintGrid = False
+		scene.clearSelection()
+		scene.render(painter)
+		painter.end()
+		scene._paintGrid = aux
