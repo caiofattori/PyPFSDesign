@@ -149,20 +149,63 @@ class PFSUndoResizePage(QUndoCommand):
 		self._height.setText(self._newH)
 
 class PFSUndoRectPage(QUndoCommand):
-	def __init__(self, scene, fieldWidth, fieldHeight, rect):
+	def __init__(self, scene, rect):
 		super(QUndoCommand, self).__init__()
 		self._nRect = rect
 		self._oRect = scene.sceneRect()
-		self._width = fieldWidth
-		self._height = fieldHeight
 		self._scene = scene
 			
 	def undo(self):
 		self._scene.resize(self._oRect.width(), self._oRect.height(), -self._nRect.left(), -self._nRect.top())
-		self._width.setText(str(self._oRect.width()))
-		self._height.setText(str(self._oRect.height()))
 		 
 	def redo(self):
 		self._scene.resize(self._nRect.width(), self._nRect.height(), self._nRect.left(), self._nRect.top())
-		self._width.setText(str(self._nRect.width()))
-		self._height.setText(str(self._nRect.height()))
+		
+class PFSUndoPropertyText(QUndoCommand):
+	def __init__(self, prop, func):
+		super(QUndoCommand, self).__init__()
+		self._func = func
+		self._prop = prop
+		self._old = prop._text
+		prop._text = prop.text()
+		self._new = prop.text()
+			
+	def undo(self):
+		self._prop._obj.blockSignals(True)
+		self._prop.setText(self._old)
+		self._prop._obj.blockSignals(False)
+		self._text = self._old
+		self._func(self._text)
+		 
+	def redo(self):
+		self._prop._obj.blockSignals(True)
+		self._prop.setText(self._new)
+		self._prop._obj.blockSignals(False)
+		self._text = self._new
+		self._func(self._text)
+		
+class PFSUndoPropertyButton(QUndoCommand):
+	def __init__(self, newValue, oldValue, func):
+		super(QUndoCommand, self).__init__()
+		self._func = func
+		self._newValue = newValue
+		self._oldValue = oldValue
+			
+	def undo(self):
+		self._func(self._oldValue)
+		 
+	def redo(self):
+		self._func(self._newValue)
+		
+class PFSUndoPropertyCombo(QUndoCommand):
+	def __init__(self, newValue, oldValue, func):
+		super(QUndoCommand, self).__init__()
+		self._func = func
+		self._newValue = newValue
+		self._oldValue = oldValue
+			
+	def undo(self):
+		self._func(self._oldValue)
+		 
+	def redo(self):
+		self._func(self._newValue)

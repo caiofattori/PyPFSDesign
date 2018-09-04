@@ -10,11 +10,14 @@ class PFSSenderSignal(QObject):
 
 class PFSElement(QGraphicsItem):
 	SELECTED_PEN = QPen(Qt.red)
+	SELECTED_PEN_ALT = QPen(Qt.blue)
+	PEN_LIST = {"Solida": Qt.SolidLine, "Tracejada": Qt.DashLine, "Pontilhada": Qt.DotLine}
 	def __init__(self, id: str):
 		super(QGraphicsItem, self).__init__()
 		self._id = id
 		
 class PFSNode(QGraphicsItem):
+	PEN_LIST = {"Solida": Qt.SolidLine, "Tracejada": Qt.DashLine, "Pontilhada": Qt.DotLine}
 	def __init__(self, id: str, x: int, y: int):
 		QGraphicsItem.__init__(self)
 		self._x = x

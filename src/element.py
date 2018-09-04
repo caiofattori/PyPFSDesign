@@ -1,10 +1,18 @@
 from generic import *
 from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
-from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint
-from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF
-from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
+from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject
+from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor
+from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog
 import math
+from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton, PFSTableValueCombo
+from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
+
+class PFSGraphItems(QObject):
+	penEdited = pyqtSignal(object)
+	brushEdited = pyqtSignal(object)
+	def __init__(self):
+		QObject.__init__(self)
 
 class PFSAux:
 	def __init__(self):
@@ -12,7 +20,7 @@ class PFSAux:
 
 class PFSActivity(PFSNode):
 	STANDARD_PEN = QPen(Qt.black)
-	STANDARD_BRUSH = QBrush(Qt.transparent, Qt.SolidPattern)	
+	STANDARD_BRUSH = QBrush(Qt.white, Qt.SolidPattern)
 	def __init__(self, id: str, x: int, y: int, text: str="Atividade"):
 		PFSNode.__init__(self, id, x, y)
 		self._subNet= None
@@ -25,6 +33,13 @@ class PFSActivity(PFSNode):
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
+		self._width = 0
+		self._height = 0
+		self._minWidth = 0
+		self._minHeight = 0
+		self._graph = PFSGraphItems()
+		self.penEdited = self._graph.penEdited
+		self.brushEdited = self._graph.brushEdited
 		
 	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
@@ -63,21 +78,28 @@ class PFSActivity(PFSNode):
 				ac._tooltip = tooltip
 			if text.font is not None:
 				ac._textFont = text.font
+				ac._fontMetrics = QFontMetrics(text.font)
 			if graphics.line is not None:
 				ac._pen = graphics.line
 			if graphics.brush is not None:
 				ac._brush = graphics.brush
-			return ac			
+			return ac
 		return None
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
-		p.setPen(Qt.black)
-		p.setFont(self._textFont)
+		p.setPen(Qt.NoPen)
+		p.setBrush(self._brush)
 		rect = self.sceneBoundingRect()
+		p.drawRect(rect)
+		p.setPen(self._pen)
+		p.setFont(self._textFont)
 		p.drawText(rect, Qt.AlignCenter, self._text)
 		p.save()
 		if self.isSelected():
-			p.setPen(PFSElement.SELECTED_PEN)
+			if self._pen.color() == PFSElement.SELECTED_PEN:
+				p.setPen(PFSElement.SELECTED_PEN_ALT)
+			else:
+				p.setPen(PFSElement.SELECTED_PEN)
 		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 6, rect.top() + 1)
 		p.drawLine(rect.left() + 1, rect.bottom() - 1, rect.left() + 6, rect.bottom() - 1)
 		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 1, rect.bottom() - 1)
@@ -91,6 +113,29 @@ class PFSActivity(PFSNode):
 		if self.scene() is not None:
 			self.scene().update()
 			self.changed.emit()
+			
+	def setFont(self, font: QFont):
+		self._textFont = font
+		self._fontMetrics = QFontMetrics(font)
+		self.scene().update()
+		
+		
+	def setPenColor(self, color: QColor):
+		self._pen.setColor(color)
+		self.scene().update()
+		
+	def setPenStyle(self, style: Qt):
+		self._pen.setStyle(style)
+		self.scene().update()
+		self.penEdited.emit(style)
+		
+	def setPenWidth(self, width: str):
+		self._pen.setWidth(float(width))
+		self.scene().update()
+		
+	def setBrushColor(self, color: QColor):
+		self._brush.setColor(color)
+		self.scene().update()
 	
 	def getText(self):
 		return self._text
@@ -98,9 +143,17 @@ class PFSActivity(PFSNode):
 	def setTooltip(self, text: str):
 		self._tooltip = text
 		
-	def boundingRect(self):
+	def minimunRect(self):
 		s = self._fontMetrics.size(Qt.TextExpandTabs, self._text)
+		self._minWidth = s.width()
+		self._minHeight = s.height()
 		return QRectF(self._x, self._y, s.width() + 15, s.height() + 4)
+	
+	def boundingRect(self):
+		r = self.minimunRect()
+		width = max(self._width,r.width()) 
+		height = max(self._height,r.height())
+		return QRectF(self._x, self._y, width, height)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
 		b = self.sceneBoundingRect()
@@ -113,7 +166,125 @@ class PFSActivity(PFSNode):
 			y = b.top()
 		elif p.y() > b.bottom():
 			y = b.bottom()
-		return QPoint(x, y)	
+		return QPoint(x, y)
+	
+	def propertiesTable(self):
+		ans = []
+		lblType = PFSTableLabel("Elemento")
+		lblValue = PFSTableNormal("Atividade")
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("ID")
+		lblValue = PFSTableNormal(self._id)
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição X")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().x()))
+		lblValue.edited.connect(self.changeElementPosX)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição Y")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().y()))
+		lblValue.edited.connect(self.changeElementPosY)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Largura")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().width()))
+		lblValue.edited.connect(self.changeElementWidth)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Altura")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
+		lblValue.edited.connect(self.changeElementHeight)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Texto")
+		lblValue = PFSTableValueText(self._text)
+		lblValue.edited.connect(self.changeText)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Fonte")
+		lblValue = PFSTableValueButton(self._textFont.toString())
+		lblValue.clicked.connect(self.changeFont)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Cor do contorno")
+		lblValue = PFSTableValueButton(self._pen.color().name())
+		lblValue.clicked.connect(self.changeLineColor)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Linha do contorno")
+		lblValue = PFSTableValueCombo(self.PEN_LIST, self._pen.style())
+		self.penEdited.connect(lblValue.updateText)
+		lblValue.currentTextChanged.connect(self.changeLineStyle)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Espessura do contorno")
+		lblValue = PFSTableValueText(str(self._pen.width()))
+		lblValue.edited.connect(self.changeLineWidth)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Cor do preenchimento")
+		lblValue = PFSTableValueButton(self._brush.color().name())
+		lblValue.clicked.connect(self.changeFillColor)
+		ans.append([lblType, lblValue])		
+		return ans
+	
+	def changeElementPosX(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveX)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementPosY(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveY)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementWidth(self, prop):
+		if float(prop.text()) > self._minWidth:
+			x = PFSUndoPropertyText(prop, self.resizeWidth)
+			self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementHeight(self, prop):
+		if float(prop.text()) > self._minHeight:
+			x = PFSUndoPropertyText(prop, self.resizeHeight)
+			self.scene()._page._net.undoStack.push(x)
+	
+	def changeText(self, prop):
+		x = PFSUndoPropertyText(prop, self.setText)
+		self.scene()._page._net.undoStack.push(x)
+		
+	def changeFont(self):
+		font, ans = QFontDialog.getFont(self._textFont, self.scene()._page._net, "Escolha a fonte do texto")
+		if ans:
+			x = PFSUndoPropertyButton(font, self._textFont, self.setFont)
+			self.scene()._page._net.undoStack.push(x)
+	
+	def changeLineColor(self):
+		color = QColorDialog.getColor(self._pen.color(), self.scene()._page._net, "Escolha a cor do contorno")
+		if color.isValid() and color != self._pen.color():
+			x = PFSUndoPropertyButton(color, self._pen.color(), self.setPenColor)
+			self.scene()._page._net.undoStack.push(x)
+			
+	def changeLineStyle(self, text):
+		if text in self.PEN_LIST:
+			x = PFSUndoPropertyCombo(self.PEN_LIST[text], self._pen.style(), self.setPenStyle)
+			self.scene()._page._net.undoStack.push(x)
+	
+	def changeLineWidth(self, prop):
+		x = PFSUndoPropertyText(prop, self.setPenWidth)
+		self.scene()._page._net.undoStack.push(x)
+		
+	def changeFillColor(self):
+		color = QColorDialog.getColor(self._brush.color(), self.scene()._page._net, "Escolha a cor do preenchimento")
+		if color.isValid() and color != self._brush.color():
+			x = PFSUndoPropertyButton(color, self._brush.color(), self.setBrushColor)
+			self.scene()._page._net.undoStack.push(x)
+	
+	def moveX(self, txt):
+		self._x = float(txt)
+		self.scene().update()
+	
+	def moveY(self, txt):
+		self._y = float(txt)
+		self.scene().update()	
+	
+	def resizeWidth(self, txt):
+		self._width = float(txt)
+		self.scene().update()
+		
+	def resizeHeight(self, txt):
+		self._height = float(txt)
+		self.scene().update()	
 		
 class PFSDistributor(PFSNode):
 	STANDARD_SIZE = 20
@@ -127,6 +298,9 @@ class PFSDistributor(PFSNode):
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
+		self._graph = PFSGraphItems()
+		self.penEdited = self._graph.penEdited
+		self.brushEdited = self._graph.brushEdited		
 		
 	def setTooltip(self, text: str):
 		self._tooltip = text
@@ -135,7 +309,7 @@ class PFSDistributor(PFSNode):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("distributor")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._pen, self._brush)
+		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._diameterX, self._diameterY), self._pen, self._brush)
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
 	
@@ -156,6 +330,8 @@ class PFSDistributor(PFSNode):
 				tooltip = child.nodeValue()
 		if graphics is not None:
 			di = PFSDistributor(id, graphics.rect.x(), graphics.rect.y())
+			di._diameterX = graphics.rect.width()
+			di._diameterY = graphics.rect.height()
 			if tooltip is not None:
 				di._tooltip = tooltip
 			if graphics.line is not None:
@@ -166,10 +342,13 @@ class PFSDistributor(PFSNode):
 		return None
 	
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
+		p.setBrush(self._brush)
+		p.setPen(self._pen)
 		if self.isSelected():
-			p.setPen(PFSElement.SELECTED_PEN)
-		else:
-			p.setPen(Qt.black)
+			if self._brush.color() == PFSElement.SELECTED_PEN:
+				p.setPen(PFSElement.SELECTED_PEN_ALT)
+			else:
+				p.setPen(PFSElement.SELECTED_PEN)
 		rect = self.sceneBoundingRect()
 		p.drawEllipse(rect.left()+1, rect.top()+1, rect.width() - 2, rect.height() - 2)
 	
@@ -180,6 +359,121 @@ class PFSDistributor(PFSNode):
 		c = self.sceneBoundingRect().center()
 		ang = math.atan2(p.y()-c.y()+1, p.x()-c.x()+1)
 		return QPoint(math.cos(ang)*self._diameterX/2 + c.x() - 1, math.sin(ang)*self._diameterY/2 + c.y()-1)
+	
+	def setPenColor(self, color: QColor):
+		self._pen.setColor(color)
+		self.scene().update()
+		
+	def setPenStyle(self, style: Qt):
+		self._pen.setStyle(style)
+		self.scene().update()
+		self.penEdited.emit(style)
+		
+	def setPenWidth(self, width: str):
+		self._pen.setWidth(float(width))
+		self.scene().update()
+		
+	def setBrushColor(self, color: QColor):
+		self._brush.setColor(color)
+		self.scene().update()	
+	
+	def propertiesTable(self):
+		ans = []
+		lblType = PFSTableLabel("Elemento")
+		lblValue = PFSTableNormal("Atividade")
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("ID")
+		lblValue = PFSTableNormal(self._id)
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição X")
+		lblValue = PFSTableValueText(str(self._x))
+		lblValue.edited.connect(self.changeElementPosX)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição Y")
+		lblValue = PFSTableValueText(str(self._y))
+		lblValue.edited.connect(self.changeElementPosY)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Largura")
+		lblValue = PFSTableValueText(str(self._diameterX))
+		lblValue.edited.connect(self.changeElementWidth)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Altura")
+		lblValue = PFSTableValueText(str(self._diameterY))
+		lblValue.edited.connect(self.changeElementHeight)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Cor do contorno")
+		lblValue = PFSTableValueButton(self._pen.color().name())
+		lblValue.clicked.connect(self.changeLineColor)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Linha do contorno")
+		lblValue = PFSTableValueCombo(self.PEN_LIST, self._pen.style())
+		self.penEdited.connect(lblValue.updateText)
+		lblValue.currentTextChanged.connect(self.changeLineStyle)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Espessura do contorno")
+		lblValue = PFSTableValueText(str(self._pen.width()))
+		lblValue.edited.connect(self.changeLineWidth)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Cor do preenchimento")
+		lblValue = PFSTableValueButton(self._brush.color().name())
+		lblValue.clicked.connect(self.changeFillColor)
+		ans.append([lblType, lblValue])
+		return ans	
+	
+	def changeElementPosX(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveX)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementPosY(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveY)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementWidth(self, prop):
+		x = PFSUndoPropertyText(prop, self.resizeWidth)
+		self.scene()._page._net.undoStack.push(x)
+	
+	def changeElementHeight(self, prop):
+		x = PFSUndoPropertyText(prop, self.resizeHeight)
+		self.scene()._page._net.undoStack.push(x)
+		
+	def changeLineColor(self):
+		color = QColorDialog.getColor(self._pen.color(), self.scene()._page._net, "Escolha a cor do contorno")
+		if color.isValid() and color != self._pen.color():
+			x = PFSUndoPropertyButton(color, self._pen.color(), self.setPenColor)
+			self.scene()._page._net.undoStack.push(x)
+			
+	def changeLineStyle(self, text):
+		if text in self.PEN_LIST:
+			x = PFSUndoPropertyCombo(self.PEN_LIST[text], self._pen.style(), self.setPenStyle)
+			self.scene()._page._net.undoStack.push(x)
+	
+	def changeLineWidth(self, prop):
+		x = PFSUndoPropertyText(prop, self.setPenWidth)
+		self.scene()._page._net.undoStack.push(x)
+		
+	def changeFillColor(self):
+		color = QColorDialog.getColor(self._brush.color(), self.scene()._page._net, "Escolha a cor do preenchimento")
+		if color.isValid() and color != self._brush.color():
+			x = PFSUndoPropertyButton(color, self._brush.color(), self.setBrushColor)
+			self.scene()._page._net.undoStack.push(x)	
+	
+	def moveX(self, txt):
+		self._x = float(txt)
+		self.scene().update()
+	
+	def moveY(self, txt):
+		self._y = float(txt)
+		self.scene().update()	
+	
+	def resizeWidth(self, txt):
+		self._diameterX = float(txt)
+		self.scene().update()
+		
+	def resizeHeight(self, txt):
+		self._diameterY = float(txt)
+		self.scene().update()
 		
 class PFSRelation(PFSElement):
 	def __init__(self, id: str, source: PFSNode, target: PFSNode):
@@ -192,6 +486,8 @@ class PFSRelation(PFSElement):
 		self.updatePoints()
 		self._pen = QPen(Qt.black)
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
+		self._graph = PFSGraphItems()
+		self.penEdited = self._graph.penEdited		
 		
 	def createRelation(id: str, source: PFSNode, target: PFSNode):
 		if isinstance(source, PFSActivity):
@@ -225,10 +521,12 @@ class PFSRelation(PFSElement):
 			self._lastPoint = self._target.getBestRelationPoint(self._midPoints[-1])
 	
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
+		p.setPen(self._pen)
 		if self.isSelected():
-			p.setPen(PFSElement.SELECTED_PEN)
-		else:
-			p.setPen(Qt.black)
+			if self._pen.color() == PFSElement.SELECTED_PEN:
+				p.setPen(PFSElement.SELECTED_PEN_ALT)
+			else:
+				p.setPen(PFSElement.SELECTED_PEN)
 		lastPoint = self._firstPoint
 		for point in self._midPoints:
 			p.drawLine(lastPoint, point)
@@ -333,4 +631,56 @@ class PFSRelation(PFSElement):
 			lst = self.scene()._itemsDeleted
 			if self not in lst:
 				lst.append(self)
+	
+	def setPenColor(self, color: QColor):
+		self._pen.setColor(color)
+		self.scene().update()
 		
+	def setPenStyle(self, style: Qt):
+		self._pen.setStyle(style)
+		self.scene().update()
+		self.penEdited.emit(style)
+		
+	def setPenWidth(self, width: str):
+		self._pen.setWidth(float(width))
+		self.scene().update()	
+	
+	def propertiesTable(self):
+		ans = []
+		lblType = PFSTableLabel("Elemento")
+		lblValue = PFSTableNormal("Arco")
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("ID")
+		lblValue = PFSTableNormal(self._id)
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Cor do contorno")
+		lblValue = PFSTableValueButton(self._pen.color().name())
+		lblValue.clicked.connect(self.changeLineColor)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Linha do contorno")
+		lblValue = PFSTableValueCombo(self.PEN_LIST, self._pen.style())
+		self.penEdited.connect(lblValue.updateText)
+		lblValue.currentTextChanged.connect(self.changeLineStyle)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Espessura do contorno")
+		lblValue = PFSTableValueText(str(self._pen.width()))
+		lblValue.edited.connect(self.changeLineWidth)
+		ans.append([lblType, lblValue])
+		return ans
+	
+	def changeLineColor(self):
+		color = QColorDialog.getColor(self._pen.color(), self.scene()._page._net, "Escolha a cor do contorno")
+		if color.isValid() and color != self._pen.color():
+			x = PFSUndoPropertyButton(color, self._pen.color(), self.setPenColor)
+			self.scene()._page._net.undoStack.push(x)
+			
+	def changeLineStyle(self, text):
+		if text in self.PEN_LIST:
+			x = PFSUndoPropertyCombo(self.PEN_LIST[text], self._pen.style(), self.setPenStyle)
+			self.scene()._page._net.undoStack.push(x)
+	
+	def changeLineWidth(self, prop):
+		x = PFSUndoPropertyText(prop, self.setPenWidth)
+		self.scene()._page._net.undoStack.push(x)	

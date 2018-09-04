@@ -166,7 +166,7 @@ class PFSXmlBase:
 		attr = node.attributes()
 		if not (node.hasAttributes() and attr.contains("color")):
 			return None
-		brush = QBrush()
+		brush = QBrush(Qt.black, Qt.SolidPattern)
 		brush.setColor(QColor(attr.namedItem("color").nodeValue()))
 		return brush
 	
