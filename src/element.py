@@ -3,7 +3,7 @@ from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
 from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor
-from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog
+from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog, QGraphicsItem
 import math
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton, PFSTableValueCombo
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
@@ -17,6 +17,8 @@ class PFSGraphItems(QObject):
 class PFSAux:
 	def __init__(self):
 		pass
+		
+
 
 class PFSActivity(PFSNode):
 	STANDARD_PEN = QPen(Qt.black)
@@ -285,7 +287,46 @@ class PFSActivity(PFSNode):
 	def resizeHeight(self, txt):
 		self._height = float(txt)
 		self.scene().update()	
+
+class PFSOpenActivity(PFSActivity):
+	def __init__(self, x, y, h, ref):
+		PFSActivity.__init__(self, x, y)
+		self._h = h
+		self._ref = ref
 		
+	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
+		rect = self.sceneBoundingRect()
+		p.setPen(self._ref._pen)
+		p.save()
+		if self.isSelected():
+			if self._ref._pen.color() == PFSElement.SELECTED_PEN:
+				p.setPen(PFSElement.SELECTED_PEN_ALT)
+			else:
+				p.setPen(PFSElement.SELECTED_PEN)
+		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 6, rect.top() + 1)
+		p.drawLine(rect.left() + 1, rect.bottom() - 1, rect.left() + 6, rect.bottom() - 1)
+		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 1, rect.bottom() - 1)
+		
+class PFSCloseActivity(PFSActivity):
+	def __init__(self, x, y, h, ref):
+		PFSActivity.__init__(self, x, y, "")
+		self._h = h
+		self._ref = ref
+		
+	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
+		rect = self.sceneBoundingRect()
+		p.setPen(self._ref._pen)
+		p.save()
+		if self.isSelected():
+			if self._ref._pen.color() == PFSElement.SELECTED_PEN:
+				p.setPen(PFSElement.SELECTED_PEN_ALT)
+			else:
+				p.setPen(PFSElement.SELECTED_PEN)
+		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 6, rect.top() + 1)
+		p.drawLine(rect.right() - 1, rect.bottom() - 1, rect.right() - 6, rect.bottom() - 1)
+		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 1, rect.bottom() - 1)		
+		p.restore()
+
 class PFSDistributor(PFSNode):
 	STANDARD_SIZE = 20
 	STANDARD_PEN = QPen(Qt.black)

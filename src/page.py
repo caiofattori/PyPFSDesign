@@ -25,12 +25,13 @@ class PFSPage(QWidget):
 		chkPaintGrid.setChecked(True)
 		chkPaintGrid.stateChanged.connect(self._scene.setPaintGrid)
 		layoutH.addWidget(chkPaintGrid)
-		but = QPushButton("Fit page")
-		but.clicked.connect(self.fitPage)
-		layoutH.addWidget(but)
+		#but = QPushButton("Fit page")
+		#but.clicked.connect(self.fitPage)
+		#layoutH.addWidget(but)
 		layout.addLayout(layoutH)
 		layout.addWidget(self._view)
 		self.setLayout(layout)
+		self._subRef = None
 		
 	def generateXml(self, xml: QXmlStreamWriter):
 		xml.writeStartElement("page")
