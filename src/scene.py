@@ -172,8 +172,16 @@ class PFSScene(QGraphicsScene):
 				QGraphicsScene.keyPressEvent(self, ev)
 			return
 		QGraphicsScene.keyPressEvent(self, ev)
-	
+		
 	def mouseDoubleClickEvent(self, ev):
+		pos = ev.scenePos()
+		it = self.itemAt(pos, QTransform())
+		if isinstance(it, PFSActivity):
+			if not it.hasSubPage():
+				it.createSubPage()
+			self._page._net.addPage(it.subPage())
+	
+	'''def mouseDoubleClickEvent(self, ev):
 		if self._parentState._sNormal:
 			pos = ev.scenePos()
 			it = self.itemAt(pos, QTransform())
@@ -184,7 +192,7 @@ class PFSScene(QGraphicsScene):
 				self.addItem(self._line)
 				self._line.setGeometry(it.sceneBoundingRect())
 				self.setFocusItem(self._line)
-		QGraphicsScene.mouseDoubleClickEvent(self, ev)
+		QGraphicsScene.mouseDoubleClickEvent(self, ev)'''
 	
 	def mouseMoveEvent(self, ev: QGraphicsSceneMouseEvent):
 		if ev.buttons() == Qt.NoButton:
