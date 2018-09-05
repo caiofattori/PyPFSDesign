@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget
 from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QUndoStack, QTableWidget
-from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter
+from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
 from generic import PFSNode
@@ -10,6 +10,7 @@ from statemachine import PFSStateMachine
 from undo import *
 from scene import *
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal
+from image import PFSImage
 
 class PFSPage(QWidget):
 	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net):
@@ -312,3 +313,15 @@ class PFSNet(QWidget):
 				item.deleted.emit()
 		x = PFSUndoDelete(scene._itemsDeleted)
 		self.undoStack.push(x)
+		
+	def export(self, filename):
+		if len(self._pages) > 1:
+			scene = self._tab.currentWidget()._scene
+		elif len(self._pages) == 1:
+			scene = self._pages[0]._scene
+		else:
+			return
+		if filename.endswith(".png"):
+			PFSImage.gravaPng(scene, filename)
+		else:
+			PFSImage.gravaSvg(scene, filename)

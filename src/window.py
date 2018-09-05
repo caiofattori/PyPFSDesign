@@ -124,6 +124,14 @@ class PFSWindow(QWidget):
 	def deleteElements(self):
 		self._tab.currentWidget().deleteElements()
 		
+	def exportNet(self):
+		filename, filter = QFileDialog.getSaveFileName(self, "Exportar arquivo...", self._lastPath, "SVG files (*.svg);; PNG files (*.png)")
+		if filename is None or filename == "":
+			return
+		if not (filename.endswith(".svg") or filename.endswith(".png")):
+			filename = filename + ".svg"
+		self._tab.currentWidget().export(filename)
+		
 class PFSMain(QMainWindow):
 	def __init__(self):
 		super(QMainWindow, self).__init__()
@@ -139,11 +147,17 @@ class PFSMain(QMainWindow):
 		actSave = QAction(icoSave, "Save Model", self)
 		actSave.setShortcuts(QKeySequence.Save)
 		actSave.setStatusTip("Salva o modelo em um arquivo")
-		self.actSave = actSave		
+		self.actSave = actSave
+		icoExport = QIcon.fromTheme("document-export", QIcon("../icons/document-export.svg"))
+		actExport = QAction(icoExport, "Export Model", self)
+		actExport.setShortcuts(QKeySequence.Print)
+		actExport.setStatusTip("Exporta o modelo como figura")
+		self.actExport = actExport
 		toolBar = self.addToolBar("Basic")
 		toolBar.addAction(actNew)
 		toolBar.addAction(actOpen)
 		toolBar.addAction(actSave)
+		toolBar.addAction(actExport)
 		toolBar = self.addToolBar("Elements")
 		self.btnActivity = PFSActivityButton()
 		ac = toolBar.addWidget(self.btnActivity)
@@ -168,6 +182,7 @@ class PFSMain(QMainWindow):
 		actNew.triggered.connect(self.wind.newNet)
 		actOpen.triggered.connect(self.wind.openNet)
 		actSave.triggered.connect(self.wind.saveNet)
+		actExport.triggered.connect(self.wind.exportNet)
 		actDelete.triggered.connect(self.wind.deleteElements)
 		self.setCentralWidget(self.wind)
 		self.disableButtons()
@@ -180,6 +195,7 @@ class PFSMain(QMainWindow):
 		self.btnDistributor.setEnabled(False)
 		self.btnRelation.setEnabled(False)
 		self.actSave.setEnabled(False)
+		self.actExport.setEnabled(False)
 		self.actDelete.setEnabled(False)
 		
 	def enableButtons(self):
@@ -187,6 +203,7 @@ class PFSMain(QMainWindow):
 		self.btnDistributor.setEnabled(True)
 		self.btnRelation.setEnabled(True)
 		self.actSave.setEnabled(True)
+		self.actExport.setEnabled(True)
 		self.actDelete.setEnabled(True)
 
 if __name__ == "__main__":
