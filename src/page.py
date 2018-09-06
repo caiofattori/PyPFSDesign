@@ -11,6 +11,7 @@ from undo import *
 from scene import *
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal
 from image import PFSImage
+from generic import PFSActive, PFSPassive
 
 class PFSPage(QWidget):
 	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net):
@@ -32,7 +33,14 @@ class PFSPage(QWidget):
 		layout.addWidget(self._view)
 		self.setLayout(layout)
 		self._subRef = None
-		
+		self._name = "Principal"
+	
+	def setName(self, txt):
+		self._name = txt
+	
+	def name(self):
+		return self._name
+	
 	def generateXml(self, xml: QXmlStreamWriter):
 		xml.writeStartElement("page")
 		PFSXmlBase.open(xml)
@@ -222,18 +230,23 @@ class PFSNet(QWidget):
 		self._filename = None
 		self._filepath = None
 		self._id = id
-		self._layout = QHBoxLayout()
+		layout = QHBoxLayout()
 		self._tab = QTabWidget()
-		self.setLayout(self._layout)
+		layout.addWidget(self._tab)
+		self.setLayout(layout)
 		self._prop = QTableWidget(20, 2)
 		self._prop.itemChanged.connect(self.propertiesItemChanged)
 		self._prop.verticalHeader().hide()
+		layout.addWidget(self._prop)
 		self._pages = []
 		self._idPage = 0
 		self._sm = sm
 		self._distributorId = 0
 		self._activityId = 0
 		self._relationId = 0
+		self._otherId = 0
+		self._pageId = 0
+		self._elements = {}
 		self.undoStack = QUndoStack(self)
 		self.undoAction = self.undoStack.createUndoAction(self, "Desfazer")
 		self.undoAction.setShortcuts(QKeySequence.Undo)
@@ -299,9 +312,28 @@ class PFSNet(QWidget):
 		page = PFSPage.newPage("pg" + str(ans._idPage), sm, ans)
 		ans._idPage = ans._idPage + 1
 		ans._pages.append(page)
-		ans._layout.addWidget(page)
-		ans._layout.addWidget(ans._prop)
+		ans._tab.addTab(page, page.name())
 		return ans
+	
+	def openPage(self, element):
+		if isinstance(element, PFSPage):
+			page = element
+		elif isinstance(element, PFSActivity):
+			page = element.subPage()
+		else:
+			return
+		if page not in self._pages:
+			self._tab.addTab(page, page.name())
+			self._pages.append(page)
+		self._tab.setCurrentWidget(page)
+	
+	def createPage(self, element=None):
+		page = PFSPage.newPage("pg" + str(self._idPage), self._sm, self)
+		if element.setSubPage(page):
+			page.setName("Ref_" + element._id)
+			self._idPage = self._idPage + 1
+			return page
+		return None
 		
 	def deleteElements(self):
 		if len(self._pages) > 1:
@@ -326,3 +358,31 @@ class PFSNet(QWidget):
 			PFSImage.gravaPng(scene, filename)
 		else:
 			PFSImage.gravaSvg(scene, filename)
+	
+	def addItem(self, element, page:PFSPage):
+		if isinstance(element, PFSRelation):
+			if isinstance(element._source, PFSActive) and isinstance(element._target, PFSActive):
+				return False
+			if isinstance(element._source, PFSPassive) and isinstance(element._target, PFSPassive):
+				return False
+		x = PFSUndoAdd([element], page._scene)
+		self.undoStack.push(x)
+		return True
+	
+	def requestId(self, element):
+		if element == PFSActivity:
+			ans = "A" + str(self._activityId)
+			self._activityId = self._activityId + 1
+		elif element == PFSDistributor:
+			ans = "D" + str(self._distributorId)
+			self._distributorId = self._distributorId + 1
+		elif element == PFSRelation:
+			ans = "R" + str(self._relationId)
+			self._relationId = self._relationId + 1
+		elif element == PFSPage:
+			ans = "P" + str(self._pageId)
+			self._pageId = self._pageId + 1
+		else:
+			ans = "O" + str(self._otherId)
+			self._otherId = self._otherId + 1
+		return ans

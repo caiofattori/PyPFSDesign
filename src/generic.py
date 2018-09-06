@@ -32,3 +32,10 @@ class PFSNode(QGraphicsItem):
 		self._y = self._y + y
 		self.changed.emit()
 		
+class PFSActive(PFSNode):
+	def __init__(self, id, x, y):
+		PFSNode.__init__(self, id, x, y)
+		
+class PFSPassive(PFSNode):
+	def __init__(self, id, x, y):
+		PFSNode.__init__(self, id, x, y)

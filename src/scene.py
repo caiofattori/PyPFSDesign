@@ -55,7 +55,8 @@ class PFSScene(QGraphicsScene):
 		self._lastItemClicked = self.itemAt(ev.scenePos(), QTransform())
 		if self._parentState._sDistributor:
 			pos = ev.scenePos()
-			elem = PFSDistributor(self.getNewDistributorId(), pos.x(), pos.y())
+			elem = PFSDistributor(self._page._net.requestId(PFSDistributor), pos.x(), pos.y())
+			self._page._net.addItem(elem, self._page)
 			x = PFSUndoAdd([elem], self)
 			self._page._net.undoStack.push(x)
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
@@ -63,9 +64,8 @@ class PFSScene(QGraphicsScene):
 			return
 		if self._parentState._sActivity:
 			pos = ev.scenePos()
-			elem = PFSActivity(self.getNewActivityId(), pos.x(), pos.y(), "Activity")
-			x = PFSUndoAdd([elem], self)
-			self._page._net.undoStack.push(x)
+			elem = PFSActivity(self._page._net.requestId(PFSActivity), pos.x(), pos.y(), "Activity")
+			self._page._net.addItem(elem, self._page)
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.inserted.emit()
 			return
@@ -78,10 +78,9 @@ class PFSScene(QGraphicsScene):
 		if self._parentState._sRelationT:
 			it = self._lastItemClicked
 			if it is not None:
-				elem = PFSRelation.createRelation(self.getNewRelationId(), self._tempSource, it)
+				elem = PFSRelation.createRelation(self._page._net.requestId(PFSRelation), self._tempSource, it)
 				if elem is not None:
-					x = PFSUndoAdd([elem], self)
-					self._page._net.undoStack.push(x)				
+					self._page._net.addItem(elem, self._page)
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.inserted.emit()
 			else:
@@ -178,21 +177,8 @@ class PFSScene(QGraphicsScene):
 		it = self.itemAt(pos, QTransform())
 		if isinstance(it, PFSActivity):
 			if not it.hasSubPage():
-				it.createSubPage()
-			self._page._net.addPage(it.subPage())
-	
-	'''def mouseDoubleClickEvent(self, ev):
-		if self._parentState._sNormal:
-			pos = ev.scenePos()
-			it = self.itemAt(pos, QTransform())
-			if isinstance(it, PFSActivity):
-				self.edited.emit()
-				self._line = PFSTextBox(self, it)
-				self._tempActivity = it
-				self.addItem(self._line)
-				self._line.setGeometry(it.sceneBoundingRect())
-				self.setFocusItem(self._line)
-		QGraphicsScene.mouseDoubleClickEvent(self, ev)'''
+				self._page._net.createPage(it)
+			self._page._net.openPage(it)
 	
 	def mouseMoveEvent(self, ev: QGraphicsSceneMouseEvent):
 		if ev.buttons() == Qt.NoButton:

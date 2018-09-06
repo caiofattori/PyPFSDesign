@@ -3,7 +3,7 @@ from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
 from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor
-from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog, QGraphicsItem
+from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog
 import math
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton, PFSTableValueCombo
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
@@ -17,15 +17,13 @@ class PFSGraphItems(QObject):
 class PFSAux:
 	def __init__(self):
 		pass
-		
 
-
-class PFSActivity(PFSNode):
+class PFSActivity(PFSActive):
 	STANDARD_PEN = QPen(Qt.black)
 	STANDARD_BRUSH = QBrush(Qt.white, Qt.SolidPattern)
 	def __init__(self, id: str, x: int, y: int, text: str="Atividade"):
-		PFSNode.__init__(self, id, x, y)
-		self._subNet= None
+		PFSActive.__init__(self, id, x, y)
+		self._subPage = None
 		self._tooltip = ""
 		self._textFont = QFont("Helvetica", 15)
 		self._lineNumbers = 1
@@ -42,7 +40,22 @@ class PFSActivity(PFSNode):
 		self._graph = PFSGraphItems()
 		self.penEdited = self._graph.penEdited
 		self.brushEdited = self._graph.brushEdited
-		
+	
+	def hasSubPage(self):
+		return self._subPage is not None
+	
+	def setSubPage(self, page):
+		if self._subPage is not None:
+			return False
+		self._subPage = page
+		return True
+	
+	def removeSubPage(self):
+		self._subPage = None
+	
+	def subPage(self):
+		return self._subPage
+	
 	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("activity")
@@ -286,13 +299,24 @@ class PFSActivity(PFSNode):
 		
 	def resizeHeight(self, txt):
 		self._height = float(txt)
-		self.scene().update()	
+		self.scene().update()
 
-class PFSOpenActivity(PFSActivity):
-	def __init__(self, x, y, h, ref):
-		PFSActivity.__init__(self, x, y)
+class PFSOpenActivity(PFSActive):
+	def __init__(self, id, x, y, h, ref):
+		PFSActive.__init__(self, id, x, y)
 		self._h = h
 		self._ref = ref
+	
+	def boundingRect(self):
+		return QRectF(self._x, self._y, 6, self._h)
+	
+	def getBestRelationPoint(self, p: QPoint) -> QPoint:
+		b = self.sceneBoundingRect()
+		if p.y() < b.top() + 5:
+			y = b.top() + 5
+		elif p.y() > b.bottom() - 5:
+			y = b.bottom() - 5
+		return QPoint(b.left(), y)
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		rect = self.sceneBoundingRect()
@@ -307,11 +331,22 @@ class PFSOpenActivity(PFSActivity):
 		p.drawLine(rect.left() + 1, rect.bottom() - 1, rect.left() + 6, rect.bottom() - 1)
 		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 1, rect.bottom() - 1)
 		
-class PFSCloseActivity(PFSActivity):
-	def __init__(self, x, y, h, ref):
-		PFSActivity.__init__(self, x, y, "")
+class PFSCloseActivity(PFSActive):
+	def __init__(self, id, x, y, h, ref):
+		PFSActive.__init__(self, id, x, y)
 		self._h = h
 		self._ref = ref
+	
+	def boundingRect(self):
+		return QRectF(self._x - 7, self._y, 8, self._h)
+	
+	def getBestRelationPoint(self, p: QPoint) -> QPoint:
+		b = self.sceneBoundingRect()
+		if p.y() < b.top() + 5:
+			y = b.top() + 5
+		elif p.y() > b.bottom() - 5:
+			y = b.bottom() - 5
+		return QPoint(b.right(), y)
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		rect = self.sceneBoundingRect()
@@ -327,12 +362,12 @@ class PFSCloseActivity(PFSActivity):
 		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 1, rect.bottom() - 1)		
 		p.restore()
 
-class PFSDistributor(PFSNode):
+class PFSDistributor(PFSPassive):
 	STANDARD_SIZE = 20
 	STANDARD_PEN = QPen(Qt.black)
 	STANDARD_BRUSH = QBrush(Qt.transparent, Qt.SolidPattern)
 	def __init__(self, id: str, x: int, y: int):
-		PFSNode.__init__(self, id, x, y)
+		PFSPassive.__init__(self, id, x, y)
 		self._tooltip = ""
 		self._diameterX = self.STANDARD_SIZE
 		self._diameterY = self.STANDARD_SIZE
