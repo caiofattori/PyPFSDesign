@@ -139,13 +139,13 @@ class PFSStateMachine(QStateMachine):
 		self.setInitialState(normal)
 		
 	def fixTransitions(self, scene):
-		if self.trans1 is not None:
+		'''if self.trans1 is not None:
 			self.insActivity.removeTransition(self.trans1)
 			self.insDistributor.removeTransition(self.trans2)
 			self.insRelationS.removeTransition(self.trans3)
 			self.insRelationT.removeTransition(self.trans4)
 			self.tiping.removeTransition(self.trans5)
-			self.normal.removeTransition(self.trans6)
+			self.normal.removeTransition(self.trans6)'''
 		self.trans1 = self.insActivity.addTransition(scene.inserted, self.normal)
 		self.trans2 = self.insDistributor.addTransition(scene.inserted, self.normal)				
 		self.trans3 = self.insRelationS.addTransition(scene.inserted, self.insRelationT)

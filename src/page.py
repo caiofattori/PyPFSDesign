@@ -357,6 +357,7 @@ class PFSNet(QWidget):
 			closeac = PFSCloseActivity(self.requestId(PFSCloseActivity), page._scene.sceneRect().width()-20, 10, 100, element)
 			self.addItemNoUndo(closeac, page)
 			self._idPage = self._idPage + 1
+			self._sm.fixTransitions(page._scene)
 			return page
 		return None
 		
