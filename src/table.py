@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QTableWidgetItem, QPushButton, QComboBox
+from PyQt5.QtWidgets import QTableWidgetItem, QPushButton, QComboBox, QCheckBox
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
 
 class PFSTableLabel(QTableWidgetItem):
@@ -65,3 +65,11 @@ class PFSTableValueCombo(QComboBox):
 				self.setCurrentText(key)
 				self.blockSignals(False)
 				return
+
+class PFSTableValueCheck(QCheckBox):
+	def __init__(self, txt, value):
+		QCheckBox.__init__(self, txt)
+		self.setChecked(value)
+		
+	def comparePrevious(self):
+		return False

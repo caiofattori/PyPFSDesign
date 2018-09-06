@@ -16,28 +16,13 @@ class PFSScene(QGraphicsScene):
 		super(QGraphicsScene, self).__init__()
 		self._backgroundPoints = []
 		self.resize(w,h)
-		self._paintGrid = True
+		self._paintGrid = False
 		self._parentState = parentState
 		self._page = page
 		self._tempSource = None
 		self._tempActivity = None
 		self._lastPos = QPoint(0,0)
 		self._lastItemClicked = None
-		
-	def getNewDistributorId(self) -> str:
-		ans = "D" + str(self._page._net._distributorId)
-		self._page._net._distributorId = self._page._net._distributorId + 1
-		return ans
-	
-	def getNewActivityId(self) -> str:
-		ans = "A" + str(self._page._net._activityId)
-		self._page._net._activityId = self._page._net._activityId + 1
-		return ans
-	
-	def getNewRelationId(self) -> str:
-		ans = "R" + str(self._page._net._relationId)
-		self._page._net._relationId = self._page._net._relationId + 1
-		return ans
 		
 	def setPaintGrid(self, v: bool= True):
 		self._paintGrid = v
@@ -197,6 +182,7 @@ class PFSScene(QGraphicsScene):
 			self.update()
 		
 	def drawBackground(self, p: QPainter, r: QRect):
+		p.drawRect(self.sceneRect())
 		if not self._paintGrid:
 			return
 		p.setPen(Qt.SolidLine)

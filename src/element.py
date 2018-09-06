@@ -310,6 +310,14 @@ class PFSOpenActivity(PFSActive):
 	def boundingRect(self):
 		return QRectF(self._x, self._y, 6, self._h)
 	
+	def generateXml(self, xml: QXmlStreamWriter):
+		PFSXmlBase.open(xml)
+		xml.writeStartElement("openactivity")
+		xml.writeAttribute("id", self._id)
+		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._ref._pen, None)
+		xml.writeEndElement() #fecha openactivity
+		PFSXmlBase.close(xml)
+	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
 		b = self.sceneBoundingRect()
 		if p.y() < b.top() + 5:
@@ -330,6 +338,7 @@ class PFSOpenActivity(PFSActive):
 		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 6, rect.top() + 1)
 		p.drawLine(rect.left() + 1, rect.bottom() - 1, rect.left() + 6, rect.bottom() - 1)
 		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 1, rect.bottom() - 1)
+		p.restore()
 		
 class PFSCloseActivity(PFSActive):
 	def __init__(self, id, x, y, h, ref):
@@ -339,6 +348,14 @@ class PFSCloseActivity(PFSActive):
 	
 	def boundingRect(self):
 		return QRectF(self._x - 7, self._y, 8, self._h)
+	
+	def generateXml(self, xml: QXmlStreamWriter):
+		PFSXmlBase.open(xml)
+		xml.writeStartElement("closeactivity")
+		xml.writeAttribute("id", self._id)
+		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._ref._pen, None)
+		xml.writeEndElement() #fecha closeactivity
+		PFSXmlBase.close(xml)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
 		b = self.sceneBoundingRect()
@@ -365,7 +382,7 @@ class PFSCloseActivity(PFSActive):
 class PFSDistributor(PFSPassive):
 	STANDARD_SIZE = 20
 	STANDARD_PEN = QPen(Qt.black)
-	STANDARD_BRUSH = QBrush(Qt.transparent, Qt.SolidPattern)
+	STANDARD_BRUSH = QBrush(Qt.white, Qt.SolidPattern)
 	def __init__(self, id: str, x: int, y: int):
 		PFSPassive.__init__(self, id, x, y)
 		self._tooltip = ""

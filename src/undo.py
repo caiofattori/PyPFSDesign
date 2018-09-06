@@ -5,11 +5,7 @@ class PFSUndoDelete(QUndoCommand):
 		super(QUndoCommand, self).__init__()
 		self._stored = items
 		self._scene = items[0].scene()
-		for item in self._stored:
-			self._scene.removeItem(item)
-		self._scene.clearSelection()
-		self._scene.update()
-			
+		
 	def undo(self):
 		for item in self._stored:
 			self._scene.addItem(item)
@@ -27,9 +23,6 @@ class PFSUndoAdd(QUndoCommand):
 		super(QUndoCommand, self).__init__()
 		self._stored = items
 		self._scene = scene
-		for item in self._stored:
-			self._scene.addItem(item)
-		self._scene.update()
 			
 	def undo(self):
 		for item in self._stored:

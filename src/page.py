@@ -4,12 +4,12 @@ from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
 from generic import PFSNode
-from element import PFSActivity, PFSDistributor, PFSRelation
+from element import PFSActivity, PFSDistributor, PFSRelation, PFSOpenActivity, PFSCloseActivity
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from undo import *
 from scene import *
-from table import PFSTableLabel, PFSTableValueText, PFSTableNormal
+from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueCheck
 from image import PFSImage
 from generic import PFSActive, PFSPassive
 
@@ -21,15 +21,6 @@ class PFSPage(QWidget):
 		self._scene = PFSScene(w, h, stateMachine, self)
 		self._view = PFSView(self._scene)
 		layout = QVBoxLayout()
-		layoutH = QHBoxLayout()
-		chkPaintGrid = QCheckBox("Show grid")
-		chkPaintGrid.setChecked(True)
-		chkPaintGrid.stateChanged.connect(self._scene.setPaintGrid)
-		layoutH.addWidget(chkPaintGrid)
-		#but = QPushButton("Fit page")
-		#but.clicked.connect(self.fitPage)
-		#layoutH.addWidget(but)
-		layout.addLayout(layoutH)
 		layout.addWidget(self._view)
 		self.setLayout(layout)
 		self._subRef = None
@@ -45,16 +36,20 @@ class PFSPage(QWidget):
 		xml.writeStartElement("page")
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("pagetype")
-		xml.writeAttribute("mainpage", "true")
-		xml.writeAttribute("id", "pg0")
-		xml.writeAttribute("ref", "")
+		xml.writeAttribute("id", self._id)
+		if self._subRef is None:
+			xml.writeAttribute("mainpage", "true")
+			xml.writeAttribute("ref", "")
+		else:
+			xml.writeAttribute("mainpage", "false")
+			xml.writeAttribute("ref", self._subRef)
 		xml.writeEndElement() #fim da pagetype
 		xml.writeStartElement("pagegraphics")
 		PFSXmlBase.position(xml, str(self._scene.width()), str(self._scene.height()), "dimension")
 		xml.writeEndElement() #fim da pagegraphics
 		PFSXmlBase.close(xml)
 		for e in self._scene.items():
-			if isinstance(e, PFSActivity) or isinstance(e, PFSDistributor) or isinstance(e, PFSRelation):
+			if isinstance(e, PFSActive) or isinstance(e, PFSPassive) or isinstance(e, PFSRelation):
 				e.generateXml(xml)
 		xml.writeEndElement() #fim da page
 	
@@ -90,8 +85,8 @@ class PFSPage(QWidget):
 			return "New_Model"
 		return "New_Model"
 	
-	def newPage(id: str, sm: PFSStateMachine, net):
-		return PFSPage(id, 4000, 4000, sm, net)
+	def newPage(id: str, sm: PFSStateMachine, net, width = 4000, height = 4000):
+		return PFSPage(id, width, height, sm, net)
 	
 	def createFromXml(node: QDomNode, sm: PFSStateMachine, net):
 		if node.nodeName() != "page":
@@ -189,6 +184,17 @@ class PFSPage(QWidget):
 			return page
 		return None
 	
+	def getAllSubPages(self):
+		ans = []
+		for e in self._scene.items():
+			if isinstance(e, PFSActivity):
+				if e.hasSubPage():
+					ans.append(e.subPage())
+					aux = e.subPage().getAllSubPages()
+					if len(aux) > 0:
+						ans = ans + aux
+		return ans
+	
 	def propertiesTable(self):
 		ans = []
 		lblType = PFSTableLabel("Elemento")
@@ -207,6 +213,10 @@ class PFSPage(QWidget):
 		lblValue = PFSTableValueText(str(self._scene.sceneRect().height()))
 		lblValue.edited.connect(self.changePageHeight)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Mostra grid")
+		lblValue = PFSTableValueCheck("", self._scene._paintGrid)
+		lblValue.stateChanged.connect(self._scene.setPaintGrid)
+		ans.append([lblType, lblValue])		
 		return ans
 	
 	def changePageWidth(self, prop):
@@ -246,6 +256,7 @@ class PFSNet(QWidget):
 		self._relationId = 0
 		self._otherId = 0
 		self._pageId = 0
+		self._page = None
 		self._elements = {}
 		self.undoStack = QUndoStack(self)
 		self.undoAction = self.undoStack.createUndoAction(self, "Desfazer")
@@ -258,13 +269,22 @@ class PFSNet(QWidget):
 	def propertiesItemChanged(self, item: PFSTableValueText):
 		if item.comparePrevious():
 			item.edited.emit(item)
-		
+	
+	def getAllPages(self):
+		ans = []
+		ans.append(self._page)
+		aux = self._page.getAllSubPages()
+		if len(aux) > 0:
+			ans = ans + aux
+		return ans
+	
 	def generateXml(self, xml: QXmlStreamWriter):
 		xml.writeStartDocument()
 		xml.writeStartElement("PetriNetDoc")
 		xml.writeStartElement("net")
 		xml.writeAttribute("id", self._id)
-		for p in self._pages:
+		pages = self.getAllPages()
+		for p in pages:
 			p.generateXml(xml)
 		xml.writeEndElement()
 		xml.writeEndElement()
@@ -309,8 +329,8 @@ class PFSNet(QWidget):
 		
 	def newNet(id, sm: PFSStateMachine):
 		ans = PFSNet(id, sm)
-		page = PFSPage.newPage("pg" + str(ans._idPage), sm, ans)
-		ans._idPage = ans._idPage + 1
+		page = PFSPage.newPage(ans.requestId(PFSPage), sm, ans)
+		ans._page = page
 		ans._pages.append(page)
 		ans._tab.addTab(page, page.name())
 		return ans
@@ -328,9 +348,14 @@ class PFSNet(QWidget):
 		self._tab.setCurrentWidget(page)
 	
 	def createPage(self, element=None):
-		page = PFSPage.newPage("pg" + str(self._idPage), self._sm, self)
-		if element.setSubPage(page):
+		page = PFSPage.newPage(self.requestId(PFSPage), self._sm, self, 600, 120)
+		if element is not None and element.setSubPage(page):
 			page.setName("Ref_" + element._id)
+			page._subRef = element._id
+			openac = PFSOpenActivity(self.requestId(PFSOpenActivity), 20, 10, 100, element)
+			self.addItemNoUndo(openac, page)
+			closeac = PFSCloseActivity(self.requestId(PFSCloseActivity), page._scene.sceneRect().width()-20, 10, 100, element)
+			self.addItemNoUndo(closeac, page)
 			self._idPage = self._idPage + 1
 			return page
 		return None
@@ -368,6 +393,16 @@ class PFSNet(QWidget):
 		x = PFSUndoAdd([element], page._scene)
 		self.undoStack.push(x)
 		return True
+	
+	def addItemNoUndo(self, element, page:PFSPage):
+		if isinstance(element, PFSRelation):
+			if isinstance(element._source, PFSActive) and isinstance(element._target, PFSActive):
+				return False
+			if isinstance(element._source, PFSPassive) and isinstance(element._target, PFSPassive):
+				return False
+		page._scene.addItem(element)
+		page._scene.update()
+		return True	
 	
 	def requestId(self, element):
 		if element == PFSActivity:
