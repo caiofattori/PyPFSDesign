@@ -33,8 +33,9 @@ class PFSActivity(PFSActive):
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
-		self._width = 0
-		self._height = 0
+		self.minimunRect()
+		self._width = self._minWidth
+		self._height = self._minHeight
 		self._minWidth = 0
 		self._minHeight = 0
 		self._graph = PFSGraphItems()
@@ -60,7 +61,7 @@ class PFSActivity(PFSActive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("activity")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._pen, self._brush)
+		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._width, self._y), self._pen, self._brush)
 		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text", align="center")
 		xml.writeStartElement("tooltip")
 		xml.writeCharacters(self._tooltip)
@@ -88,6 +89,8 @@ class PFSActivity(PFSActive):
 				tooltip = child.nodeValue()
 		if graphics is not None and text is not None:
 			ac = PFSActivity(id, graphics.rect.x(), graphics.rect.y())
+			ac._width = graphics.rect.width()
+			ac._height = graphics.rect.height()
 			ac.setText(text.annotation)
 			if tooltip is not None:
 				ac._tooltip = tooltip
@@ -105,7 +108,7 @@ class PFSActivity(PFSActive):
 		p.setPen(Qt.NoPen)
 		p.setBrush(self._brush)
 		rect = self.sceneBoundingRect()
-		p.drawRect(rect)
+		p.drawRect(self._x, self._y, self._width, self._height)
 		p.setPen(self._pen)
 		p.setFont(self._textFont)
 		p.drawText(rect, Qt.AlignCenter, self._text)
@@ -115,12 +118,12 @@ class PFSActivity(PFSActive):
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
-		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 6, rect.top() + 1)
-		p.drawLine(rect.left() + 1, rect.bottom() - 1, rect.left() + 6, rect.bottom() - 1)
-		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 1, rect.bottom() - 1)
-		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 6, rect.top() + 1)
-		p.drawLine(rect.right() - 1, rect.bottom() - 1, rect.right() - 6, rect.bottom() - 1)
-		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 1, rect.bottom() - 1)		
+		p.drawLine(self._x, self._y, self._x + 6, self._y)
+		p.drawLine(self._x, self._y + self._height, self._x + 6, self._y + self._height)
+		p.drawLine(self._x, self._y, self._x, self._y + self._height)
+		p.drawLine(self._x + self._width, self._y, self._x + self._width - 6, self._y)
+		p.drawLine(self._x + self._width, self._y + self._height, self._x + self._width - 6, self._y + self._height)
+		p.drawLine(self._x + self._width, self._y, self._x + self._width, self._y + self._height)		
 		p.restore()
 		
 	def setText(self, text: str):
@@ -160,9 +163,9 @@ class PFSActivity(PFSActive):
 		
 	def minimunRect(self):
 		s = self._fontMetrics.size(Qt.TextExpandTabs, self._text)
-		self._minWidth = s.width()
-		self._minHeight = s.height()
-		return QRectF(self._x, self._y, s.width() + 15, s.height() + 4)
+		self._minWidth = s.width() + 15
+		self._minHeight = s.height() + 4
+		return QRectF(self._x, self._y, self._minWidth, self._minHeight)
 	
 	def boundingRect(self):
 		r = self.minimunRect()
@@ -171,16 +174,15 @@ class PFSActivity(PFSActive):
 		return QRectF(self._x, self._y, width, height)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
-		b = self.sceneBoundingRect()
-		if p.x() > b.center().x():
-			x = b.right()
+		if p.x() > (self._x + self._width)/2:
+			x = self._x + self._width
 		else:
-			x = b.left()
+			x = self._x
 		y = p.y()
-		if p.y() < b.top():
-			y = b.top()
-		elif p.y() > b.bottom():
-			y = b.bottom()
+		if p.y() < self._y:
+			y = self._y
+		elif p.y() > self._y + self._height:
+			y = self._y + self._height
 		return QPoint(x, y)
 	
 	def propertiesTable(self):
@@ -194,19 +196,19 @@ class PFSActivity(PFSActive):
 		lblValue.setFlags(Qt.NoItemFlags)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Posição X")
-		lblValue = PFSTableValueText(str(self.sceneBoundingRect().x()))
+		lblValue = PFSTableValueText(str(self._x))
 		lblValue.edited.connect(self.changeElementPosX)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Posição Y")
-		lblValue = PFSTableValueText(str(self.sceneBoundingRect().y()))
+		lblValue = PFSTableValueText(str(self._y))
 		lblValue.edited.connect(self.changeElementPosY)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Largura")
-		lblValue = PFSTableValueText(str(self.sceneBoundingRect().width()))
+		lblValue = PFSTableValueText(str(self._width))
 		lblValue.edited.connect(self.changeElementWidth)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Altura")
-		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
+		lblValue = PFSTableValueText(str(self._height))
 		lblValue.edited.connect(self.changeElementHeight)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Texto")
@@ -306,28 +308,45 @@ class PFSOpenActivity(PFSActive):
 		PFSActive.__init__(self, id, x, y)
 		self._h = h
 		self._ref = ref
+		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
 	def boundingRect(self):
-		return QRectF(self._x, self._y, 6, self._h)
+		return QRectF(self._x-3, self._y-3, 12, self._h+3)
 	
 	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("openactivity")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._ref._pen, None)
+		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, 6, self._h), self._ref._pen, None)
 		xml.writeEndElement() #fecha openactivity
 		PFSXmlBase.close(xml)
+		
+	def createFromXml(node: QDomNode):
+		if node.nodeName() != "openactivity":
+			return None
+		if not (node.hasAttributes() and node.attributes().contains("id")):
+			return None
+		id = node.attributes().namedItem("id").nodeValue()
+		childs = node.childNodes()
+		graphics = None
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "graphics":
+				graphics = PFSXmlBase.getNode(child)
+		if graphics is not None:
+			oa = PFSOpenActivity(id, graphics.rect.x(), graphics.rect.y(), graphics.rect.height(), None)
+			return ac
+		return None	
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
-		b = self.sceneBoundingRect()
-		if p.y() < b.top() + 5:
-			y = b.top() + 5
-		elif p.y() > b.bottom() - 5:
-			y = b.bottom() - 5
-		return QPoint(b.left(), y)
+		y = p.y()
+		if p.y() < self._y + 5:
+			y = self._y + 5
+		elif p.y() > self._y + self._h - 5:
+			y = self._y + self._h - 5
+		return QPoint(self._x, y)
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
-		rect = self.sceneBoundingRect()
 		p.setPen(self._ref._pen)
 		p.save()
 		if self.isSelected():
@@ -335,38 +354,87 @@ class PFSOpenActivity(PFSActive):
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
-		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 6, rect.top() + 1)
-		p.drawLine(rect.left() + 1, rect.bottom() - 1, rect.left() + 6, rect.bottom() - 1)
-		p.drawLine(rect.left() + 1, rect.top() + 1, rect.left() + 1, rect.bottom() - 1)
+		p.drawLine(self._x, self._y, self._x + 6, self._y)
+		p.drawLine(self._x, self._y + self._h, self._x + 6, self._y + self._h)
+		p.drawLine(self._x, self._y, self._x, self._y + self._h)
 		p.restore()
+		
+	def propertiesTable(self):
+		ans = []
+		lblType = PFSTableLabel("Elemento")
+		lblValue = PFSTableNormal("Atividade")
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("ID")
+		lblValue = PFSTableNormal(self._id)
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição X")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().x()))
+		lblValue.edited.connect(self.changeElementPosX)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição Y")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().y()))
+		lblValue.edited.connect(self.changeElementPosY)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Altura")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
+		lblValue.edited.connect(self.changeElementHeight)
+		ans.append([lblType, lblValue])
+		return ans
+	
+	def changeElementPosX(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveX)
+		self.scene()._page._net.undoStack.push(x)
+
+	def changeElementPosY(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveY)
+		self.scene()._page._net.undoStack.push(x)
+
+	def changeElementHeight(self, prop):
+		if float(prop.text()) > self._minHeight:
+			x = PFSUndoPropertyText(prop, self.resizeHeight)
+			self.scene()._page._net.undoStack.push(x)
+
+	def moveX(self, txt):
+		self._x = float(txt)
+		self.scene().update()
+
+	def moveY(self, txt):
+		self._y = float(txt)
+		self.scene().update()
+
+	def resizeHeight(self, txt):
+		self._height = float(txt)
+		self.scene().update()
 		
 class PFSCloseActivity(PFSActive):
 	def __init__(self, id, x, y, h, ref):
 		PFSActive.__init__(self, id, x, y)
 		self._h = h
 		self._ref = ref
+		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
 	def boundingRect(self):
-		return QRectF(self._x - 7, self._y, 8, self._h)
+		return QRectF(self._x-9, self._y-3, 12, self._h+3)
 	
 	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("closeactivity")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, self.sceneBoundingRect(), self._ref._pen, None)
+		PFSXmlBase.graphicsNode(xml, QRectF(self._x-6, self._y, 6, self._h), self._ref._pen, None)
 		xml.writeEndElement() #fecha closeactivity
 		PFSXmlBase.close(xml)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
-		b = self.sceneBoundingRect()
-		if p.y() < b.top() + 5:
-			y = b.top() + 5
-		elif p.y() > b.bottom() - 5:
-			y = b.bottom() - 5
-		return QPoint(b.right(), y)
+		y = p.y()
+		if p.y() < self._y + 5:
+			y = self._y + 5
+		elif p.y() > self._y + self._h - 5:
+			y = self._h - 5
+		return QPoint(self._x, y)
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
-		rect = self.sceneBoundingRect()
 		p.setPen(self._ref._pen)
 		p.save()
 		if self.isSelected():
@@ -374,10 +442,59 @@ class PFSCloseActivity(PFSActive):
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
-		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 6, rect.top() + 1)
-		p.drawLine(rect.right() - 1, rect.bottom() - 1, rect.right() - 6, rect.bottom() - 1)
-		p.drawLine(rect.right() - 1, rect.top() + 1, rect.right() - 1, rect.bottom() - 1)		
+		p.drawLine(self._x, self._y, self._x - 6, self._y)
+		p.drawLine(self._x, self._y + self._h, self._x - 6, self._y + self._h)
+		p.drawLine(self._x, self._y, self._x, self._y + self._h)
 		p.restore()
+		
+	def propertiesTable(self):
+		ans = []
+		lblType = PFSTableLabel("Elemento")
+		lblValue = PFSTableNormal("Fecha atividade")
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("ID")
+		lblValue = PFSTableNormal(self._id)
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição X")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().x()))
+		lblValue.edited.connect(self.changeElementPosX)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Posição Y")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().y()))
+		lblValue.edited.connect(self.changeElementPosY)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Altura")
+		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
+		lblValue.edited.connect(self.changeElementHeight)
+		ans.append([lblType, lblValue])
+		return ans
+	
+	def changeElementPosX(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveX)
+		self.scene()._page._net.undoStack.push(x)
+
+	def changeElementPosY(self, prop):
+		x = PFSUndoPropertyText(prop, self.moveY)
+		self.scene()._page._net.undoStack.push(x)
+
+	def changeElementHeight(self, prop):
+		if float(prop.text()) > self._minHeight:
+			x = PFSUndoPropertyText(prop, self.resizeHeight)
+			self.scene()._page._net.undoStack.push(x)
+
+	def moveX(self, txt):
+		self._x = float(txt)
+		self.scene().update()
+
+	def moveY(self, txt):
+		self._y = float(txt)
+		self.scene().update()
+
+	def resizeHeight(self, txt):
+		self._height = float(txt)
+		self.scene().update()
 
 class PFSDistributor(PFSPassive):
 	STANDARD_SIZE = 20
@@ -442,16 +559,16 @@ class PFSDistributor(PFSPassive):
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
-		rect = self.sceneBoundingRect()
-		p.drawEllipse(rect.left()+1, rect.top()+1, rect.width() - 2, rect.height() - 2)
+		p.drawEllipse(self._x, self._y, self._diameterX, self._diameterY)
 	
 	def boundingRect(self):
 		return QRectF(self._x, self._y, self._diameterX + 2, self._diameterY + 2)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
-		c = self.sceneBoundingRect().center()
-		ang = math.atan2(p.y()-c.y()+1, p.x()-c.x()+1)
-		return QPoint(math.cos(ang)*self._diameterX/2 + c.x() - 1, math.sin(ang)*self._diameterY/2 + c.y()-1)
+		x = self._x + self._diameterX/2
+		y = self._y + self._diameterY/2
+		ang = math.atan2(p.y()-y, p.x()-x)
+		return QPoint(math.cos(ang)*self._diameterX/2 + x, math.sin(ang)*self._diameterY/2 + y)
 	
 	def setPenColor(self, color: QColor):
 		self._pen.setColor(color)
@@ -583,16 +700,16 @@ class PFSRelation(PFSElement):
 		self.penEdited = self._graph.penEdited		
 		
 	def createRelation(id: str, source: PFSNode, target: PFSNode):
-		if isinstance(source, PFSActivity):
-			if isinstance(target, PFSDistributor):
+		if isinstance(source, PFSActive):
+			if isinstance(target, PFSPassive):
 				r = PFSRelation(id, source, target)
 				source.changed.connect(r.updatePoints)
 				target.changed.connect(r.updatePoints)
 				source.deleted.connect(r.putInDelete)
 				target.deleted.connect(r.putInDelete)
 				return r
-		elif isinstance(source, PFSDistributor):
-			if isinstance(target, PFSActivity):
+		elif isinstance(source, PFSPassive):
+			if isinstance(target, PFSActive):
 				r = PFSRelation(id, source, target)
 				source.changed.connect(r.updatePoints)
 				target.changed.connect(r.updatePoints)

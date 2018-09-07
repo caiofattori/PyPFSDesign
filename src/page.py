@@ -97,6 +97,7 @@ class PFSPage(QWidget):
 		width = None
 		height = None
 		activities = []
+		openactivities = []
 		distributors = []
 		relations = []
 		childs = node.childNodes()
@@ -126,6 +127,12 @@ class PFSPage(QWidget):
 					activity = PFSActivity.createFromXml(confChilds.at(0))
 					if activity is not None:
 						activities.append(activity)
+			elif PFSXmlBase.toolHasChild(child, "openactivity"):
+				confChilds = child.childNodes()
+				if confChilds.at(0).nodeName() == "openactivity":
+					openactivity = PFSOpenActivity.createFromXml(confChilds.at(0))
+					if openactivity is not None:
+						openactivities.append(openactivity)
 			elif PFSXmlBase.toolHasChild(child, "distributor"):
 				confChilds = child.childNodes()
 				if confChilds.at(0).nodeName() == "distributor":
@@ -235,13 +242,14 @@ class PFSPage(QWidget):
 
 class PFSNet(QWidget):
 	changed = pyqtSignal()
-	def __init__(self, id: str, sm: PFSStateMachine):
+	def __init__(self, id: str, window):
 		super(QWidget, self).__init__()
 		self._filename = None
 		self._filepath = None
 		self._id = id
 		layout = QHBoxLayout()
 		self._tab = QTabWidget()
+		self._tab.currentChanged.connect(self.changeTab)
 		layout.addWidget(self._tab)
 		self.setLayout(layout)
 		self._prop = QTableWidget(20, 2)
@@ -250,7 +258,8 @@ class PFSNet(QWidget):
 		layout.addWidget(self._prop)
 		self._pages = []
 		self._idPage = 0
-		self._sm = sm
+		self._sm = window._sm
+		self._window = window
 		self._distributorId = 0
 		self._activityId = 0
 		self._relationId = 0
@@ -327,9 +336,9 @@ class PFSNet(QWidget):
 			return ans
 		return ans + "*"
 		
-	def newNet(id, sm: PFSStateMachine):
-		ans = PFSNet(id, sm)
-		page = PFSPage.newPage(ans.requestId(PFSPage), sm, ans)
+	def newNet(id, window):
+		ans = PFSNet(id, window)
+		page = PFSPage.newPage(ans.requestId(PFSPage), window._sm, ans)
 		ans._page = page
 		ans._pages.append(page)
 		ans._tab.addTab(page, page.name())
@@ -422,3 +431,8 @@ class PFSNet(QWidget):
 			ans = "O" + str(self._otherId)
 			self._otherId = self._otherId + 1
 		return ans
+	
+	def changeTab(self, index: int):
+		self._tab.widget(index)._scene.clearSelection()
+		self._prop.clear()
+		self._window._main.tabChanged.emit()

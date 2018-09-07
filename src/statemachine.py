@@ -118,6 +118,11 @@ class PFSStateMachine(QStateMachine):
 		insActivity.addTransition(window.btnRelation.clicked, insRelationS)
 		insRelationS.addTransition(window.btnActivity.clicked, insActivity)
 		insRelationT.addTransition(window.btnActivity.clicked, insActivity)
+		insDistributor.addTransition(window.tabChanged, normal)
+		insActivity.addTransition(window.tabChanged, normal)
+		insRelationS.addTransition(window.tabChanged, normal)
+		insRelationT.addTransition(window.tabChanged, normal)
+		tiping.addTransition(window.tabChanged, normal)
 		self.insActivity = insActivity
 		self.normal = normal
 		self.insDistributor = insDistributor

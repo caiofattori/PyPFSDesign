@@ -42,8 +42,6 @@ class PFSScene(QGraphicsScene):
 			pos = ev.scenePos()
 			elem = PFSDistributor(self._page._net.requestId(PFSDistributor), pos.x(), pos.y())
 			self._page._net.addItem(elem, self._page)
-			x = PFSUndoAdd([elem], self)
-			self._page._net.undoStack.push(x)
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.inserted.emit()
 			return
