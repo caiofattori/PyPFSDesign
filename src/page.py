@@ -195,7 +195,7 @@ class PFSPage(QWidget):
 					s = openactivities[oId.index(relation.source)]
 					a = a + 1
 				elif cId.count(relation.source) > 0:
-					s = closeactivities[oId.index(relation.source)]
+					s = closeactivities[cId.index(relation.source)]
 					a = a + 1				
 				else:
 					continue
@@ -210,7 +210,7 @@ class PFSPage(QWidget):
 					t = openactivities[oId.index(relation.target)]
 					a = a + 1
 				elif cId.count(relation.target) > 0:
-					t = closeactivities[oId.index(relation.target)]
+					t = closeactivities[cId.index(relation.target)]
 					a = a + 1
 				else:
 					continue				
@@ -359,6 +359,7 @@ class PFSNet(QWidget):
 				if page._subRef is None:
 					net._pages = [page]
 					net._tab.addTab(page, page.name())
+					net._page = page
 				else:
 					for p in pages:
 						elem = p.getElementById(page._subRef)

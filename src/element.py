@@ -174,7 +174,7 @@ class PFSActivity(PFSActive):
 		return QRectF(self._x, self._y, width, height)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
-		if p.x() > (self._x + self._width)/2:
+		if p.x() > self._x + self._width/2:
 			x = self._x + self._width
 		else:
 			x = self._x
