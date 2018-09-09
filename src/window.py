@@ -60,28 +60,39 @@ class PFSWindow(QWidget):
 		if self._tab.count() == 1:
 			self.updateUndoRedoAction()
 	
+	def saveFile(self, net, filepath, filename):
+		file = QFile(QFileInfo(QDir(filepath), filename).absoluteFilePath())
+		file.open(QIODevice.WriteOnly)
+		xml = QXmlStreamWriter(file)
+		net.generateXml(xml)
+		file.close()
+	
+	def saveAsNet(self):
+		net = self._tab.currentWidget()
+		filename, filter = QFileDialog.getSaveFileName(self, "Salvar arquivo como...", self._lastPath, "XML files (*.xml *.pnml)")
+		if filename is None or not filename:
+			return
+		if not (filename.endswith(".xml") or filename.endswith(".pnml")):
+			filename = filename + ".xml"
+		f = QFileInfo(filename)
+		net._filename = f.fileName()
+		net._filepath = f.absolutePath()
+		self.saveFile(net, net._filepath, net._filename)
+		net.undoStack.setClean()
+		self._lastPath = net._filepath
+	
 	def saveNet(self):
 		net = self._tab.currentWidget()
 		if net._filename is None:
 			filename, filter = QFileDialog.getSaveFileName(self, "Salvar arquivo...", self._lastPath, "XML files (*.xml *.pnml)")
-			if filename is None or filename == "":
+			if filename is None or not filename:
 				return
 			if not (filename.endswith(".xml") or filename.endswith(".pnml")):
 				filename = filename + ".xml"
-			file = QFile(filename)
-			file.open(QIODevice.WriteOnly)
-			xml = QXmlStreamWriter(file)
-			net.generateXml(xml)
 			f = QFileInfo(filename)
 			net._filename = f.fileName()
 			net._filepath = f.absolutePath()
-			file.close()
-		else:
-			file = QFile(QFileInfo(QDir(net._filepath), net._filename).absoluteFilePath())
-			file.open(QIODevice.WriteOnly)
-			xml = QXmlStreamWriter(file)
-			net.generateXml(xml)
-			file.close()
+		self.saveFile(net, net._filepath, net._filename)
 		net.undoStack.setClean()
 		self._lastPath = net._filepath
 		
@@ -151,6 +162,11 @@ class PFSMain(QMainWindow):
 		actSave.setShortcuts(QKeySequence.Save)
 		actSave.setStatusTip("Salva o modelo em um arquivo")
 		self.actSave = actSave
+		icoSaveAs = QIcon.fromTheme("document-save-as", QIcon("../icons/document-save-as.svg"))
+		actSaveAs = QAction(icoSaveAs, "Save As Model", self)
+		actSaveAs.setShortcuts(QKeySequence.SaveAs)
+		actSaveAs.setStatusTip("Salva como o modelo em um arquivo")
+		self.actSaveAs = actSaveAs		
 		icoExport = QIcon.fromTheme("insert-image", QIcon("../icons/document-export.svg"))
 		actExport = QAction(icoExport, "Export Model", self)
 		actExport.setShortcuts(QKeySequence.Print)
@@ -160,6 +176,7 @@ class PFSMain(QMainWindow):
 		toolBar.addAction(actNew)
 		toolBar.addAction(actOpen)
 		toolBar.addAction(actSave)
+		toolBar.addAction(actSaveAs)
 		toolBar.addAction(actExport)
 		toolBar = self.addToolBar("Elements")
 		self.btnActivity = PFSActivityButton()
@@ -185,6 +202,7 @@ class PFSMain(QMainWindow):
 		actNew.triggered.connect(self.wind.newNet)
 		actOpen.triggered.connect(self.wind.openNet)
 		actSave.triggered.connect(self.wind.saveNet)
+		actSaveAs.triggered.connect(self.wind.saveAsNet)
 		actExport.triggered.connect(self.wind.exportNet)
 		actDelete.triggered.connect(self.wind.deleteElements)
 		self.setCentralWidget(self.wind)
@@ -198,6 +216,7 @@ class PFSMain(QMainWindow):
 		self.btnDistributor.setEnabled(False)
 		self.btnRelation.setEnabled(False)
 		self.actSave.setEnabled(False)
+		self.actSaveAs.setEnabled(False)
 		self.actExport.setEnabled(False)
 		self.actDelete.setEnabled(False)
 		
@@ -206,6 +225,7 @@ class PFSMain(QMainWindow):
 		self.btnDistributor.setEnabled(True)
 		self.btnRelation.setEnabled(True)
 		self.actSave.setEnabled(True)
+		self.actSaveAs.setEnabled(True)
 		self.actExport.setEnabled(True)
 		self.actDelete.setEnabled(True)
 
