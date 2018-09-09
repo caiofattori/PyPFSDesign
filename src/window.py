@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog, QMessageBox
-from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir, pyqtSignal
+from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir, pyqtSignal, QTimer
 from PyQt5.QtXml import QDomDocument
 from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton
 from page import PFSNet
@@ -23,6 +23,9 @@ class PFSWindow(QWidget):
 		self._tab.tabCloseRequested.connect(self.closeTab)
 		self._tab.setTabsClosable(True)
 		self._main = main
+		timer = QTimer(self)
+		timer.timeout.connect(self.autoSave)
+		timer.start(30000)
 	
 	def changeTab(self, index: int):
 		if index < 0:
@@ -66,6 +69,19 @@ class PFSWindow(QWidget):
 		xml = QXmlStreamWriter(file)
 		net.generateXml(xml)
 		file.close()
+		
+	def autoSave(self):
+		for i in range(self._tab.count()):
+			net = self._tab.widget(i)
+			if net.undoStack.isClean():
+				continue
+			if net._filename is None:
+				filename = "newmodel.xml~"
+				filepath = self._lastPath
+			else:
+				filename = net._filename + "~"
+				filepath = net._filepath
+			self.saveFile(net, filepath, filename)
 	
 	def saveAsNet(self):
 		net = self._tab.currentWidget()
