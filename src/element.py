@@ -61,7 +61,7 @@ class PFSActivity(PFSActive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("activity")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._width, self._y), self._pen, self._brush)
+		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._width, self._height), self._pen, self._brush)
 		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text", align="center")
 		xml.writeStartElement("tooltip")
 		xml.writeCharacters(self._tooltip)
@@ -304,10 +304,9 @@ class PFSActivity(PFSActive):
 		self.scene().update()
 
 class PFSOpenActivity(PFSActive):
-	def __init__(self, id, x, y, h, ref):
+	def __init__(self, id, x, y, h):
 		PFSActive.__init__(self, id, x, y)
 		self._h = h
-		self._ref = ref
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
 	def boundingRect(self):
@@ -317,7 +316,7 @@ class PFSOpenActivity(PFSActive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("openactivity")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, 6, self._h), self._ref._pen, None)
+		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, 6, self._h), self.scene()._page._subRef._pen, None)
 		xml.writeEndElement() #fecha openactivity
 		PFSXmlBase.close(xml)
 		
@@ -334,8 +333,8 @@ class PFSOpenActivity(PFSActive):
 			if child.nodeName() == "graphics":
 				graphics = PFSXmlBase.getNode(child)
 		if graphics is not None:
-			oa = PFSOpenActivity(id, graphics.rect.x(), graphics.rect.y(), graphics.rect.height(), None)
-			return ac
+			oa = PFSOpenActivity(id, graphics.rect.x(), graphics.rect.y(), graphics.rect.height())
+			return oa
 		return None	
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
@@ -347,10 +346,11 @@ class PFSOpenActivity(PFSActive):
 		return QPoint(self._x, y)
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
-		p.setPen(self._ref._pen)
+		ref = self.scene()._page._subRef
+		p.setPen(ref._pen)
 		p.save()
 		if self.isSelected():
-			if self._ref._pen.color() == PFSElement.SELECTED_PEN:
+			if ref._pen.color() == PFSElement.SELECTED_PEN:
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
@@ -409,10 +409,9 @@ class PFSOpenActivity(PFSActive):
 		self.scene().update()
 		
 class PFSCloseActivity(PFSActive):
-	def __init__(self, id, x, y, h, ref):
+	def __init__(self, id, x, y, h):
 		PFSActive.__init__(self, id, x, y)
 		self._h = h
-		self._ref = ref
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
 	def boundingRect(self):
@@ -422,9 +421,25 @@ class PFSCloseActivity(PFSActive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("closeactivity")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, QRectF(self._x-6, self._y, 6, self._h), self._ref._pen, None)
+		PFSXmlBase.graphicsNode(xml, QRectF(self._x-6, self._y, 6, self._h), self.scene()._page._subRef._pen, None)
 		xml.writeEndElement() #fecha closeactivity
 		PFSXmlBase.close(xml)
+		
+	def createFromXml(node: QDomNode):
+		if node.nodeName() != "closeactivity":
+			return None
+		if not (node.hasAttributes() and node.attributes().contains("id")):
+			return None
+		id = node.attributes().namedItem("id").nodeValue()
+		childs = node.childNodes()
+		graphics = None
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "graphics":
+				graphics = PFSXmlBase.getNode(child)
+		if graphics is not None:
+			return PFSCloseActivity(id, graphics.rect.x(), graphics.rect.y(), graphics.rect.height())
+		return None	
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
 		y = p.y()
@@ -435,10 +450,11 @@ class PFSCloseActivity(PFSActive):
 		return QPoint(self._x, y)
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
-		p.setPen(self._ref._pen)
+		ref = self.scene()._page._subRef
+		p.setPen(ref._pen)
 		p.save()
 		if self.isSelected():
-			if self._ref._pen.color() == PFSElement.SELECTED_PEN:
+			if ref._pen.color() == PFSElement.SELECTED_PEN:
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)

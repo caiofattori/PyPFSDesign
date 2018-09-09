@@ -98,7 +98,7 @@ class PFSWindow(QWidget):
 		ans, errMsg, errLine, errColl = doc.setContent(file)
 		if not ans:
 			return
-		nets = PFSNet.createFromXml(doc, self._sm)
+		nets = PFSNet.createFromXml(doc, self)
 		if len(nets) == 0:
 			return
 		self.nonempty.emit()
