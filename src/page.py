@@ -59,6 +59,25 @@ class PFSPage(QWidget):
 				return elem
 		return None
 	
+	# Temporary solution for id when load files
+	def getMaxIds(self):
+		a = -1
+		d = -1
+		r = -1
+		o = -1
+		for elem in self._scene.items():
+			t = elem._id[0]
+			n = int(elem._id[1:])
+			if t == "A" and n > a:
+				a = n
+			if t == "D" and n > d:
+				d = n
+			if t == "R" and n > r:
+				r = n
+			if t == "O" and n > o:
+				o = n
+		return [a, d, r, o]
+	
 	def fitPage(self):
 		l = None
 		r = None
@@ -367,6 +386,17 @@ class PFSNet(QWidget):
 							page._subRef = elem
 							elem.setSubPage(page)
 							page.setName("Ref_" + elem._id)
+				ids = page.getMaxIds()
+				if net._activityId < ids[0] + 1:
+					net._activityId = ids[0] + 1
+				if net._distributorId < ids[1] + 1:
+					net._distributorId = ids[1] + 1
+				if net._relationId < ids[2] + 1:
+					net._relationId = ids[2] + 1
+				if net._otherId < ids[3] + 1:
+					net._otherId = ids[3] + 1
+				if net._pageId < int(page._id[1:]) + 1:
+					net._pageId = int(page._id[1:]) + 1
 			if len(net._pages) != 1:
 				continue
 			nets.append(net)

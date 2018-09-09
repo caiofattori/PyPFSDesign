@@ -36,6 +36,9 @@ class PFSScene(QGraphicsScene):
 		self.update()
 		
 	def mousePressEvent(self, ev: QGraphicsSceneMouseEvent):
+		if ev.button() == Qt.RightButton:
+			self._page._net._window._main.tabChanged.emit()
+			return
 		self._lastPos = ev.scenePos()
 		self._lastItemClicked = self.itemAt(ev.scenePos(), QTransform())
 		if self._parentState._sDistributor:
@@ -120,6 +123,9 @@ class PFSScene(QGraphicsScene):
 	def keyPressEvent(self, ev:QKeyEvent):
 		if self._parentState._sTiping:
 			QGraphicsScene.keyPressEvent(self, ev)
+			return
+		if ev.key() == Qt.Key_Escape:
+			self._page._net._window._main.tabChanged.emit()
 			return
 		if ev.key() == Qt.Key_Up:
 			itList = self.selectedItems()
