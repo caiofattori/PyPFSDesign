@@ -1,4 +1,5 @@
-from PyQt5.QtGui import QImage
+from PyQt5.QtGui import QImage, QPainter
+from PyQt5.QtCore import QSize, QRect
 try:
 	from PyQt5.QtSvg import QSvgGenerator
 	hasSvg = True

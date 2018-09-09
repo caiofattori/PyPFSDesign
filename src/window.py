@@ -25,9 +25,11 @@ class PFSWindow(QWidget):
 		self._main = main
 	
 	def changeTab(self, index: int):
-		if index <= 0:
+		if index < 0:
 			return
+		self._main.tabChanged.emit()
 		net = self._tab.widget(index)
+		net._tab.currentWidget()._scene.clearSelection()
 		self.updateUndoRedoAction()
 		if net._filepath is not None:
 			self._lastPath = net._filepath
@@ -48,7 +50,7 @@ class PFSWindow(QWidget):
 		self._sm = sm
 		
 	def newNet(self):
-		w = PFSNet.newNet("n" + str(self._idNet), self._sm)
+		w = PFSNet.newNet("n" + str(self._idNet), self)
 		w.undoStack.cleanChanged.connect(self.changeCurrentTabName)
 		self._idNet = self._idNet + 1
 		i = self._tab.addTab(w, w.getTabName())
@@ -96,7 +98,7 @@ class PFSWindow(QWidget):
 		ans, errMsg, errLine, errColl = doc.setContent(file)
 		if not ans:
 			return
-		nets = PFSNet.createFromXml(doc, self._sm)
+		nets = PFSNet.createFromXml(doc, self)
 		if len(nets) == 0:
 			return
 		self.nonempty.emit()
@@ -133,6 +135,7 @@ class PFSWindow(QWidget):
 		self._tab.currentWidget().export(filename)
 		
 class PFSMain(QMainWindow):
+	tabChanged = pyqtSignal()
 	def __init__(self):
 		super(QMainWindow, self).__init__()
 		icoNew = QIcon.fromTheme("document-new", QIcon("../icons/document-new.svg"))
@@ -148,7 +151,7 @@ class PFSMain(QMainWindow):
 		actSave.setShortcuts(QKeySequence.Save)
 		actSave.setStatusTip("Salva o modelo em um arquivo")
 		self.actSave = actSave
-		icoExport = QIcon.fromTheme("document-export", QIcon("../icons/document-export.svg"))
+		icoExport = QIcon.fromTheme("insert-image", QIcon("../icons/document-export.svg"))
 		actExport = QAction(icoExport, "Export Model", self)
 		actExport.setShortcuts(QKeySequence.Print)
 		actExport.setStatusTip("Exporta o modelo como figura")
