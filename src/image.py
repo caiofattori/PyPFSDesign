@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QImage, QPainter
+from PyQt5.QtGui import QImage, QPainter, QIconEngine
 from PyQt5.QtCore import QSize, QRect
 try:
 	from PyQt5.QtSvg import QSvgGenerator
@@ -40,3 +40,10 @@ class PFSImage(object):
 		img.save(filename)
 		scene._paintGrid = aux
 		return True
+		
+class PFSDistributorIcon(QIconEngine):
+	def __init__(self):
+		QIconEngine.__init__(self)
+		
+	def paint(self, p, r, m, s):
+		p.drawEllipse(r)

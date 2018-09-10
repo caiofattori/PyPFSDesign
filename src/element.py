@@ -2,11 +2,13 @@ from generic import *
 from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
 from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject
-from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor
+from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor, QIcon
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog, QTreeWidgetItem
 import math
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton, PFSTableValueCombo
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
+from image import PFSDistributorIcon
+from tree import PFSTreeItem
 
 class PFSGraphItems(QObject):
 	penEdited = pyqtSignal(object)
@@ -615,10 +617,16 @@ class PFSDistributor(PFSPassive):
 		return ans	
 		
 	def tree(self, parent):
-		return QTreeWidgetItem(parent, ["Distribuidor " + self._id], 0)
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSDistributorIcon()))
+		tree.clicked.connect(self.selectSingle)
+		return tree
 	
 	def simpleTree(self, parent):
 		return QTreeWidgetItem(parent, ["Distribuidor " + self._id], 0)
+		
+	def selectSingle(self):
+		self.scene().clearSelection()
+		self.setSelected(True)
 	
 	def setTooltip(self, text: str):
 		self._tooltip = text

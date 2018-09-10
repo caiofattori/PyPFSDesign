@@ -343,6 +343,10 @@ class PFSNet(QWidget):
 		child = self._page.tree(tree)
 		return tree
 		
+	def prepareTree(self):
+		self._tree.clear()
+		self.tree()
+		
 	def removeTabWidget(self, widget):
 		for i in range(self._tab.count()):
 			if self._tab.widget(i) == widget:

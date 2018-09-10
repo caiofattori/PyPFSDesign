@@ -10,6 +10,7 @@ class PFSUndoDelete(QUndoCommand):
 		for item in self._stored:
 			self._scene.addItem(item)
 		self._scene.clearSelection()
+		self._scene._page._net.prepareTree()
 		self._scene.update()
 		 
 	def redo(self):
@@ -18,6 +19,7 @@ class PFSUndoDelete(QUndoCommand):
 			if item.hasSubPage():
 				item._subPage._net.removeTabWidget(item._subPage)			
 		self._scene.clearSelection()
+		self._scene._page._net.prepareTree()
 		self._scene.update()
 		
 class PFSUndoAdd(QUndoCommand):
@@ -32,6 +34,7 @@ class PFSUndoAdd(QUndoCommand):
 			self._scene.removeItem(item)
 			if item.hasSubPage():
 				item._subPage._net.removeTabWidget(item._subPage)
+		self._scene._page._net.prepareTree()
 		self._scene.update()
 		 
 	def redo(self):
@@ -39,6 +42,7 @@ class PFSUndoAdd(QUndoCommand):
 		for item in self._stored:
 			self._scene.addItem(item)
 			item.setSelected(True)
+		self._scene._page._net.prepareTree()
 		self._scene.update()
 
 class PFSUndoKeyMove(QUndoCommand):
