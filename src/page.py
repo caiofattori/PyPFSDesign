@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QUndoStack, QTableWidget
 from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
@@ -25,6 +25,12 @@ class PFSPage(QWidget):
 		self.setLayout(layout)
 		self._subRef = None
 		self._name = "Principal"
+	
+	def tree(self, parent):
+		tree = QTreeWidgetItem(parent, ["Page " + self._id], 0)
+		for elem in self._scene.items():
+			child = elem.tree(tree)
+		return tree
 	
 	def setName(self, txt):
 		self._name = txt
@@ -307,7 +313,11 @@ class PFSNet(QWidget):
 		self._prop = QTableWidget(20, 2)
 		self._prop.itemChanged.connect(self.propertiesItemChanged)
 		self._prop.verticalHeader().hide()
-		layout.addWidget(self._prop)
+		lv = QVBoxLayout()
+		lv.addWidget(self._prop)
+		self._tree = QTreeWidget()
+		lv.addWidget(self._tree)
+		layout.addLayout(lv)
 		self._pages = []
 		self._idPage = 0
 		self._sm = window._sm
@@ -327,6 +337,11 @@ class PFSNet(QWidget):
 		self.redoAction.setShortcuts(QKeySequence.Redo)
 		self.redoAction.setIcon(QIcon.fromTheme("edit-redo", QIcon("../icons/edit-redo.svg")))
 		self._pasteList = []
+		
+	def tree(self):
+		tree = QTreeWidgetItem(self._tree, ["Net " + self._id], 0)
+		child = self._page.tree(tree)
+		return tree
 		
 	def removeTabWidget(self, widget):
 		for i in range(self._tab.count()):
@@ -534,4 +549,6 @@ class PFSNet(QWidget):
 	def changeTab(self, index: int):
 		self._tab.widget(index)._scene.clearSelection()
 		self._prop.clear()
+		self._tree.clear()
+		self.tree()
 		self._window._main.tabChanged.emit()

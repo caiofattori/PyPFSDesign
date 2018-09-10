@@ -3,7 +3,7 @@ from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
 from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor
-from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog
+from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog, QTreeWidgetItem
 import math
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton, PFSTableValueCombo
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
@@ -75,6 +75,15 @@ class PFSActivity(PFSActive):
 		ans._pen = content._pen
 		ans._brush = content._brush
 		return ans
+	
+	def tree(self, parent):
+		tree = QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
+		if self._subPage is not None:
+			child = self._subPage.tree(tree)
+		return tree
+	
+	def simpleTree(self, parent):
+		return QTreeWidgetItem(parent, ["Atividade " + self._id], 	0)
 	
 	def hasSubPage(self):
 		return self._subPage is not None
@@ -343,6 +352,12 @@ class PFSOpenActivity(PFSActive):
 		self._h = h
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
+	def simpleTree(self, parent):
+		return QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
+	
+	def tree(self, parent):
+		return QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
+	
 	def boundingRect(self):
 		return QRectF(self._x-3, self._y-3, 12, self._h+3)
 	
@@ -447,6 +462,12 @@ class PFSCloseActivity(PFSActive):
 		PFSActive.__init__(self, id, x, y)
 		self._h = h
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
+	
+	def simpleTree(self, parent):
+		return QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
+	
+	def tree(self, parent):
+		return QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
 	
 	def boundingRect(self):
 		return QRectF(self._x-9, self._y-3, 12, self._h+3)
@@ -593,6 +614,12 @@ class PFSDistributor(PFSPassive):
 		ans._brush = content._brush
 		return ans	
 		
+	def tree(self, parent):
+		return QTreeWidgetItem(parent, ["Distribuidor " + self._id], 0)
+	
+	def simpleTree(self, parent):
+		return QTreeWidgetItem(parent, ["Distribuidor " + self._id], 0)
+	
 	def setTooltip(self, text: str):
 		self._tooltip = text
 
@@ -779,7 +806,16 @@ class PFSRelation(PFSElement):
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 		self._graph = PFSGraphItems()
 		self.penEdited = self._graph.penEdited		
-		
+	
+	def simpleTree(self, parent):
+		return QTreeWidgetItem(parent, ["Relação " + self._id], 0)
+	
+	def tree(self, parent):
+		tree = QTreeWidgetItem(parent, ["Relação " + self._id], 0)
+		child = self._source.simpleTree(tree)
+		child = self._target.simpleTree(tree)
+		return tree
+	
 	def hasSubPage(self):
 		return False
 	
