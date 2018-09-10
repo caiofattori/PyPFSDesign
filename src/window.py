@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog, QMessageBox
-from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir, pyqtSignal, QTimer
+from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir, pyqtSignal, QTimer, QRect
 from PyQt5.QtXml import QDomDocument
 from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton
 from page import PFSNet
@@ -10,7 +10,7 @@ from xml import PFSXmlBase
 class PFSWindow(QWidget):
 	empty = pyqtSignal()
 	nonempty = pyqtSignal()
-	def __init__(self, main):
+	def __init__(self, main:QMainWindow):
 		super(QWidget, self).__init__()
 		mainLayout = QHBoxLayout()
 		self.setLayout(mainLayout)
@@ -26,6 +26,8 @@ class PFSWindow(QWidget):
 		timer = QTimer(self)
 		timer.timeout.connect(self.autoSave)
 		timer.start(30000)
+		self._bufferElements = []
+		self._pasteRect = None
 	
 	def changeTab(self, index: int):
 		if index < 0:
@@ -160,9 +162,31 @@ class PFSWindow(QWidget):
 		if not (filename.endswith(".svg") or filename.endswith(".png")):
 			filename = filename + ".svg"
 		self._tab.currentWidget().export(filename)
+	
+	def copyElements(self):
+		aux = self._tab.currentWidget()._tab.currentWidget()._scene.selectedItems()
+		x = self._tab.currentWidget()._tab.currentWidget()._scene.sceneRect().right()
+		y = self._tab.currentWidget()._tab.currentWidget()._scene.sceneRect().bottom()
+		xw = self._tab.currentWidget()._tab.currentWidget()._scene.sceneRect().left()
+		yh = self._tab.currentWidget()._tab.currentWidget()._scene.sceneRect().top()
+		if len(aux) > 0:
+			for elem in aux:
+				if x > elem._x:
+					x = elem._x
+				if y > elem._y:
+					y = elem._y
+			self._bufferElements = []
+			for elem in aux:
+				self._bufferElements.append(elem.copy(x, y))
+	
+	def pasteElements(self):
+		if len(self._bufferElements) > 0:
+			self._tab.currentWidget().pasteElements(self._bufferElements)
+			self._main.paste.emit()
 		
 class PFSMain(QMainWindow):
 	tabChanged = pyqtSignal()
+	paste = pyqtSignal()
 	def __init__(self):
 		super(QMainWindow, self).__init__()
 		icoNew = QIcon.fromTheme("document-new", QIcon("../icons/document-new.svg"))
@@ -194,6 +218,25 @@ class PFSMain(QMainWindow):
 		toolBar.addAction(actSave)
 		toolBar.addAction(actSaveAs)
 		toolBar.addAction(actExport)
+		toolBar = self.addToolBar("Edit")
+		icoCopy = QIcon.fromTheme("edit-copy", QIcon("../icons/edit-copy.svg"))
+		actCopy = QAction(icoCopy, "Copy Elements", self)
+		actCopy.setShortcuts(QKeySequence.Copy)
+		actCopy.setStatusTip("Copia elementos do modelo")
+		self.actCopy = actCopy
+		toolBar.addAction(actCopy)
+		icoPaste = QIcon.fromTheme("edit-paste", QIcon("../icons/edit-paste.svg"))
+		actPaste = QAction(icoPaste, "Paste Elements", self)
+		actPaste.setShortcuts(QKeySequence.Paste)
+		actPaste.setStatusTip("Cola elementos do modelo")
+		self.actPaste = actPaste
+		toolBar.addAction(actPaste)
+		icoDelete = QIcon.fromTheme("edit-delete", QIcon("../icons/edit-delete.svg"))
+		actDelete = QAction(icoDelete, "Delete Element", self)
+		actDelete.setShortcuts(QKeySequence.Delete)
+		actDelete.setStatusTip("Remove os elementos do modelo atual")
+		toolBar.addAction(actDelete)
+		self.actDelete = actDelete		
 		toolBar = self.addToolBar("Elements")
 		self.btnActivity = PFSActivityButton()
 		ac = toolBar.addWidget(self.btnActivity)
@@ -204,13 +247,6 @@ class PFSMain(QMainWindow):
 		self.btnRelation = PFSRelationButton()
 		ac = toolBar.addWidget(self.btnRelation)
 		ac.setVisible(True)
-		toolBar = self.addToolBar("Editing")
-		icoDelete = QIcon.fromTheme("edit-delete", QIcon("../icons/edit-delete.svg"))
-		actDelete = QAction(icoDelete, "Delete Element", self)
-		actDelete.setShortcuts(QKeySequence.Delete)
-		actDelete.setStatusTip("Remove os elementos do modelo atual")
-		toolBar.addAction(actDelete)
-		self.actDelete = actDelete
 		self.undoToolBar = self.addToolBar("Undo-Redo")
 		self.wind = PFSWindow(self)
 		self.wind.empty.connect(self.disableButtons)
@@ -221,12 +257,20 @@ class PFSMain(QMainWindow):
 		actSaveAs.triggered.connect(self.wind.saveAsNet)
 		actExport.triggered.connect(self.wind.exportNet)
 		actDelete.triggered.connect(self.wind.deleteElements)
+		actCopy.triggered.connect(self.wind.copyElements)
+		actPaste.triggered.connect(self.wind.pasteElements)
 		self.setCentralWidget(self.wind)
 		self.disableButtons()
+		#self.disableEdits()
 		
 	def setStateMachine(self, sm: PFSStateMachine):
 		self.wind.setStateMachine(sm)
+	
+	def disableEdits(self):
+		self.actCopy.setEnabled(False)
+		self.actDelete.setEnabled(False)
 		
+	
 	def disableButtons(self):
 		self.btnActivity.setEnabled(False)
 		self.btnDistributor.setEnabled(False)
@@ -234,7 +278,7 @@ class PFSMain(QMainWindow):
 		self.actSave.setEnabled(False)
 		self.actSaveAs.setEnabled(False)
 		self.actExport.setEnabled(False)
-		self.actDelete.setEnabled(False)
+		
 		
 	def enableButtons(self):
 		self.btnActivity.setEnabled(True)

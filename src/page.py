@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
 from generic import PFSNode
-from element import PFSActivity, PFSDistributor, PFSRelation, PFSOpenActivity, PFSCloseActivity
+from element import PFSActivity, PFSActivityContent, PFSDistributor, PFSDistributorContent, PFSRelation, PFSOpenActivity, PFSCloseActivity
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from undo import *
@@ -58,6 +58,25 @@ class PFSPage(QWidget):
 			if elem._id == id:
 				return elem
 		return None
+	
+	# Temporary solution for id when load files
+	def getMaxIds(self):
+		a = -1
+		d = -1
+		r = -1
+		o = -1
+		for elem in self._scene.items():
+			t = elem._id[0]
+			n = int(elem._id[1:])
+			if t == "A" and n > a:
+				a = n
+			if t == "D" and n > d:
+				d = n
+			if t == "R" and n > r:
+				r = n
+			if t == "O" and n > o:
+				o = n
+		return [a, d, r, o]
 	
 	def fitPage(self):
 		l = None
@@ -307,6 +326,7 @@ class PFSNet(QWidget):
 		self.redoAction = self.undoStack.createRedoAction(self, "Refazer")
 		self.redoAction.setShortcuts(QKeySequence.Redo)
 		self.redoAction.setIcon(QIcon.fromTheme("edit-redo", QIcon("../icons/edit-redo.svg")))
+		self._pasteList = []
 		
 	def propertiesItemChanged(self, item: PFSTableValueText):
 		if item.comparePrevious():
@@ -367,6 +387,17 @@ class PFSNet(QWidget):
 							page._subRef = elem
 							elem.setSubPage(page)
 							page.setName("Ref_" + elem._id)
+				ids = page.getMaxIds()
+				if net._activityId < ids[0] + 1:
+					net._activityId = ids[0] + 1
+				if net._distributorId < ids[1] + 1:
+					net._distributorId = ids[1] + 1
+				if net._relationId < ids[2] + 1:
+					net._relationId = ids[2] + 1
+				if net._otherId < ids[3] + 1:
+					net._otherId = ids[3] + 1
+				if net._pageId < int(page._id[1:]) + 1:
+					net._pageId = int(page._id[1:]) + 1
 			if len(net._pages) != 1:
 				continue
 			nets.append(net)
@@ -416,15 +447,32 @@ class PFSNet(QWidget):
 		return None
 		
 	def deleteElements(self):
-		if len(self._pages) > 1:
-			scene = self._tab.currentWidget()._scene
-		elif len(self._pages) == 1:
-			scene = self._pages[0]._scene
+		if len(self._pages) == 0:
+			return
+		scene = self._tab.currentWidget()._scene
 		scene._itemsDeleted = scene.selectedItems()
 		for item in scene._itemsDeleted:
 			if isinstance(item, PFSNode):
 				item.deleted.emit()
 		x = PFSUndoDelete(scene._itemsDeleted)
+		self.undoStack.push(x)
+	
+	def pasteElements(self, elements):
+		self._pasteList = elements
+	
+	def pasteItems(self, pos):
+		ans = []
+		for elem in self._pasteList:
+			if isinstance(elem, PFSRelation):
+				continue
+			id = self.requestId(elem)
+			if isinstance(elem, PFSActivityContent):
+				e = PFSActivity.paste(elem, id, pos.x(), pos.y())
+				ans.append(e)
+			elif isinstance(elem, PFSDistributorContent):
+				e = PFSDistributor.paste(elem, id, pos.x(), pos.y())
+				ans.append(e)
+		x = PFSUndoAdd(ans, self._tab.currentWidget()._scene)
 		self.undoStack.push(x)
 		
 	def export(self, filename):
@@ -460,10 +508,10 @@ class PFSNet(QWidget):
 		return True	
 	
 	def requestId(self, element):
-		if element == PFSActivity:
+		if element == PFSActivity or isinstance(element, PFSActivityContent):
 			ans = "A" + str(self._activityId)
 			self._activityId = self._activityId + 1
-		elif element == PFSDistributor:
+		elif element == PFSDistributor or isinstance(element, PFSDistributorContent):
 			ans = "D" + str(self._distributorId)
 			self._distributorId = self._distributorId + 1
 		elif element == PFSRelation:

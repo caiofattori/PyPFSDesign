@@ -23,6 +23,7 @@ class PFSScene(QGraphicsScene):
 		self._tempActivity = None
 		self._lastPos = QPoint(0,0)
 		self._lastItemClicked = None
+		self._wasMoving = False
 		
 	def setPaintGrid(self, v: bool= True):
 		self._paintGrid = v
@@ -35,9 +36,51 @@ class PFSScene(QGraphicsScene):
 		self._backgroundPoints = [QPoint((i+0.5)*self.DELTA, (j+0.5)*self.DELTA) for i in range(sx) for j in range(sy)]
 		self.update()
 		
+	def mouseReleaseEvent(self, ev: QGraphicsSceneMouseEvent):
+		if self._parentState._sNormal and not self._wasMoving:
+			it = self.itemAt(ev.scenePos(), QTransform())
+			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
+				self.clearSelection()
+			if it is not None:
+				it.setSelected(True)
+			itList = self.selectedItems()
+			if len(itList) == 1:
+				i = 0
+				for line in itList[0].propertiesTable():
+					if isinstance(line[0], QTableWidgetItem):
+						self._page._net._prop.setItem(i, 0, line[0])
+					else:
+						self._page._net._prop.setCellWidget(i, 0, line[0])
+					if isinstance(line[1], QTableWidgetItem):
+						self._page._net._prop.setItem(i, 1, line[1])
+					else:
+						self._page._net._prop.setCellWidget(i, 1, line[1])
+					i = i + 1
+			if len(itList) == 0:
+				i = 0
+				for line in self._page.propertiesTable():
+					if isinstance(line[0], QTableWidgetItem):
+						self._page._net._prop.setItem(i, 0, line[0])
+					else:
+						self._page._net._prop.setCellWidget(i, 0, line[0])
+					if isinstance(line[1], QTableWidgetItem):
+						self._page._net._prop.setItem(i, 1, line[1])
+					else:
+						self._page._net._prop.setCellWidget(i, 1, line[1])
+					i = i + 1
+			self.update()
+		self._wasMoving = False
+		QGraphicsScene.mouseReleaseEvent(self, ev)
+		
 	def mousePressEvent(self, ev: QGraphicsSceneMouseEvent):
+		if ev.button() == Qt.RightButton:
+			self._page._net._window._main.tabChanged.emit()
+			return
 		self._lastPos = ev.scenePos()
 		self._lastItemClicked = self.itemAt(ev.scenePos(), QTransform())
+		if self._parentState._sPasting:
+			self._page._net.pasteItems(self._lastPos)
+			self.inserted.emit()
 		if self._parentState._sDistributor:
 			pos = ev.scenePos()
 			elem = PFSDistributor(self._page._net.requestId(PFSDistributor), pos.x(), pos.y())
@@ -73,37 +116,6 @@ class PFSScene(QGraphicsScene):
 		if self._parentState._sNormal:
 			self._page._net._prop.clear()
 			it = self._lastItemClicked
-			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
-				self.clearSelection()
-				QGraphicsScene.mousePressEvent(self, ev)
-			if it is not None:
-				it.setSelected(True)
-			itList = self.selectedItems()
-			if len(itList) == 1:
-				i = 0
-				for line in itList[0].propertiesTable():
-					if isinstance(line[0], QTableWidgetItem):
-						self._page._net._prop.setItem(i, 0, line[0])
-					else:
-						self._page._net._prop.setCellWidget(i, 0, line[0])
-					if isinstance(line[1], QTableWidgetItem):
-						self._page._net._prop.setItem(i, 1, line[1])
-					else:
-						self._page._net._prop.setCellWidget(i, 1, line[1])
-					i = i + 1
-			if len(itList) == 0:
-				i = 0
-				for line in self._page.propertiesTable():
-					if isinstance(line[0], QTableWidgetItem):
-						self._page._net._prop.setItem(i, 0, line[0])
-					else:
-						self._page._net._prop.setCellWidget(i, 0, line[0])
-					if isinstance(line[1], QTableWidgetItem):
-						self._page._net._prop.setItem(i, 1, line[1])
-					else:
-						self._page._net._prop.setCellWidget(i, 1, line[1])
-					i = i + 1
-			self.update()
 			return
 		if self._parentState._sTiping:
 			it = self._lastItemClicked
@@ -120,6 +132,9 @@ class PFSScene(QGraphicsScene):
 	def keyPressEvent(self, ev:QKeyEvent):
 		if self._parentState._sTiping:
 			QGraphicsScene.keyPressEvent(self, ev)
+			return
+		if ev.key() == Qt.Key_Escape:
+			self._page._net._window._main.tabChanged.emit()
 			return
 		if ev.key() == Qt.Key_Up:
 			itList = self.selectedItems()
@@ -171,6 +186,7 @@ class PFSScene(QGraphicsScene):
 			return
 		itList = self.selectedItems()
 		if len(itList) > 0:
+			self._wasMoving = True
 			pos = ev.scenePos()
 			x = pos.x() - self._lastPos.x()
 			y = pos.y() - self._lastPos.y()
