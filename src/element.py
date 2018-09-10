@@ -18,6 +18,19 @@ class PFSAux:
 	def __init__(self):
 		pass
 
+class PFSActivityContent(object):
+	def __init__(self):
+		self._id = None
+		self._x = None
+		self._y = None
+		self._text = None
+		self._width = None
+		self._height = None
+		self._textFont = None
+		self._fontMetrics = None
+		self._pen = None
+		self._brush = None
+
 class PFSActivity(PFSActive):
 	STANDARD_PEN = QPen(Qt.black)
 	STANDARD_BRUSH = QBrush(Qt.white, Qt.SolidPattern)
@@ -26,21 +39,42 @@ class PFSActivity(PFSActive):
 		self._subPage = None
 		self._tooltip = ""
 		self._textFont = QFont("Helvetica", 15)
-		self._lineNumbers = 1
-		self._charsNumbers = 0
 		self.setText(text)
 		self._fontMetrics = QFontMetrics(self._textFont)
 		self._pen = self.STANDARD_PEN
 		self._brush = self.STANDARD_BRUSH
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
+		self._minWidth = 0
+		self._minHeight = 0		
 		self.minimunRect()
 		self._width = self._minWidth
 		self._height = self._minHeight
-		self._minWidth = 0
-		self._minHeight = 0
 		self._graph = PFSGraphItems()
 		self.penEdited = self._graph.penEdited
 		self.brushEdited = self._graph.brushEdited
+		
+	def copy(self, x, y):
+		ans = PFSActivityContent()
+		ans._x = self._x - x
+		ans._y = self._y - y
+		ans._text = self._text
+		ans._width = self._width
+		ans._height = self._height
+		ans._textFont = self._textFont
+		ans._fontMetrics = self._fontMetrics
+		ans._pen = self._pen
+		ans._brush = self._brush
+		return ans
+	
+	def paste(content, id, dx, dy):
+		ans = PFSActivity(id, content._x + dx, content._y + dy, content._text)
+		ans._width = content._width
+		ans._height = content._height
+		ans._textFont = content._textFont
+		ans._fontMetrics = content._fontMetrics
+		ans._pen = content._pen
+		ans._brush = content._brush
+		return ans
 	
 	def hasSubPage(self):
 		return self._subPage is not None
@@ -512,6 +546,16 @@ class PFSCloseActivity(PFSActive):
 		self._height = float(txt)
 		self.scene().update()
 
+class PFSDistributorContent(object):
+	def __init__(self):
+		self._id = None
+		self._x = None
+		self._y = None
+		self._diameterX = None
+		self._diameterY = None
+		self._pen = None
+		self._brush = None
+
 class PFSDistributor(PFSPassive):
 	STANDARD_SIZE = 20
 	STANDARD_PEN = QPen(Qt.black)
@@ -526,7 +570,25 @@ class PFSDistributor(PFSPassive):
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 		self._graph = PFSGraphItems()
 		self.penEdited = self._graph.penEdited
-		self.brushEdited = self._graph.brushEdited		
+		self.brushEdited = self._graph.brushEdited
+		
+	def copy(self, x, y):
+		ans = PFSDistributorContent()
+		ans._x = self._x - x
+		ans._y = self._y - y
+		ans._diameterX = self._diameterX
+		ans._diameterY = self._diameterY
+		ans._pen = self._pen
+		ans._brush = self._brush
+		return ans
+	
+	def paste(content, id, dx, dy):
+		ans = PFSDistributor(id, content._x + dx, content._y + dy)
+		ans._diameterX = content._diameterX
+		ans._diameterY = content._diameterY
+		ans._pen = content._pen
+		ans._brush = content._brush
+		return ans	
 		
 	def setTooltip(self, text: str):
 		self._tooltip = text

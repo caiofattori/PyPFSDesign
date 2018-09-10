@@ -25,13 +25,16 @@ class PFSUndoAdd(QUndoCommand):
 		self._scene = scene
 			
 	def undo(self):
+		self._scene.clearSelection()
 		for item in self._stored:
 			self._scene.removeItem(item)
 		self._scene.update()
 		 
 	def redo(self):
+		self._scene.clearSelection()
 		for item in self._stored:
 			self._scene.addItem(item)
+			item.setSelected(True)
 		self._scene.update()
 
 class PFSUndoKeyMove(QUndoCommand):

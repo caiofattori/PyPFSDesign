@@ -41,6 +41,9 @@ class PFSScene(QGraphicsScene):
 			return
 		self._lastPos = ev.scenePos()
 		self._lastItemClicked = self.itemAt(ev.scenePos(), QTransform())
+		if self._parentState._sPasting:
+			self._page._net.pasteItems(self._lastPos)
+			self.inserted.emit()
 		if self._parentState._sDistributor:
 			pos = ev.scenePos()
 			elem = PFSDistributor(self._page._net.requestId(PFSDistributor), pos.x(), pos.y())

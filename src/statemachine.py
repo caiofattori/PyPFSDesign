@@ -10,6 +10,22 @@ class PFSStateNormal(QState):
 		
 	def onExit(self, ev: QEvent):
 		self.machine()._sNormal = False
+
+class PFSStatePasting(QState):
+	def __init__(self, window):
+		super(QState, self).__init__()
+		self._statusBar = window.statusBar()
+		self._button = window.actPaste
+		
+	def onEntry(self, ev: QEvent):
+		self._statusBar.showMessage("Clique na tela para posicionar a colar")
+		self.machine()._sPasting = True
+		self._button.setChecked(True)
+		
+	def onExit(self, ev: QEvent):
+		self._statusBar.showMessage("")
+		self.machine()._sPasting = False
+		self._button.setChecked(False)
 		
 class PFSStateInsActivity(QState):
 	def __init__(self, window):
@@ -74,7 +90,8 @@ class PFSStateInsRelationTarget(QState):
 		self._statusBar.showMessage("")
 		self._button.setChecked(False)
 		self.machine()._sRelationT = False
-		
+
+
 class PFSStateTiping(QState):
 	def __init__(self, window):
 		super(QState, self).__init__()
@@ -97,12 +114,14 @@ class PFSStateMachine(QStateMachine):
 		self._sRelationS = False
 		self._sRelationT = False
 		self._sTiping = False
+		self._sPasting = False
 		normal = PFSStateNormal()
 		insActivity = PFSStateInsActivity(window)
 		insDistributor = PFSStateInsDistributor(window)
 		insRelationS = PFSStateInsRelationSource(window)
 		insRelationT = PFSStateInsRelationTarget(window)
 		tiping = PFSStateTiping(window)
+		pasting = PFSStatePasting(window)
 		normal.addTransition(window.btnActivity.clicked, insActivity)
 		normal.addTransition(window.btnDistributor.clicked, insDistributor)
 		normal.addTransition(window.btnRelation.clicked, insRelationS)
@@ -123,34 +142,28 @@ class PFSStateMachine(QStateMachine):
 		insRelationS.addTransition(window.tabChanged, normal)
 		insRelationT.addTransition(window.tabChanged, normal)
 		tiping.addTransition(window.tabChanged, normal)
+		normal.addTransition(window.paste, pasting)
+		insActivity.addTransition(window.paste, pasting)
+		insDistributor.addTransition(window.paste, pasting)
+		insRelationS.addTransition(window.paste, pasting)
+		insRelationT.addTransition(window.paste, pasting)
 		self.insActivity = insActivity
 		self.normal = normal
 		self.insDistributor = insDistributor
 		self.insRelationS = insRelationS
 		self.insRelationT = insRelationT
 		self.tiping = tiping
-		self.trans1 = None
-		self.trans2 = None
-		self.trans3 = None
-		self.trans4 = None
-		self.trans5 = None
-		self.trans6 = None
+		self.pasting = pasting
 		self.addState(normal)
 		self.addState(insActivity)
 		self.addState(insDistributor)
 		self.addState(insRelationS)
 		self.addState(insRelationT)
 		self.addState(tiping)
+		self.addState(pasting)
 		self.setInitialState(normal)
 		
 	def fixTransitions(self, scene):
-		'''if self.trans1 is not None:
-			self.insActivity.removeTransition(self.trans1)
-			self.insDistributor.removeTransition(self.trans2)
-			self.insRelationS.removeTransition(self.trans3)
-			self.insRelationT.removeTransition(self.trans4)
-			self.tiping.removeTransition(self.trans5)
-			self.normal.removeTransition(self.trans6)'''
 		self.trans1 = self.insActivity.addTransition(scene.inserted, self.normal)
 		self.trans2 = self.insDistributor.addTransition(scene.inserted, self.normal)				
 		self.trans3 = self.insRelationS.addTransition(scene.inserted, self.insRelationT)
@@ -158,3 +171,4 @@ class PFSStateMachine(QStateMachine):
 		self.trans5 = self.tiping.addTransition(scene.inserted, self.normal)
 		self.trans6 = self.normal.addTransition(scene.edited, self.tiping)
 		self.trans7 = self.insRelationT.addTransition(scene.shiftInserted, self.insRelationS)
+		self.trans7 = self.pasting.addTransition(scene.inserted, self.normal)
