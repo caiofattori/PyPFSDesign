@@ -15,6 +15,8 @@ class PFSUndoDelete(QUndoCommand):
 	def redo(self):
 		for item in self._stored:
 			self._scene.removeItem(item)
+			if item.hasSubPage():
+				item._subPage._net.removeTabWidget(item._subPage)			
 		self._scene.clearSelection()
 		self._scene.update()
 		
@@ -28,6 +30,8 @@ class PFSUndoAdd(QUndoCommand):
 		self._scene.clearSelection()
 		for item in self._stored:
 			self._scene.removeItem(item)
+			if item.hasSubPage():
+				item._subPage._net.removeTabWidget(item._subPage)
 		self._scene.update()
 		 
 	def redo(self):

@@ -328,6 +328,12 @@ class PFSNet(QWidget):
 		self.redoAction.setIcon(QIcon.fromTheme("edit-redo", QIcon("../icons/edit-redo.svg")))
 		self._pasteList = []
 		
+	def removeTabWidget(self, widget):
+		for i in range(self._tab.count()):
+			if self._tab.widget(i) == widget:
+				self._tab.removeTab(i)
+				self._pages.remove(widget)
+		
 	def propertiesItemChanged(self, item: PFSTableValueText):
 		if item.comparePrevious():
 			item.edited.emit(item)

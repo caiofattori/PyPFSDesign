@@ -571,6 +571,9 @@ class PFSDistributor(PFSPassive):
 		self._graph = PFSGraphItems()
 		self.penEdited = self._graph.penEdited
 		self.brushEdited = self._graph.brushEdited
+	
+	def hasSubPage(self):
+		return False
 		
 	def copy(self, x, y):
 		ans = PFSDistributorContent()
@@ -777,6 +780,9 @@ class PFSRelation(PFSElement):
 		self._graph = PFSGraphItems()
 		self.penEdited = self._graph.penEdited		
 		
+	def hasSubPage(self):
+		return False
+	
 	def createRelation(id: str, source: PFSNode, target: PFSNode):
 		if isinstance(source, PFSActive):
 			if isinstance(target, PFSPassive):
