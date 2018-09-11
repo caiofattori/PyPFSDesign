@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QUndoStack, QTableWidget
 from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
@@ -10,10 +10,12 @@ from statemachine import PFSStateMachine
 from undo import *
 from scene import *
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueCheck
-from image import PFSImage
+from image import PFSImage, PFSPageIcon
 from generic import PFSActive, PFSPassive
+from tree import PFSTreeItem
 
 class PFSPage(QWidget):
+	clicked = pyqtSignal()
 	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net):
 		super(QWidget, self).__init__()
 		self._id = id
@@ -25,6 +27,18 @@ class PFSPage(QWidget):
 		self.setLayout(layout)
 		self._subRef = None
 		self._name = "Principal"
+	
+	def tree(self, parent):
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSPageIcon()))
+		tree.clicked.connect(self.selectSingle)		
+		for elem in self._scene.items():
+			child = elem.tree(tree)
+		return tree
+	
+	def selectSingle(self):
+		self._net.showPage(self)
+		self._scene.clearSelection()
+		self._net.fillProperties(self.propertiesTable())	
 	
 	def setName(self, txt):
 		self._name = txt
@@ -302,12 +316,19 @@ class PFSNet(QWidget):
 		layout = QHBoxLayout()
 		self._tab = QTabWidget()
 		self._tab.currentChanged.connect(self.changeTab)
+		self._tab.setTabsClosable(True)
+		self._tab.tabCloseRequested.connect(self.closeTab)
 		layout.addWidget(self._tab)
 		self.setLayout(layout)
 		self._prop = QTableWidget(20, 2)
 		self._prop.itemChanged.connect(self.propertiesItemChanged)
 		self._prop.verticalHeader().hide()
-		layout.addWidget(self._prop)
+		lv = QVBoxLayout()
+		lv.addWidget(self._prop)
+		self._tree = QTreeWidget()
+		self._tree.itemClicked.connect(self.treeItemClicked)
+		lv.addWidget(self._tree)
+		layout.addLayout(lv)
 		self._pages = []
 		self._idPage = 0
 		self._sm = window._sm
@@ -327,6 +348,31 @@ class PFSNet(QWidget):
 		self.redoAction.setShortcuts(QKeySequence.Redo)
 		self.redoAction.setIcon(QIcon.fromTheme("edit-redo", QIcon("../icons/edit-redo.svg")))
 		self._pasteList = []
+		
+	def tree(self):
+		tree = QTreeWidgetItem(self._tree, ["Net " + self._id], 0)
+		child = self._page.tree(tree)
+		self._tree.expandAll()
+		return tree
+		
+	def prepareTree(self):
+		self._tree.clear()
+		self.tree()
+		
+	def showPage(self, widget):
+		if widget in self._pages:
+			self._tab.setCurrentWidget(widget)
+		else:
+			self._tab.addTab(widget, widget.name())
+			self._pages.append(widget)
+			self._tab.setCurrentWidget(widget)
+		
+		
+	def removeTabWidget(self, widget):
+		for i in range(self._tab.count()):
+			if self._tab.widget(i) == widget:
+				self._tab.removeTab(i)
+				self._pages.remove(widget)
 		
 	def propertiesItemChanged(self, item: PFSTableValueText):
 		if item.comparePrevious():
@@ -351,6 +397,10 @@ class PFSNet(QWidget):
 		xml.writeEndElement()
 		xml.writeEndElement()
 		xml.writeEndDocument()
+		
+	def treeItemClicked(self, item, col):
+		if isinstance(item, PFSTreeItem):
+			item.clicked.emit()
 	
 	def createFromXml(doc: QDomDocument, window):
 		el = doc.documentElement()
@@ -450,12 +500,23 @@ class PFSNet(QWidget):
 		if len(self._pages) == 0:
 			return
 		scene = self._tab.currentWidget()._scene
-		scene._itemsDeleted = scene.selectedItems()
-		for item in scene._itemsDeleted:
+		itemsSeleted = scene.selectedItems()
+		if len(itemsSeleted) == 0:
+			if self._tab.currentWidget() == self._page:
+				return
+			x = PFSUndoDeletePage(self._tab.currentWidget())
+			self.undoStack.push(x)
+			return
+		itemsDeleted = []
+		for item in itemsSeleted:
+			if not item.canDelete():
+				continue
 			if isinstance(item, PFSNode):
 				item.deleted.emit()
-		x = PFSUndoDelete(scene._itemsDeleted)
-		self.undoStack.push(x)
+			itemsDeleted.append(item)
+		if len(itemsDeleted) > 0:
+			x = PFSUndoDelete(itemsDeleted)
+			self.undoStack.push(x)
 	
 	def pasteElements(self, elements):
 		self._pasteList = elements
@@ -526,6 +587,30 @@ class PFSNet(QWidget):
 		return ans
 	
 	def changeTab(self, index: int):
-		self._tab.widget(index)._scene.clearSelection()
 		self._prop.clear()
+		self._tree.clear()
+		self.tree()		
+		if index < 0:
+			return
+		self._tab.widget(index)._scene.clearSelection()
 		self._window._main.tabChanged.emit()
+		
+	def fillProperties(self, props):
+		if len(props) > 0:
+			self._prop.clear()
+			i = 0
+			for line in props:
+				if isinstance(line[0], QTableWidgetItem):
+					self._prop.setItem(i, 0, line[0])
+				else:
+					self._prop.setCellWidget(i, 0, line[0])
+				if isinstance(line[1], QTableWidgetItem):
+					self._prop.setItem(i, 1, line[1])
+				else:
+					self._prop.setCellWidget(i, 1, line[1])
+				i = i + 1
+				
+	def closeTab(self, ind):
+		w = self._tab.widget(ind)
+		self._pages.remove(w)
+		self._tab.removeTab(ind)
