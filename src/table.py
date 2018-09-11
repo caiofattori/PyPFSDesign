@@ -73,3 +73,11 @@ class PFSTableValueCheck(QCheckBox):
 		
 	def comparePrevious(self):
 		return False
+		
+class PFSTableValueBox(QWidget):
+	def __init__(self, txt, value):
+		QCheckBox.__init__(self, txt)
+		self.setChecked(value)
+		
+	def comparePrevious(self):
+		return False

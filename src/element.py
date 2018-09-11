@@ -240,6 +240,10 @@ class PFSActivity(PFSActive):
 		lblType = PFSTableLabel("Cor do preenchimento")
 		lblValue = PFSTableValueButton(self._brush.color().name())
 		lblValue.clicked.connect(self.changeFillColor)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Tags")
+		lblValue = PFSTableValueButton(self._brush.color().name())
+		lblValue.clicked.connect(self.changeFillColor)
 		ans.append([lblType, lblValue])		
 		return ans
 	

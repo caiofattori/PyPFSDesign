@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QGraphicsItem, QColorDialog
-from PyQt5.QtGui import QPen, QColor, QBrush
+from PyQt5.QtWidgets import QGraphicsItem, QColorDialog, QWidget
+from PyQt5.QtGui import QPen, QColor, QBrush, QFont, QFontMetrics, QPainter
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
 
@@ -9,6 +9,37 @@ class PFSSenderSignal(QObject):
 	penEdited = pyqtSignal(object)
 	def __init__(self):
 		super(QObject, self).__init__()
+		
+class PFSTags(QWidget):
+	def __init__(self, name, use=""):
+		QWidget.__init__(self)
+		self._name = name
+		self._use = use
+		self._font = QFont("Serif", 15)
+		self._rect = QRect(0,0,10,10)
+		self._brush = QBrush(Qt.lightGray, Qt.SolidPattern)
+		
+	def simpleUse(self):
+		if len(self._use) > 15:
+			return self._use[:12] + "..."
+		return self._use
+		
+	def simpleName(self):
+		if len(self._name) > 30:
+			return self._name[:27] + "..."
+		return self._name
+		
+	def updateRect(self):
+		fm =QFontMetrics(self._font)
+		useRect = fm.size(Qt.TextExpandTabs, self.simpleUse())
+		nameRect = fm.size(Qt.TextExpandTabs, self.simpleName())
+		self._rect = QRect(0,0, useRect.width()+nameRect.width()+15, max(useRect.height(), nameRect.height()))
+		
+	def paintEvent(self, ev):
+		self.updateRect()
+		p = QPainter(self)
+		p.setBrush(self._brush)
+		p.drawRoundedRect(self._rect, 5, 5)
 
 class PFSElement(QGraphicsItem):
 	SELECTED_PEN = QPen(Qt.red)
@@ -17,7 +48,12 @@ class PFSElement(QGraphicsItem):
 	def __init__(self, id: str):
 		super(QGraphicsItem, self).__init__()
 		self._id = id
+		self._tags = []
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
+		
+	def addTag(self, name, use=""):
+		tag = PFSTags(name. use)
+		self._tags.append(tag)
 	
 	def selectSingle(self):
 		self.scene()._page._net.showPage(self.scene()._page)
