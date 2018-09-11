@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QImage, QPainter, QIconEngine
-from PyQt5.QtCore import QSize, QRect
+from PyQt5.QtCore import QSize, QRect, Qt
 try:
 	from PyQt5.QtSvg import QSvgGenerator
 	hasSvg = True
@@ -47,3 +47,30 @@ class PFSDistributorIcon(QIconEngine):
 		
 	def paint(self, p, r, m, s):
 		p.drawEllipse(r)
+		
+class PFSActivityIcon(QIconEngine):
+	def __init__(self):
+		QIconEngine.__init__(self)
+		
+	def paint(self, p, r, m, s):
+		p.drawText(r, Qt.AlignCenter, "[Ac]")
+		
+class PFSRelationIcon(QIconEngine):
+	def __init__(self):
+		QIconEngine.__init__(self)
+		
+	def paint(self, p, r, m, s):		
+		p.drawLine(r.left(), r.bottom(), r.right(), r.top())
+		p.drawLine(r.right() - 7, r.top() + 4, r.right(), r.top())
+		p.drawLine(r.right() - 4, r.top() + 7, r.right(), r.top())
+		
+class PFSPageIcon(QIconEngine):
+	def __init__(self):
+		QIconEngine.__init__(self)
+		
+	def paint(self, p, r, m, s):
+		p.drawRect(r)
+		y = r.height()/4
+		p.drawLine(r.left()+2, r.top()+y, r.right()-2, r.top()+y)
+		p.drawLine(r.left()+2, r.top()+2*y, r.right()-2, r.top()+2*y)
+		p.drawLine(r.left()+2, r.top()+3*y, r.right()-2, r.top()+3*y)

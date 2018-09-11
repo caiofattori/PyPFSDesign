@@ -45,29 +45,9 @@ class PFSScene(QGraphicsScene):
 				it.setSelected(True)
 			itList = self.selectedItems()
 			if len(itList) == 1:
-				i = 0
-				for line in itList[0].propertiesTable():
-					if isinstance(line[0], QTableWidgetItem):
-						self._page._net._prop.setItem(i, 0, line[0])
-					else:
-						self._page._net._prop.setCellWidget(i, 0, line[0])
-					if isinstance(line[1], QTableWidgetItem):
-						self._page._net._prop.setItem(i, 1, line[1])
-					else:
-						self._page._net._prop.setCellWidget(i, 1, line[1])
-					i = i + 1
+				self._page._net.fillProperties(itList[0].propertiesTable())
 			if len(itList) == 0:
-				i = 0
-				for line in self._page.propertiesTable():
-					if isinstance(line[0], QTableWidgetItem):
-						self._page._net._prop.setItem(i, 0, line[0])
-					else:
-						self._page._net._prop.setCellWidget(i, 0, line[0])
-					if isinstance(line[1], QTableWidgetItem):
-						self._page._net._prop.setItem(i, 1, line[1])
-					else:
-						self._page._net._prop.setCellWidget(i, 1, line[1])
-					i = i + 1
+				self._page._net.fillProperties(self._page.propertiesTable())
 			self.update()
 		self._wasMoving = False
 		QGraphicsScene.mouseReleaseEvent(self, ev)

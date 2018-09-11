@@ -7,14 +7,8 @@ from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QCol
 import math
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton, PFSTableValueCombo
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
-from image import PFSDistributorIcon
+from image import PFSDistributorIcon, PFSActivityIcon, PFSRelationIcon
 from tree import PFSTreeItem
-
-class PFSGraphItems(QObject):
-	penEdited = pyqtSignal(object)
-	brushEdited = pyqtSignal(object)
-	def __init__(self):
-		QObject.__init__(self)
 
 class PFSAux:
 	def __init__(self):
@@ -34,26 +28,17 @@ class PFSActivityContent(object):
 		self._brush = None
 
 class PFSActivity(PFSActive):
-	STANDARD_PEN = QPen(Qt.black)
-	STANDARD_BRUSH = QBrush(Qt.white, Qt.SolidPattern)
 	def __init__(self, id: str, x: int, y: int, text: str="Atividade"):
 		PFSActive.__init__(self, id, x, y)
 		self._subPage = None
-		self._tooltip = ""
 		self._textFont = QFont("Helvetica", 15)
 		self.setText(text)
 		self._fontMetrics = QFontMetrics(self._textFont)
-		self._pen = self.STANDARD_PEN
-		self._brush = self.STANDARD_BRUSH
-		self.setFlag(QGraphicsItem.ItemIsSelectable)
 		self._minWidth = 0
 		self._minHeight = 0		
 		self.minimunRect()
 		self._width = self._minWidth
 		self._height = self._minHeight
-		self._graph = PFSGraphItems()
-		self.penEdited = self._graph.penEdited
-		self.brushEdited = self._graph.brushEdited
 		
 	def copy(self, x, y):
 		ans = PFSActivityContent()
@@ -79,13 +64,16 @@ class PFSActivity(PFSActive):
 		return ans
 	
 	def tree(self, parent):
-		tree = QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSActivityIcon()))
+		tree.clicked.connect(self.selectSingle)
 		if self._subPage is not None:
-			child = self._subPage.tree(tree)
+			child = self._subPage.tree(tree)		
 		return tree
 	
 	def simpleTree(self, parent):
-		return QTreeWidgetItem(parent, ["Atividade " + self._id], 	0)
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSActivityIcon()))
+		tree.clicked.connect(self.selectSingle)
+		return tree
 	
 	def hasSubPage(self):
 		return self._subPage is not None
@@ -108,8 +96,6 @@ class PFSActivity(PFSActive):
 		xml.writeAttribute("id", self._id)
 		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._width, self._height), self._pen, self._brush)
 		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text", align="center")
-		xml.writeStartElement("tooltip")
-		xml.writeCharacters(self._tooltip)
 		xml.writeEndElement()
 		xml.writeEndElement() #fecha activity
 		PFSXmlBase.close(xml)
@@ -123,22 +109,17 @@ class PFSActivity(PFSActive):
 		childs = node.childNodes()
 		graphics = None
 		text = None
-		tooltip = None
 		for i in range(childs.count()):
 			child = childs.at(i)
 			if child.nodeName() == "graphics":
 				graphics = PFSXmlBase.getNode(child)
 			if child.nodeName() == "text":
 				text = PFSXmlBase.getText(child)
-			if child.nodeName() == "tooltip":
-				tooltip = child.nodeValue()
 		if graphics is not None and text is not None:
 			ac = PFSActivity(id, graphics.rect.x(), graphics.rect.y())
 			ac._width = graphics.rect.width()
 			ac._height = graphics.rect.height()
 			ac.setText(text.annotation)
-			if tooltip is not None:
-				ac._tooltip = tooltip
 			if text.font is not None:
 				ac._textFont = text.font
 				ac._fontMetrics = QFontMetrics(text.font)
@@ -181,30 +162,9 @@ class PFSActivity(PFSActive):
 		self._textFont = font
 		self._fontMetrics = QFontMetrics(font)
 		self.scene().update()
-		
-		
-	def setPenColor(self, color: QColor):
-		self._pen.setColor(color)
-		self.scene().update()
-		
-	def setPenStyle(self, style: Qt):
-		self._pen.setStyle(style)
-		self.scene().update()
-		self.penEdited.emit(style)
-		
-	def setPenWidth(self, width: str):
-		self._pen.setWidth(float(width))
-		self.scene().update()
-		
-	def setBrushColor(self, color: QColor):
-		self._brush.setColor(color)
-		self.scene().update()
 	
 	def getText(self):
 		return self._text
-		
-	def setTooltip(self, text: str):
-		self._tooltip = text
 		
 	def minimunRect(self):
 		s = self._fontMetrics.size(Qt.TextExpandTabs, self._text)
@@ -283,24 +243,6 @@ class PFSActivity(PFSActive):
 		ans.append([lblType, lblValue])		
 		return ans
 	
-	def changeElementPosX(self, prop):
-		x = PFSUndoPropertyText(prop, self.moveX)
-		self.scene()._page._net.undoStack.push(x)
-	
-	def changeElementPosY(self, prop):
-		x = PFSUndoPropertyText(prop, self.moveY)
-		self.scene()._page._net.undoStack.push(x)
-	
-	def changeElementWidth(self, prop):
-		if float(prop.text()) > self._minWidth:
-			x = PFSUndoPropertyText(prop, self.resizeWidth)
-			self.scene()._page._net.undoStack.push(x)
-	
-	def changeElementHeight(self, prop):
-		if float(prop.text()) > self._minHeight:
-			x = PFSUndoPropertyText(prop, self.resizeHeight)
-			self.scene()._page._net.undoStack.push(x)
-	
 	def changeText(self, prop):
 		x = PFSUndoPropertyText(prop, self.setText)
 		self.scene()._page._net.undoStack.push(x)
@@ -311,43 +253,16 @@ class PFSActivity(PFSActive):
 			x = PFSUndoPropertyButton(font, self._textFont, self.setFont)
 			self.scene()._page._net.undoStack.push(x)
 	
-	def changeLineColor(self):
-		color = QColorDialog.getColor(self._pen.color(), self.scene()._page._net, "Escolha a cor do contorno")
-		if color.isValid() and color != self._pen.color():
-			x = PFSUndoPropertyButton(color, self._pen.color(), self.setPenColor)
+	def changeElementWidth(self, prop):
+		if float(prop.text()) > self._minWidth:
+			x = PFSUndoPropertyText(prop, self.resizeWidth)
 			self.scene()._page._net.undoStack.push(x)
-			
-	def changeLineStyle(self, text):
-		if text in self.PEN_LIST:
-			x = PFSUndoPropertyCombo(self.PEN_LIST[text], self._pen.style(), self.setPenStyle)
-			self.scene()._page._net.undoStack.push(x)
-	
-	def changeLineWidth(self, prop):
-		x = PFSUndoPropertyText(prop, self.setPenWidth)
-		self.scene()._page._net.undoStack.push(x)
-		
-	def changeFillColor(self):
-		color = QColorDialog.getColor(self._brush.color(), self.scene()._page._net, "Escolha a cor do preenchimento")
-		if color.isValid() and color != self._brush.color():
-			x = PFSUndoPropertyButton(color, self._brush.color(), self.setBrushColor)
-			self.scene()._page._net.undoStack.push(x)
-	
-	def moveX(self, txt):
-		self._x = float(txt)
-		self.scene().update()
-	
-	def moveY(self, txt):
-		self._y = float(txt)
-		self.scene().update()	
-	
-	def resizeWidth(self, txt):
-		self._width = float(txt)
-		self.scene().update()
-		
-	def resizeHeight(self, txt):
-		self._height = float(txt)
-		self.scene().update()
 
+	def changeElementHeight(self, prop):
+		if float(prop.text()) > self._minHeight:
+			x = PFSUndoPropertyText(prop, self.resizeHeight)
+			self.scene()._page._net.undoStack.push(x)	
+	
 class PFSOpenActivity(PFSActive):
 	def __init__(self, id, x, y, h):
 		PFSActive.__init__(self, id, x, y)
@@ -574,26 +489,17 @@ class PFSDistributorContent(object):
 		self._id = None
 		self._x = None
 		self._y = None
-		self._diameterX = None
-		self._diameterY = None
+		self._width = None
+		self._height = None
 		self._pen = None
 		self._brush = None
 
 class PFSDistributor(PFSPassive):
 	STANDARD_SIZE = 20
-	STANDARD_PEN = QPen(Qt.black)
-	STANDARD_BRUSH = QBrush(Qt.white, Qt.SolidPattern)
 	def __init__(self, id: str, x: int, y: int):
 		PFSPassive.__init__(self, id, x, y)
-		self._tooltip = ""
-		self._diameterX = self.STANDARD_SIZE
-		self._diameterY = self.STANDARD_SIZE
-		self._pen = self.STANDARD_PEN
-		self._brush = self.STANDARD_BRUSH
-		self.setFlag(QGraphicsItem.ItemIsSelectable)
-		self._graph = PFSGraphItems()
-		self.penEdited = self._graph.penEdited
-		self.brushEdited = self._graph.brushEdited
+		self._width = self.STANDARD_SIZE
+		self._height = self.STANDARD_SIZE
 	
 	def hasSubPage(self):
 		return False
@@ -602,16 +508,16 @@ class PFSDistributor(PFSPassive):
 		ans = PFSDistributorContent()
 		ans._x = self._x - x
 		ans._y = self._y - y
-		ans._diameterX = self._diameterX
-		ans._diameterY = self._diameterY
+		ans._width = self._width
+		ans._height = self._height
 		ans._pen = self._pen
 		ans._brush = self._brush
 		return ans
 	
 	def paste(content, id, dx, dy):
 		ans = PFSDistributor(id, content._x + dx, content._y + dy)
-		ans._diameterX = content._diameterX
-		ans._diameterY = content._diameterY
+		ans._width = content._width
+		ans._height = content._height
 		ans._pen = content._pen
 		ans._brush = content._brush
 		return ans	
@@ -622,20 +528,15 @@ class PFSDistributor(PFSPassive):
 		return tree
 	
 	def simpleTree(self, parent):
-		return QTreeWidgetItem(parent, ["Distribuidor " + self._id], 0)
-		
-	def selectSingle(self):
-		self.scene().clearSelection()
-		self.setSelected(True)
-	
-	def setTooltip(self, text: str):
-		self._tooltip = text
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSDistributorIcon()))
+		tree.clicked.connect(self.selectSingle)
+		return tree
 
 	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("distributor")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._diameterX, self._diameterY), self._pen, self._brush)
+		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._width, self._height), self._pen, self._brush)
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
 	
@@ -647,19 +548,14 @@ class PFSDistributor(PFSPassive):
 		id = node.attributes().namedItem("id").nodeValue()
 		childs = node.childNodes()
 		graphics = None
-		tooltip = None
 		for i in range(childs.count()):
 			child = childs.at(i)
 			if child.nodeName() == "graphics":
 				graphics = PFSXmlBase.getNode(child)
-			if child.nodeName() == "tooltip":
-				tooltip = child.nodeValue()
 		if graphics is not None:
 			di = PFSDistributor(id, graphics.rect.x(), graphics.rect.y())
-			di._diameterX = graphics.rect.width()
-			di._diameterY = graphics.rect.height()
-			if tooltip is not None:
-				di._tooltip = tooltip
+			di._width = graphics.rect.width()
+			di._height = graphics.rect.height()
 			if graphics.line is not None:
 				di._pen = graphics.line
 			if graphics.brush is not None:
@@ -675,33 +571,16 @@ class PFSDistributor(PFSPassive):
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
-		p.drawEllipse(self._x, self._y, self._diameterX, self._diameterY)
+		p.drawEllipse(self._x, self._y, self._width, self._height)
 	
 	def boundingRect(self):
-		return QRectF(self._x, self._y, self._diameterX + 2, self._diameterY + 2)
+		return QRectF(self._x, self._y, self._width + 2, self._height + 2)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
-		x = self._x + self._diameterX/2
-		y = self._y + self._diameterY/2
+		x = self._x + self._width/2
+		y = self._y + self._height/2
 		ang = math.atan2(p.y()-y, p.x()-x)
-		return QPoint(math.cos(ang)*self._diameterX/2 + x, math.sin(ang)*self._diameterY/2 + y)
-	
-	def setPenColor(self, color: QColor):
-		self._pen.setColor(color)
-		self.scene().update()
-		
-	def setPenStyle(self, style: Qt):
-		self._pen.setStyle(style)
-		self.scene().update()
-		self.penEdited.emit(style)
-		
-	def setPenWidth(self, width: str):
-		self._pen.setWidth(float(width))
-		self.scene().update()
-		
-	def setBrushColor(self, color: QColor):
-		self._brush.setColor(color)
-		self.scene().update()	
+		return QPoint(math.cos(ang)*self._width/2 + x, math.sin(ang)*self._height/2 + y)
 	
 	def propertiesTable(self):
 		ans = []
@@ -722,11 +601,11 @@ class PFSDistributor(PFSPassive):
 		lblValue.edited.connect(self.changeElementPosY)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Largura")
-		lblValue = PFSTableValueText(str(self._diameterX))
+		lblValue = PFSTableValueText(str(self._width))
 		lblValue.edited.connect(self.changeElementWidth)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Altura")
-		lblValue = PFSTableValueText(str(self._diameterY))
+		lblValue = PFSTableValueText(str(self._height))
 		lblValue.edited.connect(self.changeElementHeight)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Cor do contorno")
@@ -747,60 +626,12 @@ class PFSDistributor(PFSPassive):
 		lblValue.clicked.connect(self.changeFillColor)
 		ans.append([lblType, lblValue])
 		return ans	
-	
-	def changeElementPosX(self, prop):
-		x = PFSUndoPropertyText(prop, self.moveX)
-		self.scene()._page._net.undoStack.push(x)
-	
-	def changeElementPosY(self, prop):
-		x = PFSUndoPropertyText(prop, self.moveY)
-		self.scene()._page._net.undoStack.push(x)
-	
-	def changeElementWidth(self, prop):
-		x = PFSUndoPropertyText(prop, self.resizeWidth)
-		self.scene()._page._net.undoStack.push(x)
-	
-	def changeElementHeight(self, prop):
-		x = PFSUndoPropertyText(prop, self.resizeHeight)
-		self.scene()._page._net.undoStack.push(x)
-		
-	def changeLineColor(self):
-		color = QColorDialog.getColor(self._pen.color(), self.scene()._page._net, "Escolha a cor do contorno")
-		if color.isValid() and color != self._pen.color():
-			x = PFSUndoPropertyButton(color, self._pen.color(), self.setPenColor)
-			self.scene()._page._net.undoStack.push(x)
-			
-	def changeLineStyle(self, text):
-		if text in self.PEN_LIST:
-			x = PFSUndoPropertyCombo(self.PEN_LIST[text], self._pen.style(), self.setPenStyle)
-			self.scene()._page._net.undoStack.push(x)
-	
-	def changeLineWidth(self, prop):
-		x = PFSUndoPropertyText(prop, self.setPenWidth)
-		self.scene()._page._net.undoStack.push(x)
-		
-	def changeFillColor(self):
-		color = QColorDialog.getColor(self._brush.color(), self.scene()._page._net, "Escolha a cor do preenchimento")
-		if color.isValid() and color != self._brush.color():
-			x = PFSUndoPropertyButton(color, self._brush.color(), self.setBrushColor)
-			self.scene()._page._net.undoStack.push(x)	
-	
-	def moveX(self, txt):
-		self._x = float(txt)
-		self.scene().update()
-	
-	def moveY(self, txt):
-		self._y = float(txt)
-		self.scene().update()	
-	
-	def resizeWidth(self, txt):
-		self._diameterX = float(txt)
-		self.scene().update()
-		
-	def resizeHeight(self, txt):
-		self._diameterY = float(txt)
-		self.scene().update()
-		
+
+class PFSGraphItems(QObject):
+	penEdited = pyqtSignal(object)
+	def __init__(self):
+		QObject.__init__(self)
+
 class PFSRelation(PFSElement):
 	def __init__(self, id: str, source: PFSNode, target: PFSNode):
 		PFSElement.__init__(self,id)
@@ -811,15 +642,15 @@ class PFSRelation(PFSElement):
 		self._lastPoint = None
 		self.updatePoints()
 		self._pen = QPen(Qt.black)
-		self.setFlag(QGraphicsItem.ItemIsSelectable)
-		self._graph = PFSGraphItems()
-		self.penEdited = self._graph.penEdited		
+		self._obj = PFSGraphItems()
+		self.penEdited = self._obj.penEdited
 	
 	def simpleTree(self, parent):
 		return QTreeWidgetItem(parent, ["Relação " + self._id], 0)
 	
 	def tree(self, parent):
-		tree = QTreeWidgetItem(parent, ["Relação " + self._id], 0)
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSRelationIcon()))
+		tree.clicked.connect(self.selectSingle)	
 		child = self._source.simpleTree(tree)
 		child = self._target.simpleTree(tree)
 		return tree
