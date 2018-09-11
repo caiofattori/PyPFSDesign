@@ -74,3 +74,21 @@ class PFSPageIcon(QIconEngine):
 		p.drawLine(r.left()+2, r.top()+y, r.right()-2, r.top()+y)
 		p.drawLine(r.left()+2, r.top()+2*y, r.right()-2, r.top()+2*y)
 		p.drawLine(r.left()+2, r.top()+3*y, r.right()-2, r.top()+3*y)
+		
+class PFSOpenActivityIcon(QIconEngine):
+	def __init__(self):
+		QIconEngine.__init__(self)
+		
+	def paint(self, p, r, m, s):
+		p.drawLine(r.left()+1, r.top()+1, r.left()+5, r.top()+1)
+		p.drawLine(r.left()+1, r.top()+1, r.left()+1, r.bottom()-1)
+		p.drawLine(r.left()+1, r.bottom()-1, r.left()+5, r.bottom()-1)
+		
+class PFSCloseActivityIcon(QIconEngine):
+	def __init__(self):
+		QIconEngine.__init__(self)
+		
+	def paint(self, p, r, m, s):
+		p.drawLine(r.right()-1, r.top()+1, r.right()-5, r.top()+1)
+		p.drawLine(r.right()-1, r.top()+1, r.right()-1, r.bottom()-1)
+		p.drawLine(r.right()-1, r.bottom()-1, r.right()-5, r.bottom()-1)

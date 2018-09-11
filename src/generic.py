@@ -25,6 +25,9 @@ class PFSElement(QGraphicsItem):
 		self.setSelected(True)
 		self.scene()._page._net.fillProperties(self.propertiesTable())	
 		
+	def canDelete(self):
+		return True
+		
 class PFSNode(PFSElement):
 	
 	def __init__(self, id: str, x: int, y: int):

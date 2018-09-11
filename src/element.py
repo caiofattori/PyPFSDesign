@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QCol
 import math
 from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton, PFSTableValueCombo
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
-from image import PFSDistributorIcon, PFSActivityIcon, PFSRelationIcon
+from image import PFSDistributorIcon, PFSActivityIcon, PFSRelationIcon, PFSOpenActivityIcon, PFSCloseActivityIcon
 from tree import PFSTreeItem
 
 class PFSAux:
@@ -269,11 +269,18 @@ class PFSOpenActivity(PFSActive):
 		self._h = h
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
-	def simpleTree(self, parent):
-		return QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
+	def canDelete(self):
+		return False
 	
 	def tree(self, parent):
-		return QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSOpenActivityIcon()))
+		tree.clicked.connect(self.selectSingle)
+		return tree
+	
+	def simpleTree(self, parent):
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSOpenActivityIcon()))
+		tree.clicked.connect(self.selectSingle)
+		return tree
 	
 	def boundingRect(self):
 		return QRectF(self._x-3, self._y-3, 12, self._h+3)
@@ -380,11 +387,18 @@ class PFSCloseActivity(PFSActive):
 		self._h = h
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
-	def simpleTree(self, parent):
-		return QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
+	def canDelete(self):
+		return False
 	
 	def tree(self, parent):
-		return QTreeWidgetItem(parent, ["Atividade " + self._id], 0)
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSCloseActivityIcon()))
+		tree.clicked.connect(self.selectSingle)
+		return tree
+	
+	def simpleTree(self, parent):
+		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSCloseActivityIcon()))
+		tree.clicked.connect(self.selectSingle)
+		return tree	
 	
 	def boundingRect(self):
 		return QRectF(self._x-9, self._y-3, 12, self._h+3)

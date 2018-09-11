@@ -21,7 +21,20 @@ class PFSUndoDelete(QUndoCommand):
 		self._scene.clearSelection()
 		self._scene._page._net.prepareTree()
 		self._scene.update()
+
+class PFSUndoDeletePage(QUndoCommand):
+	def __init__(self, page):
+		super(QUndoCommand, self).__init__()
+		self._page = page
 		
+	def undo(self):
+		self._page._subRef._subPage = self._page
+		self._page._net.showPage(self._page)
+		 
+	def redo(self):
+		self._page._subRef._subPage = None
+		self._page._net.removeTabWidget(self._page)
+
 class PFSUndoAdd(QUndoCommand):
 	def __init__(self, items, scene):
 		super(QUndoCommand, self).__init__()

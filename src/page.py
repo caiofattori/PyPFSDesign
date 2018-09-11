@@ -365,6 +365,7 @@ class PFSNet(QWidget):
 		else:
 			self._tab.addTab(widget, widget.name())
 			self._pages.append(widget)
+			self._tab.setCurrentWidget(widget)
 		
 		
 	def removeTabWidget(self, widget):
@@ -499,12 +500,23 @@ class PFSNet(QWidget):
 		if len(self._pages) == 0:
 			return
 		scene = self._tab.currentWidget()._scene
-		scene._itemsDeleted = scene.selectedItems()
-		for item in scene._itemsDeleted:
+		itemsSeleted = scene.selectedItems()
+		if len(itemsSeleted) == 0:
+			if self._tab.currentWidget() == self._page:
+				return
+			x = PFSUndoDeletePage(self._tab.currentWidget())
+			self.undoStack.push(x)
+			return
+		itemsDeleted = []
+		for item in itemsSeleted:
+			if not item.canDelete():
+				continue
 			if isinstance(item, PFSNode):
 				item.deleted.emit()
-		x = PFSUndoDelete(scene._itemsDeleted)
-		self.undoStack.push(x)
+			itemsDeleted.append(item)
+		if len(itemsDeleted) > 0:
+			x = PFSUndoDelete(itemsDeleted)
+			self.undoStack.push(x)
 	
 	def pasteElements(self, elements):
 		self._pasteList = elements
