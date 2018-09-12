@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QGraphicsItem, QColorDialog, QWidget
-from PyQt5.QtGui import QPen, QColor, QBrush, QFont, QFontMetrics, QPainter
-from PyQt5.QtCore import Qt, pyqtSignal, QObject
+from PyQt5.QtGui import QPen, QColor, QBrush, QFont, QFontMetrics, QPainter, QMouseEvent
+from PyQt5.QtCore import Qt, pyqtSignal, QObject, QRect
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
 
 class PFSSenderSignal(QObject):
@@ -11,35 +11,55 @@ class PFSSenderSignal(QObject):
 		super(QObject, self).__init__()
 		
 class PFSTags(QWidget):
+	removed = pyqtSignal(object)
 	def __init__(self, name, use=""):
 		QWidget.__init__(self)
 		self._name = name
 		self._use = use
-		self._font = QFont("Serif", 15)
+		self._font = QFont("Serif", 8)
 		self._rect = QRect(0,0,10,10)
-		self._brush = QBrush(Qt.lightGray, Qt.SolidPattern)
+		self._brush = QBrush(Qt.white, Qt.SolidPattern)
 		
 	def simpleUse(self):
-		if len(self._use) > 15:
-			return self._use[:12] + "..."
+		if len(self._use) > 16:
+			return self._use[:8] + "\n" + self._use[8:13] + "..."
+		if len(self._use) > 8:
+			return self._use[:5] + "..."
 		return self._use
 		
 	def simpleName(self):
 		if len(self._name) > 30:
-			return self._name[:27] + "..."
+			return self._name[:10] + "\n" + self._name[10:20] + "\n" + self._name[20:27] + "..."
+		if len(self._name) > 20:
+			return self._name[:10] + "\n" + self._name[10:17] + "..."
+		if len(self._name) > 10:
+			return self._name[:7] + "..."
 		return self._name
 		
 	def updateRect(self):
 		fm =QFontMetrics(self._font)
-		useRect = fm.size(Qt.TextExpandTabs, self.simpleUse())
-		nameRect = fm.size(Qt.TextExpandTabs, self.simpleName())
-		self._rect = QRect(0,0, useRect.width()+nameRect.width()+15, max(useRect.height(), nameRect.height()))
+		self._useRect = fm.size(Qt.TextExpandTabs, self.simpleUse())
+		self._nameRect = fm.size(Qt.TextExpandTabs, self.simpleName())
+		self._rect = QRect(0,0, self._useRect.width() + self._nameRect.width()+23, max(self._useRect.height(), self._nameRect.height())+4)
+		x = self._useRect.width() + self._nameRect.width() + 12
+		y = self._rect.center().y() - 3
+		self._closeRect = QRect(x, y, 6, 6)
 		
 	def paintEvent(self, ev):
 		self.updateRect()
 		p = QPainter(self)
 		p.setBrush(self._brush)
-		p.drawRoundedRect(self._rect, 5, 5)
+		p.drawRoundedRect(self._rect, 10, 10)
+		p.drawLine(self._useRect.width() + 6, self._rect.top(), self._useRect.width() + 6, self._rect.bottom())
+		p.setFont(self._font)
+		p.drawText(3, 0, self._useRect.width(), self._rect.height(), Qt.AlignCenter, self.simpleUse())
+		p.drawText(self._useRect.width() + 9, 0, self._nameRect.width(), self._rect.height(), Qt.AlignCenter, self.simpleName())
+		p.drawLine(self._closeRect.topLeft(), self._closeRect.bottomRight())
+		p.drawLine(self._closeRect.bottomLeft(), self._closeRect.topRight())
+		
+	def mousePressEvent(self, ev: QMouseEvent):
+		if self._closeRect.contains(ev.pos()):
+			self.removed.emit(self)
 
 class PFSElement(QGraphicsItem):
 	SELECTED_PEN = QPen(Qt.red)
@@ -52,8 +72,13 @@ class PFSElement(QGraphicsItem):
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 		
 	def addTag(self, name, use=""):
-		tag = PFSTags(name. use)
+		tag = PFSTags(name, use)
+		tag.removed.connect(self.removeTag)
 		self._tags.append(tag)
+	
+	def removeTag(self, tag):
+		self._tags.remove(tag)
+		self.scene()._page._net.fillProperties(self.propertiesTable())
 	
 	def selectSingle(self):
 		self.scene()._page._net.showPage(self.scene()._page)

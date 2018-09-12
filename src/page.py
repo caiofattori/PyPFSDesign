@@ -9,7 +9,7 @@ from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from undo import *
 from scene import *
-from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueCheck
+from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueCheck, PFSTableLabelTags
 from image import PFSImage, PFSPageIcon
 from generic import PFSActive, PFSPassive
 from tree import PFSTreeItem
@@ -323,6 +323,7 @@ class PFSNet(QWidget):
 		self._prop = QTableWidget(20, 2)
 		self._prop.itemChanged.connect(self.propertiesItemChanged)
 		self._prop.verticalHeader().hide()
+		self._prop.setColumnWidth(1, 180)
 		lv = QVBoxLayout()
 		lv.addWidget(self._prop)
 		self._tree = QTreeWidget()
@@ -608,6 +609,8 @@ class PFSNet(QWidget):
 					self._prop.setItem(i, 1, line[1])
 				else:
 					self._prop.setCellWidget(i, 1, line[1])
+				if isinstance(line[0], PFSTableLabelTags):
+					self._prop.setRowHeight(i, 100)
 				i = i + 1
 				
 	def closeTab(self, ind):

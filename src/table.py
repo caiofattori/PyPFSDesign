@@ -1,10 +1,19 @@
-from PyQt5.QtWidgets import QTableWidgetItem, QPushButton, QComboBox, QCheckBox
+from PyQt5.QtWidgets import QTableWidgetItem, QPushButton, QComboBox, QCheckBox, QVBoxLayout, QWidget
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
+from PyQt5.QtGui import QIcon
 
 class PFSTableLabel(QTableWidgetItem):
 	def __init__(self, text):
 		QTableWidgetItem.__init__(self, text)
 		self.setFlags(Qt.NoItemFlags)
+		
+	def comparePrevious(self):
+		return False
+	
+class PFSTableLabelTags(QTableWidgetItem):
+	def __init__(self, text):
+		QTableWidgetItem.__init__(self, QIcon.fromTheme("list-add", QIcon("../icons/edit-delete.svg")), text)
+		self.setFlags(Qt.ItemIsEnabled)
 		
 	def comparePrevious(self):
 		return False
@@ -75,9 +84,13 @@ class PFSTableValueCheck(QCheckBox):
 		return False
 		
 class PFSTableValueBox(QWidget):
-	def __init__(self, txt, value):
-		QCheckBox.__init__(self, txt)
-		self.setChecked(value)
+	def __init__(self, items):
+		QWidget.__init__(self)
+		self._items = items
+		self._layout = QVBoxLayout()
+		self.setLayout(self._layout)
+		for item in self._items:
+			self._layout.addWidget(item)		
 		
 	def comparePrevious(self):
 		return False

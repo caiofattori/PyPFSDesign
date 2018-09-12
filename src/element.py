@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint,
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor, QIcon
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog, QTreeWidgetItem
 import math
-from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton, PFSTableValueCombo
+from table import *
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
 from image import PFSDistributorIcon, PFSActivityIcon, PFSRelationIcon, PFSOpenActivityIcon, PFSCloseActivityIcon
 from tree import PFSTreeItem
@@ -35,10 +35,11 @@ class PFSActivity(PFSActive):
 		self.setText(text)
 		self._fontMetrics = QFontMetrics(self._textFont)
 		self._minWidth = 0
-		self._minHeight = 0		
+		self._minHeight = 0
 		self.minimunRect()
 		self._width = self._minWidth
 		self._height = self._minHeight
+		self.addTag("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "aaaaaaaaaaaaaaaaaaaaa")
 		
 	def copy(self, x, y):
 		ans = PFSActivityContent()
@@ -241,9 +242,8 @@ class PFSActivity(PFSActive):
 		lblValue = PFSTableValueButton(self._brush.color().name())
 		lblValue.clicked.connect(self.changeFillColor)
 		ans.append([lblType, lblValue])
-		lblType = PFSTableLabel("Tags")
-		lblValue = PFSTableValueButton(self._brush.color().name())
-		lblValue.clicked.connect(self.changeFillColor)
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags)
 		ans.append([lblType, lblValue])		
 		return ans
 	
