@@ -311,8 +311,12 @@ class PFSPage(PFSBasicElement, QWidget):
 		self.resizeScene(height=int(float(txt)))
 	
 	def createTag(self):
-		PFSBasicElement.createTag(self)
+		PFSBasicElement.createTag(self, self._net)
 		self._net.fillProperties(self.propertiesTable())
+	
+	def deleteTag(self, tag):
+		x = PFSUndoRemoveTag(self, tag)
+		self._net.undoStack.push(x)
 	
 	def removeTag(self, tag):
 		PFSBasicElement.removeTag(self, tag)

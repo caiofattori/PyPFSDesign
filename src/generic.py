@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QGraphicsItem, QColorDialog, QWidget, QDialog
 from PyQt5.QtGui import QPen, QColor, QBrush, QFont, QFontMetrics, QPainter, QMouseEvent
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QRect
-from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
+from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo, PFSUndoAddTag, PFSUndoRemoveTag
 from dialog import PFSDialogTag
 
 class PFSSenderSignal(QObject):
@@ -79,16 +79,20 @@ class PFSBasicElement(object):
 		
 	def addTag(self, name, use=""):
 		tag = PFSTags(name, use)
-		tag.removed.connect(self.removeTag)
+		tag.removed.connect(self.deleteTag)
 		self._tags.append(tag)
 	
-	def createTag(self):
+	def createTag(self, net):
 		name, use, ans = PFSDialogTag.getTag()
 		if ans:
-			self.addTag(name, use)
+			x = PFSUndoAddTag(self, name, use)
+			net.undoStack.push(x)
 	
-	def removeTag(self, tag):
-		self._tags.remove(tag)
+	def removeTag(self, name, use):
+		for tag in self._tags:
+			if tag._name == name and tag._use == use:
+				self._tags.remove(tag)
+				return
 
 class PFSElement(PFSBasicElement, QGraphicsItem):
 	SELECTED_PEN = QPen(Qt.red)
@@ -100,8 +104,12 @@ class PFSElement(PFSBasicElement, QGraphicsItem):
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
 	def createTag(self):
-		PFSBasicElement.createTag(self)
+		PFSBasicElement.createTag(self, self.scene()._page._net)
 		self.scene()._page._net.fillProperties(self.propertiesTable())
+		
+	def deleteTag(self, tag):
+		x = PFSUndoRemoveTag(self, tag)
+		self.scene()._page._net.undoStack.push(x)
 	
 	def removeTag(self, tag):
 		PFSBasicElement.removeTag(self, tag)
