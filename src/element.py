@@ -39,7 +39,7 @@ class PFSActivity(PFSActive):
 		self.minimunRect()
 		self._width = self._minWidth
 		self._height = self._minHeight
-		self.addTag("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "aaaaaaaaaaaaaaaaaaaaa")
+		#self.addTag("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "aaaaaaaaaaaaaaaaaaaaa")
 		
 	def copy(self, x, y):
 		ans = PFSActivityContent()
@@ -243,8 +243,8 @@ class PFSActivity(PFSActive):
 		lblValue.clicked.connect(self.changeFillColor)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabelTags("Tags")
-		lblValue = PFSTableValueBox(self._tags)
-		ans.append([lblType, lblValue])		
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])
 		return ans
 	
 	def changeText(self, prop):
@@ -358,6 +358,9 @@ class PFSOpenActivity(PFSActive):
 		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
 		lblValue.edited.connect(self.changeElementHeight)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])		
 		return ans
 	
 	def changeElementPosX(self, prop):
@@ -475,6 +478,9 @@ class PFSCloseActivity(PFSActive):
 		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
 		lblValue.edited.connect(self.changeElementHeight)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])		
 		return ans
 	
 	def changeElementPosX(self, prop):
@@ -643,6 +649,9 @@ class PFSDistributor(PFSPassive):
 		lblValue = PFSTableValueButton(self._brush.color().name())
 		lblValue.clicked.connect(self.changeFillColor)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])		
 		return ans	
 
 class PFSGraphItems(QObject):
@@ -855,6 +864,9 @@ class PFSRelation(PFSElement):
 		lblValue = PFSTableValueText(str(self._pen.width()))
 		lblValue.edited.connect(self.changeLineWidth)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])		
 		return ans
 	
 	def changeLineColor(self):

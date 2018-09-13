@@ -1,7 +1,8 @@
-from PyQt5.QtWidgets import QGraphicsItem, QColorDialog, QWidget
+from PyQt5.QtWidgets import QGraphicsItem, QColorDialog, QWidget, QDialog
 from PyQt5.QtGui import QPen, QColor, QBrush, QFont, QFontMetrics, QPainter, QMouseEvent
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QRect
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
+from dialog import PFSDialogTag
 
 class PFSSenderSignal(QObject):
 	changed = pyqtSignal()
@@ -19,6 +20,11 @@ class PFSTags(QWidget):
 		self._font = QFont("Serif", 8)
 		self._rect = QRect(0,0,10,10)
 		self._brush = QBrush(Qt.white, Qt.SolidPattern)
+		
+	def clone(self):
+		ans = PFSTags(self._name, self._use)
+		ans.removed.connect(self.removed.emit)
+		return ans
 		
 	def simpleUse(self):
 		if len(self._use) > 16:
@@ -60,24 +66,45 @@ class PFSTags(QWidget):
 	def mousePressEvent(self, ev: QMouseEvent):
 		if self._closeRect.contains(ev.pos()):
 			self.removed.emit(self)
+	
+	def __eq__(self, other):
+		if not isinstance(other, PFSTags):
+			return False
+		return self._name == other._name and self._use == other._use
 
-class PFSElement(QGraphicsItem):
-	SELECTED_PEN = QPen(Qt.red)
-	SELECTED_PEN_ALT = QPen(Qt.blue)
-	PEN_LIST = {"Solida": Qt.SolidLine, "Tracejada": Qt.DashLine, "Pontilhada": Qt.DotLine}
-	def __init__(self, id: str):
-		super(QGraphicsItem, self).__init__()
+class PFSBasicElement(object):
+	def __init__(self, id):
 		self._id = id
 		self._tags = []
-		self.setFlag(QGraphicsItem.ItemIsSelectable)
 		
 	def addTag(self, name, use=""):
 		tag = PFSTags(name, use)
 		tag.removed.connect(self.removeTag)
 		self._tags.append(tag)
 	
+	def createTag(self):
+		name, use, ans = PFSDialogTag.getTag()
+		if ans:
+			self.addTag(name, use)
+	
 	def removeTag(self, tag):
 		self._tags.remove(tag)
+
+class PFSElement(PFSBasicElement, QGraphicsItem):
+	SELECTED_PEN = QPen(Qt.red)
+	SELECTED_PEN_ALT = QPen(Qt.blue)
+	PEN_LIST = {"Solida": Qt.SolidLine, "Tracejada": Qt.DashLine, "Pontilhada": Qt.DotLine}
+	def __init__(self, id: str):
+		PFSBasicElement.__init__(self, id)
+		QGraphicsItem.__init__(self)
+		self.setFlag(QGraphicsItem.ItemIsSelectable)
+	
+	def createTag(self):
+		PFSBasicElement.createTag(self)
+		self.scene()._page._net.fillProperties(self.propertiesTable())
+	
+	def removeTag(self, tag):
+		PFSBasicElement.removeTag(self, tag)
 		self.scene()._page._net.fillProperties(self.propertiesTable())
 	
 	def selectSingle(self):

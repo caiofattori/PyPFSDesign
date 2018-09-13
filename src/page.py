@@ -3,21 +3,22 @@ from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QUndoStack, QTableWidget
 from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
-from generic import PFSNode
+from generic import PFSNode, PFSBasicElement
 from element import PFSActivity, PFSActivityContent, PFSDistributor, PFSDistributorContent, PFSRelation, PFSOpenActivity, PFSCloseActivity
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from undo import *
 from scene import *
-from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueCheck, PFSTableLabelTags
+from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueCheck, PFSTableLabelTags, PFSTableValueBox
 from image import PFSImage, PFSPageIcon
 from generic import PFSActive, PFSPassive
 from tree import PFSTreeItem
 
-class PFSPage(QWidget):
+class PFSPage(PFSBasicElement, QWidget):
 	clicked = pyqtSignal()
 	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net):
-		super(QWidget, self).__init__()
+		PFSBasicElement.__init__(self, id)
+		QWidget.__init__(self)
 		self._id = id
 		self._net = net
 		self._scene = PFSScene(w, h, stateMachine, self)
@@ -289,6 +290,9 @@ class PFSPage(QWidget):
 		lblType = PFSTableLabel("Mostra grid")
 		lblValue = PFSTableValueCheck("", self._scene._paintGrid)
 		lblValue.stateChanged.connect(self._scene.setPaintGrid)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
 		ans.append([lblType, lblValue])		
 		return ans
 	
@@ -304,7 +308,15 @@ class PFSPage(QWidget):
 		self.resizeScene(width=int(float(txt)))
 		
 	def resizeHeigh(self, txt):	
-		self.resizeScene(height=int(float(txt)))	
+		self.resizeScene(height=int(float(txt)))
+	
+	def createTag(self):
+		PFSBasicElement.createTag(self)
+		self._net.fillProperties(self.propertiesTable())
+	
+	def removeTag(self, tag):
+		PFSBasicElement.removeTag(self, tag)
+		self._net.fillProperties(self.propertiesTable())
 
 class PFSNet(QWidget):
 	changed = pyqtSignal()
@@ -595,10 +607,11 @@ class PFSNet(QWidget):
 			return
 		self._tab.widget(index)._scene.clearSelection()
 		self._window._main.tabChanged.emit()
-		
+	
 	def fillProperties(self, props):
 		if len(props) > 0:
-			self._prop.clear()
+			self._prop.setRowCount(0)
+			self._prop.setRowCount(len(props))
 			i = 0
 			for line in props:
 				if isinstance(line[0], QTableWidgetItem):
