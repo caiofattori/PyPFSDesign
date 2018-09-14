@@ -222,12 +222,12 @@ class PFSPage(PFSBasicElement, QWidget):
 		for item in content._openActivities:
 			it = PFSOpenActivity(item._id, item._x, item._y, item._h)
 			for tag in item._tags:
-				it.addTag(tag._name, tag._use)
+				it.addTag(tag._name, tag._use, False)
 			items[item._id] = it
 		for item in content._closeActivities:
 			it = PFSCloseActivity(item._id, item._x, item._y, item._h)
 			for tag in item._tags:
-				it.addTag(tag._name, tag._use)
+				it.addTag(tag._name, tag._use, False)
 			items[item._id] = it
 		for item in content._activities:
 			it = PFSActivity(item._id, item._x, item._y, item._text)
@@ -238,7 +238,7 @@ class PFSPage(PFSBasicElement, QWidget):
 			it._height = item._height
 			it._width = item._width
 			for tag in item._tags:
-				it.addTag(tag._name, tag._use)
+				it.addTag(tag._name, tag._use, False)
 			items[item._id] = it
 		for item in content._distributors:
 			it = PFSDistributor(item._id, item._x, item._y)
@@ -247,7 +247,7 @@ class PFSPage(PFSBasicElement, QWidget):
 			it._height = item._height
 			it._width = item._width
 			for tag in item._tags:
-				it.addTag(tag._name, tag._use)
+				it.addTag(tag._name, tag._use, False)
 			items[item._id] = it
 		for item in content._relations:
 			source = items[item._source]
@@ -257,7 +257,7 @@ class PFSPage(PFSBasicElement, QWidget):
 				it._midPoints = item._midPoints
 				it._pen = item._pen
 				for tag in item._tags:
-					it.addTag(tag._name, tag._use)				
+					it.addTag(tag._name, tag._use, False)				
 				items[item._id] = it
 		for i, item in items.items():
 			page._scene.addItem(item)

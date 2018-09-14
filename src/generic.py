@@ -79,9 +79,13 @@ class PFSBasicElement(object):
 		self._tags = []
 		
 	def addTag(self, name, use=""):
+		print("x1")
 		tag = PFSTags(name, use)
+		print("x2")
 		tag.removed.connect(self.deleteTag)
+		print("x3")
 		self._tags.append(tag)
+		print("x4")
 	
 	def createTag(self, net):
 		name, use, ans = PFSDialogTag.getTag()
@@ -111,7 +115,7 @@ class PFSBasicElement(object):
 		if node.nodeName() != "tags":
 			return ans
 		childs = node.childNodes()
-		for i in len(childs.count()):
+		for i in range(childs.count()):
 			child = childs.at(i)
 			if child.nodeName() != "tag":
 				continue
@@ -145,9 +149,10 @@ class PFSElement(PFSBasicElement, QGraphicsItem):
 		PFSBasicElement.removeTag(self, name, use)
 		self.scene()._page._net.fillProperties(self.propertiesTable())
 	
-	def addTag(self, name, use=""):
+	def addTag(self, name, use="", update=True):
 		PFSBasicElement.addTag(self, name, use)
-		self.scene()._page._net.fillProperties(self.propertiesTable())
+		if update:
+			self.scene()._page._net.fillProperties(self.propertiesTable())
 	
 	def selectSingle(self):
 		self.scene()._page._net.showPage(self.scene()._page)
