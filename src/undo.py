@@ -1,5 +1,31 @@
 from PyQt5.QtWidgets import QUndoStack, QUndoCommand
 
+class PFSUndoAddTag(QUndoCommand):
+	def __init__(self, item, name, use):
+		QUndoCommand.__init__(self)
+		self._name = name
+		self._use = use
+		self._item = item
+		
+	def undo(self):
+		self._item.removeTag(self._name, self._use)
+			
+	def redo(self):
+		self._item.addTag(self._name, self._use)
+		
+class PFSUndoRemoveTag(QUndoCommand):
+	def __init__(self, item, tag):
+		QUndoCommand.__init__(self)
+		self._name = tag._name
+		self._use = tag._use
+		self._item = item
+		
+	def undo(self):
+		self._item.addTag(self._name, self._use)
+			
+	def redo(self):
+		self._item.removeTag(self._name, self._use)
+		
 class PFSUndoDelete(QUndoCommand):
 	def __init__(self, items):
 		super(QUndoCommand, self).__init__()

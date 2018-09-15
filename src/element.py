@@ -1,32 +1,16 @@
 from generic import *
 from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
-from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject
+from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject, QPointF
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor, QIcon
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog, QTreeWidgetItem
 import math
-from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueButton, PFSTableValueCombo
+from table import *
 from undo import PFSUndoPropertyText, PFSUndoPropertyButton, PFSUndoPropertyCombo
 from image import PFSDistributorIcon, PFSActivityIcon, PFSRelationIcon, PFSOpenActivityIcon, PFSCloseActivityIcon
 from tree import PFSTreeItem
-
-class PFSAux:
-	def __init__(self):
-		pass
-
-class PFSActivityContent(object):
-	def __init__(self):
-		self._id = None
-		self._x = None
-		self._y = None
-		self._text = None
-		self._width = None
-		self._height = None
-		self._textFont = None
-		self._fontMetrics = None
-		self._pen = None
-		self._brush = None
-
+from contents import *
+	
 class PFSActivity(PFSActive):
 	def __init__(self, id: str, x: int, y: int, text: str="Atividade"):
 		PFSActive.__init__(self, id, x, y)
@@ -35,13 +19,14 @@ class PFSActivity(PFSActive):
 		self.setText(text)
 		self._fontMetrics = QFontMetrics(self._textFont)
 		self._minWidth = 0
-		self._minHeight = 0		
+		self._minHeight = 0
 		self.minimunRect()
 		self._width = self._minWidth
 		self._height = self._minHeight
 		
 	def copy(self, x, y):
 		ans = PFSActivityContent()
+		ans._id = self._id
 		ans._x = self._x - x
 		ans._y = self._y - y
 		ans._text = self._text
@@ -51,6 +36,7 @@ class PFSActivity(PFSActive):
 		ans._fontMetrics = self._fontMetrics
 		ans._pen = self._pen
 		ans._brush = self._brush
+		ans._tags = self._tags
 		return ans
 	
 	def paste(content, id, dx, dy):
@@ -61,6 +47,8 @@ class PFSActivity(PFSActive):
 		ans._fontMetrics = content._fontMetrics
 		ans._pen = content._pen
 		ans._brush = content._brush
+		for tag in content._tags:
+			ans.addTag(tag._name, tag._use, False)
 		return ans
 	
 	def tree(self, parent):
@@ -96,7 +84,8 @@ class PFSActivity(PFSActive):
 		xml.writeAttribute("id", self._id)
 		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._width, self._height), self._pen, self._brush)
 		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text", align="center")
-		xml.writeEndElement()
+		PFSBasicElement.generateXml(self, xml)
+		#xml.writeEndElement()
 		xml.writeEndElement() #fecha activity
 		PFSXmlBase.close(xml)
 	
@@ -109,17 +98,23 @@ class PFSActivity(PFSActive):
 		childs = node.childNodes()
 		graphics = None
 		text = None
+		tags = []
 		for i in range(childs.count()):
 			child = childs.at(i)
 			if child.nodeName() == "graphics":
 				graphics = PFSXmlBase.getNode(child)
 			if child.nodeName() == "text":
 				text = PFSXmlBase.getText(child)
+			if child.nodeName() == "tags":
+				tags = PFSBasicElement.createFromXml(child)
 		if graphics is not None and text is not None:
-			ac = PFSActivity(id, graphics.rect.x(), graphics.rect.y())
+			ac = PFSActivityContent()
+			ac._id = id
+			ac._x = graphics.rect.x()
+			ac._y = graphics.rect.y()
+			ac._text = text.annotation
 			ac._width = graphics.rect.width()
-			ac._height = graphics.rect.height()
-			ac.setText(text.annotation)
+			ac._height = graphics.rect.height()		
 			if text.font is not None:
 				ac._textFont = text.font
 				ac._fontMetrics = QFontMetrics(text.font)
@@ -127,6 +122,7 @@ class PFSActivity(PFSActive):
 				ac._pen = graphics.line
 			if graphics.brush is not None:
 				ac._brush = graphics.brush
+			ac._tags = tags
 			return ac
 		return None
 		
@@ -240,7 +236,10 @@ class PFSActivity(PFSActive):
 		lblType = PFSTableLabel("Cor do preenchimento")
 		lblValue = PFSTableValueButton(self._brush.color().name())
 		lblValue.clicked.connect(self.changeFillColor)
-		ans.append([lblType, lblValue])		
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])
 		return ans
 	
 	def changeText(self, prop):
@@ -290,6 +289,7 @@ class PFSOpenActivity(PFSActive):
 		xml.writeStartElement("openactivity")
 		xml.writeAttribute("id", self._id)
 		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, 6, self._h), self.scene()._page._subRef._pen, None)
+		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha openactivity
 		PFSXmlBase.close(xml)
 		
@@ -301,12 +301,20 @@ class PFSOpenActivity(PFSActive):
 		id = node.attributes().namedItem("id").nodeValue()
 		childs = node.childNodes()
 		graphics = None
+		tags = []
 		for i in range(childs.count()):
 			child = childs.at(i)
 			if child.nodeName() == "graphics":
 				graphics = PFSXmlBase.getNode(child)
+			if child.nodeName() == "tags":
+				tags = PFSBasicElement.createFromXml(child)
 		if graphics is not None:
-			oa = PFSOpenActivity(id, graphics.rect.x(), graphics.rect.y(), graphics.rect.height())
+			oa = PFSOpenActivityContent()
+			oa._id = id
+			oa._x = graphics.rect.x()
+			oa._y = graphics.rect.y()
+			oa._h = graphics.rect.height()
+			oa._tags = tags
 			return oa
 		return None	
 	
@@ -354,6 +362,9 @@ class PFSOpenActivity(PFSActive):
 		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
 		lblValue.edited.connect(self.changeElementHeight)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])		
 		return ans
 	
 	def changeElementPosX(self, prop):
@@ -407,7 +418,8 @@ class PFSCloseActivity(PFSActive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("closeactivity")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, QRectF(self._x-6, self._y, 6, self._h), self.scene()._page._subRef._pen, None)
+		PFSXmlBase.graphicsNode(xml, QRectF(self._x - 6, self._y, 6, self._h), self.scene()._page._subRef._pen, None)
+		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha closeactivity
 		PFSXmlBase.close(xml)
 		
@@ -419,12 +431,21 @@ class PFSCloseActivity(PFSActive):
 		id = node.attributes().namedItem("id").nodeValue()
 		childs = node.childNodes()
 		graphics = None
+		tags = []
 		for i in range(childs.count()):
 			child = childs.at(i)
 			if child.nodeName() == "graphics":
 				graphics = PFSXmlBase.getNode(child)
+			if child.nodeName() == "tags":
+				tags = PFSBasicElement.createFromXml(child)
 		if graphics is not None:
-			return PFSCloseActivity(id, graphics.rect.x(), graphics.rect.y(), graphics.rect.height())
+			ca = PFSCloseActivityContent()
+			ca._id = id
+			ca._x = graphics.rect.x() + 6
+			ca._y = graphics.rect.y()
+			ca._h = graphics.rect.height()
+			ca._tags = tags
+			return ca
 		return None	
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
@@ -471,6 +492,9 @@ class PFSCloseActivity(PFSActive):
 		lblValue = PFSTableValueText(str(self.sceneBoundingRect().height()))
 		lblValue.edited.connect(self.changeElementHeight)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])		
 		return ans
 	
 	def changeElementPosX(self, prop):
@@ -498,16 +522,6 @@ class PFSCloseActivity(PFSActive):
 		self._height = float(txt)
 		self.scene().update()
 
-class PFSDistributorContent(object):
-	def __init__(self):
-		self._id = None
-		self._x = None
-		self._y = None
-		self._width = None
-		self._height = None
-		self._pen = None
-		self._brush = None
-
 class PFSDistributor(PFSPassive):
 	STANDARD_SIZE = 20
 	def __init__(self, id: str, x: int, y: int):
@@ -520,12 +534,14 @@ class PFSDistributor(PFSPassive):
 		
 	def copy(self, x, y):
 		ans = PFSDistributorContent()
+		ans._id = self._id
 		ans._x = self._x - x
 		ans._y = self._y - y
 		ans._width = self._width
 		ans._height = self._height
 		ans._pen = self._pen
 		ans._brush = self._brush
+		ans._tags = self._tags
 		return ans
 	
 	def paste(content, id, dx, dy):
@@ -534,6 +550,8 @@ class PFSDistributor(PFSPassive):
 		ans._height = content._height
 		ans._pen = content._pen
 		ans._brush = content._brush
+		for tag in content._tags:
+			ans.addTag(tag._name, tag._use, False)
 		return ans	
 		
 	def tree(self, parent):
@@ -551,6 +569,7 @@ class PFSDistributor(PFSPassive):
 		xml.writeStartElement("distributor")
 		xml.writeAttribute("id", self._id)
 		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._width, self._height), self._pen, self._brush)
+		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
 	
@@ -562,18 +581,25 @@ class PFSDistributor(PFSPassive):
 		id = node.attributes().namedItem("id").nodeValue()
 		childs = node.childNodes()
 		graphics = None
+		tags = []
 		for i in range(childs.count()):
 			child = childs.at(i)
 			if child.nodeName() == "graphics":
 				graphics = PFSXmlBase.getNode(child)
+			if child.nodeName() == "tags":
+				tags = PFSBasicElement.createFromXml(child)
 		if graphics is not None:
-			di = PFSDistributor(id, graphics.rect.x(), graphics.rect.y())
+			di = PFSDistributorContent()
+			di._id = id
+			di._x = graphics.rect.x()
+			di._y = graphics.rect.y()
 			di._width = graphics.rect.width()
 			di._height = graphics.rect.height()
 			if graphics.line is not None:
 				di._pen = graphics.line
 			if graphics.brush is not None:
 				di._brush = graphics.brush
+			di._tags = tags	
 			return di			
 		return None
 	
@@ -639,6 +665,9 @@ class PFSDistributor(PFSPassive):
 		lblValue = PFSTableValueButton(self._brush.color().name())
 		lblValue.clicked.connect(self.changeFillColor)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])		
 		return ans	
 
 class PFSGraphItems(QObject):
@@ -672,6 +701,27 @@ class PFSRelation(PFSElement):
 	def hasSubPage(self):
 		return False
 	
+	def copy(self, x, y):
+		ans = PFSRelationContent()
+		ans._id = self._id
+		ans._midPoints = []
+		for point in ans._midPoints:
+			ans._midPoints.append(QPoint(point.x()-x, point.y()-y))
+		ans._pen = self._pen
+		ans._tags = self._tags
+		ans._source = self._source._id
+		ans._target = self._target._id
+		return ans
+	
+	def paste(content, id, dx, dy, itemList):
+		ans = PFSRelation(id, itemList[content._source], itemList[content._target])
+		ans._pen = content._pen
+		for tag in content._tags:
+			ans.addTag(tag._name, tag._use, False)
+		for point in content._midPoints:
+			ans._midPoints.append(QPoint(point.x()+dx, point.y()+dy))
+		return ans
+	
 	def createRelation(id: str, source: PFSNode, target: PFSNode):
 		if isinstance(source, PFSActive):
 			if isinstance(target, PFSPassive):
@@ -694,10 +744,10 @@ class PFSRelation(PFSElement):
 	def updatePoints(self):
 		if len(self._midPoints) == 0:
 			if isinstance(self._source, PFSActivity):
-				self._firstPoint = self._source.getBestRelationPoint(self._target.sceneBoundingRect().center())
+				self._firstPoint = self._source.getBestRelationPoint(QRect(self._target._x, self._target._y, self._target._width, self._target._height).center())
 				self._lastPoint = self._target.getBestRelationPoint(self._firstPoint)
 			else:
-				self._lastPoint = self._target.getBestRelationPoint(self._source.sceneBoundingRect().center())
+				self._lastPoint = self._target.getBestRelationPoint(QRect(self._source._x, self._source._y, self._source._width, self._source._height).center())
 				self._firstPoint = self._source.getBestRelationPoint(self._lastPoint)
 		else:
 			self._firstPoint = self._source.getBestRelationPoint(self._midPoints[0])
@@ -749,6 +799,7 @@ class PFSRelation(PFSElement):
 		xml.writeAttribute("source", self._source._id)
 		xml.writeAttribute("target", self._target._id)
 		PFSXmlBase.graphicsArc(xml, self._midPoints, self._pen)
+		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
 		
@@ -769,23 +820,25 @@ class PFSRelation(PFSElement):
 		source = attr.namedItem("source").nodeValue()
 		target = attr.namedItem("target").nodeValue()
 		graphics = None
+		tags = []
 		childs = node.childNodes()
 		for i in range(childs.count()):
 			child = childs.at(i)
 			if child.nodeName() == "graphics":
 				graphics = PFSXmlBase.getArc(child)
-		re = PFSAux()
-		re.id = id
-		re.source = source
-		re.target = target
+			if child.nodeName() == "tags":
+				tags = PFSBasicElement.createFromXml(child)
+		re = PFSRelationContent()
+		re._id = id
+		re._source = source
+		re._target = target
 		if graphics is not None and graphics.line is not None:
-			re.pen = graphics.line
-		else:
-			re.pen = None
+			re._pen = graphics.line
 		if graphics is not None and graphics.pos is not None:
-			re.midPoints = graphics.pos
+			re._midPoints = graphics.pos
 		else:
-			re.midPoints = []
+			re._midPoints = []
+		re._tags = tags
 		return re
 	
 	def shape(self) -> QPainterPath:
@@ -851,6 +904,9 @@ class PFSRelation(PFSElement):
 		lblValue = PFSTableValueText(str(self._pen.width()))
 		lblValue.edited.connect(self.changeLineWidth)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])		
 		return ans
 	
 	def changeLineColor(self):

@@ -1,7 +1,17 @@
-from PyQt5.QtWidgets import QTableWidgetItem, QPushButton, QComboBox, QCheckBox
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QPushButton, QComboBox, QCheckBox, QVBoxLayout, QWidget
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
+from PyQt5.QtGui import QIcon
+from toolbutton import PFSAddButton
 
 class PFSTableLabel(QTableWidgetItem):
+	def __init__(self, text):
+		QTableWidgetItem.__init__(self, text)
+		self.setFlags(Qt.NoItemFlags)
+		
+	def comparePrevious(self):
+		return False
+
+class PFSTableLabelTags(QTableWidgetItem):
 	def __init__(self, text):
 		QTableWidgetItem.__init__(self, text)
 		self.setFlags(Qt.NoItemFlags)
@@ -71,5 +81,20 @@ class PFSTableValueCheck(QCheckBox):
 		QCheckBox.__init__(self, txt)
 		self.setChecked(value)
 		
+	def comparePrevious(self):
+		return False
+		
+class PFSTableValueBox(QWidget):
+	def __init__(self, items, f):
+		QWidget.__init__(self)
+		self._items = [x.clone() for x in items]
+		self._layout = QVBoxLayout()
+		self.setLayout(self._layout)
+		for item in self._items:
+			self._layout.addWidget(item)
+		b = PFSAddButton()
+		b.clicked.connect(f)
+		self._layout.addWidget(b)
+	
 	def comparePrevious(self):
 		return False

@@ -3,21 +3,23 @@ from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QUndoStack, QTableWidget
 from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
-from generic import PFSNode
-from element import PFSActivity, PFSActivityContent, PFSDistributor, PFSDistributorContent, PFSRelation, PFSOpenActivity, PFSCloseActivity
+from generic import PFSNode, PFSBasicElement
+from element import PFSActivity, PFSDistributor,  PFSRelation, PFSOpenActivity, PFSCloseActivity
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from undo import *
 from scene import *
-from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueCheck
+from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValueCheck, PFSTableLabelTags, PFSTableValueBox
 from image import PFSImage, PFSPageIcon
 from generic import PFSActive, PFSPassive
 from tree import PFSTreeItem
+from contents import *
 
-class PFSPage(QWidget):
+class PFSPage(PFSBasicElement, QWidget):
 	clicked = pyqtSignal()
 	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net):
-		super(QWidget, self).__init__()
+		PFSBasicElement.__init__(self, id)
+		QWidget.__init__(self)
 		self._id = id
 		self._net = net
 		self._scene = PFSScene(w, h, stateMachine, self)
@@ -61,6 +63,7 @@ class PFSPage(QWidget):
 		xml.writeStartElement("pagegraphics")
 		PFSXmlBase.position(xml, str(self._scene.width()), str(self._scene.height()), "dimension")
 		xml.writeEndElement() #fim da pagegraphics
+		PFSBasicElement.generateXml(self, xml)
 		PFSXmlBase.close(xml)
 		for e in self._scene.items():
 			if isinstance(e, PFSActive) or isinstance(e, PFSPassive) or isinstance(e, PFSRelation):
@@ -122,7 +125,7 @@ class PFSPage(QWidget):
 	def newPage(id: str, sm: PFSStateMachine, net, width = 4000, height = 4000):
 		return PFSPage(id, width, height, sm, net)
 	
-	def createFromXml(node: QDomNode, sm: PFSStateMachine, net):
+	def createFromXml(node: QDomNode):
 		if node.nodeName() != "page":
 			return None
 		id = None
@@ -136,6 +139,7 @@ class PFSPage(QWidget):
 		distributors = []
 		relations = []
 		childs = node.childNodes()
+		tags = []
 		for i in range(childs.count()):
 			child = childs.at(i)
 			if PFSXmlBase.toolHasChild(child, "pagetype"):
@@ -159,6 +163,8 @@ class PFSPage(QWidget):
 								if graphic is not None:
 									width = graphic.x
 									height = graphic.y
+					if confChild.nodeName() == "tags":
+						tags = PFSBasicElement.createFromXml(confChild)
 			elif PFSXmlBase.toolHasChild(child, "activity"):
 				confChilds = child.childNodes()
 				if confChilds.at(0).nodeName() == "activity":
@@ -194,68 +200,68 @@ class PFSPage(QWidget):
 				width = 4000
 			if height is None:
 				height = 4000
-			page = PFSPage(id, width, height, sm, net)
-			if ref:
-				page._subRef = ref
-			oId = []
-			for openactivity in openactivities:
-				page._scene.addItem(openactivity)
-				oId.append(openactivity._id)
-			cId = []
-			for closeactivity in closeactivities:
-				page._scene.addItem(closeactivity)
-				cId.append(closeactivity._id)
-			aId = []
-			for activity in activities:
-				page._scene.addItem(activity)
-				aId.append(activity._id)
-			dId = []
-			for distributor in distributors:
-				page._scene.addItem(distributor)
-				dId.append(distributor._id)
-			rId = []
-			for relation in relations:
-				a = 0
-				d = 0
-				s = None
-				if aId.count(relation.source) > 0:
-					s = activities[aId.index(relation.source)]
-					a = a + 1
-				elif dId.count(relation.source) > 0:
-					s = distributors[dId.index(relation.source)]
-					d = d + 1
-				elif oId.count(relation.source) > 0:
-					s = openactivities[oId.index(relation.source)]
-					a = a + 1
-				elif cId.count(relation.source) > 0:
-					s = closeactivities[cId.index(relation.source)]
-					a = a + 1				
-				else:
-					continue
-				t = None
-				if aId.count(relation.target) > 0:
-					t = activities[aId.index(relation.target)]
-					a = a + 1
-				elif dId.count(relation.target) > 0:
-					t = distributors[dId.index(relation.target)]
-					d = d + 1
-				elif oId.count(relation.target) > 0:
-					t = openactivities[oId.index(relation.target)]
-					a = a + 1
-				elif cId.count(relation.target) > 0:
-					t = closeactivities[cId.index(relation.target)]
-					a = a + 1
-				else:
-					continue				
-				if d == 1 and a == 1:
-					rel = PFSRelation.createRelation(relation.id, s, t)
-					rel._midPoints = relation.midPoints
-					if relation.pen is not None:
-						rel._pen = relation.pen
-					page._scene.addItem(rel)
-					rId.append(relation.id)
+			page = PFSPageContent()
+			page._id = id
+			page._width = width
+			page._height = height
+			page._tags = tags
+			page._ref = ref
+			page._openActivities = openactivities
+			page._closeActivities = closeactivities
+			page._activities = activities
+			page._distributors = distributors
+			page._relations = relations
 			return page
 		return None
+	
+	def createFromContent(content: PFSPageContent, sm, net):
+		page = PFSPage(content._id, content._width, content._height, sm, net)
+		for tag in content._tags:
+			page.addTag(tag._name, tag._use)
+		items = {}
+		for item in content._openActivities:
+			it = PFSOpenActivity(item._id, item._x, item._y, item._h)
+			for tag in item._tags:
+				it.addTag(tag._name, tag._use, False)
+			items[item._id] = it
+		for item in content._closeActivities:
+			it = PFSCloseActivity(item._id, item._x, item._y, item._h)
+			for tag in item._tags:
+				it.addTag(tag._name, tag._use, False)
+			items[item._id] = it
+		for item in content._activities:
+			it = PFSActivity(item._id, item._x, item._y, item._text)
+			it._brush = item._brush
+			it._pen = item._pen
+			it._textFont = item._textFont
+			it._fontMetrics = item._fontMetrics
+			it._height = item._height
+			it._width = item._width
+			for tag in item._tags:
+				it.addTag(tag._name, tag._use, False)
+			items[item._id] = it
+		for item in content._distributors:
+			it = PFSDistributor(item._id, item._x, item._y)
+			it._brush = item._brush
+			it._pen = item._pen
+			it._height = item._height
+			it._width = item._width
+			for tag in item._tags:
+				it.addTag(tag._name, tag._use, False)
+			items[item._id] = it
+		for item in content._relations:
+			source = items[item._source]
+			target = items[item._target]
+			if (isinstance(source, PFSActive) and isinstance(target, PFSPassive)) or (isinstance(source, PFSPassive) and isinstance(target, PFSActive)):
+				it = PFSRelation(item._id, source, target)
+				it._midPoints = item._midPoints
+				it._pen = item._pen
+				for tag in item._tags:
+					it.addTag(tag._name, tag._use, False)				
+				items[item._id] = it
+		for i, item in items.items():
+			page._scene.addItem(item)
+		return page
 	
 	def getAllSubPages(self):
 		ans = []
@@ -289,6 +295,9 @@ class PFSPage(QWidget):
 		lblType = PFSTableLabel("Mostra grid")
 		lblValue = PFSTableValueCheck("", self._scene._paintGrid)
 		lblValue.stateChanged.connect(self._scene.setPaintGrid)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
 		ans.append([lblType, lblValue])		
 		return ans
 	
@@ -304,7 +313,22 @@ class PFSPage(QWidget):
 		self.resizeScene(width=int(float(txt)))
 		
 	def resizeHeigh(self, txt):	
-		self.resizeScene(height=int(float(txt)))	
+		self.resizeScene(height=int(float(txt)))
+	
+	def createTag(self):
+		PFSBasicElement.createTag(self, self._net)
+	
+	def deleteTag(self, tag):
+		x = PFSUndoRemoveTag(self, tag)
+		self._net.undoStack.push(x)
+	
+	def removeTag(self, name, use):
+		PFSBasicElement.removeTag(self, name, use)
+		self._net.fillProperties(self.propertiesTable())
+	
+	def addTag(self, name, use):
+		PFSBasicElement.addTag(self, name, use)
+		self._net.fillProperties(self.propertiesTable())
 
 class PFSNet(QWidget):
 	changed = pyqtSignal()
@@ -323,6 +347,7 @@ class PFSNet(QWidget):
 		self._prop = QTableWidget(20, 2)
 		self._prop.itemChanged.connect(self.propertiesItemChanged)
 		self._prop.verticalHeader().hide()
+		self._prop.setColumnWidth(1, 180)
 		lv = QVBoxLayout()
 		lv.addWidget(self._prop)
 		self._tree = QTreeWidget()
@@ -420,23 +445,22 @@ class PFSNet(QWidget):
 				nodePage = nodesPage.at(j)
 				if nodePage.nodeName() != "page":
 					continue
-				page = PFSPage.createFromXml(nodePage, window._sm, net)
+				page = PFSPage.createFromXml(nodePage)
 				if page is not None:
 					pages.append(page)
 			if len(pages) == 0:
 				continue
+			aux = {}
 			for page in pages:
-				if page._subRef is None:
-					net._pages = [page]
-					net._tab.addTab(page, page.name())
-					net._page = page
-				else:
-					for p in pages:
-						elem = p.getElementById(page._subRef)
-						if elem is not None:
-							page._subRef = elem
-							elem.setSubPage(page)
-							page.setName("Ref_" + elem._id)
+				p = PFSPage.createFromContent(page, window._sm, net)
+				if p is not None:
+					i = page._ref
+					if i is None or not i:
+						i = "main"
+					aux[i] = p
+			if "main" not in aux.keys():
+				continue
+			for indice, page in aux.items():
 				ids = page.getMaxIds()
 				if net._activityId < ids[0] + 1:
 					net._activityId = ids[0] + 1
@@ -448,8 +472,19 @@ class PFSNet(QWidget):
 					net._otherId = ids[3] + 1
 				if net._pageId < int(page._id[1:]) + 1:
 					net._pageId = int(page._id[1:]) + 1
-			if len(net._pages) != 1:
-				continue
+				if indice == "main":
+					net._tab.blockSignals(True)
+					net._tab.addTab(page, page.name())
+					net._tab.blockSignals(False)
+				for indice2, page2 in aux.items():
+					elem = page2.getElementById(indice)
+					if elem is not None:
+						page._subRef = elem
+						elem.setSubPage(page)
+						page.setName("Ref_" + elem._id)
+						break
+			net._page = aux["main"]
+			net._pages = [aux["main"]]
 			nets.append(net)
 		return nets	
 	
@@ -523,16 +558,27 @@ class PFSNet(QWidget):
 	
 	def pasteItems(self, pos):
 		ans = []
+		aux = {}
 		for elem in self._pasteList:
-			if isinstance(elem, PFSRelation):
+			if isinstance(elem, PFSRelationContent):
 				continue
+			oldId = elem._id
 			id = self.requestId(elem)
 			if isinstance(elem, PFSActivityContent):
 				e = PFSActivity.paste(elem, id, pos.x(), pos.y())
 				ans.append(e)
+				aux[oldId] = e
 			elif isinstance(elem, PFSDistributorContent):
 				e = PFSDistributor.paste(elem, id, pos.x(), pos.y())
 				ans.append(e)
+				aux[oldId] = e
+		for elem in self._pasteList:
+			if not isinstance(elem, PFSRelationContent):
+				continue
+			oldId = elem._id
+			id = self.requestId(elem)
+			e = PFSRelation.paste(elem, id, pos.x(), pos.y(), aux)
+			ans.append(e)
 		x = PFSUndoAdd(ans, self._tab.currentWidget()._scene)
 		self.undoStack.push(x)
 		
@@ -594,10 +640,11 @@ class PFSNet(QWidget):
 			return
 		self._tab.widget(index)._scene.clearSelection()
 		self._window._main.tabChanged.emit()
-		
+	
 	def fillProperties(self, props):
 		if len(props) > 0:
-			self._prop.clear()
+			self._prop.setRowCount(0)
+			self._prop.setRowCount(len(props))
 			i = 0
 			for line in props:
 				if isinstance(line[0], QTableWidgetItem):
@@ -608,6 +655,8 @@ class PFSNet(QWidget):
 					self._prop.setItem(i, 1, line[1])
 				else:
 					self._prop.setCellWidget(i, 1, line[1])
+				if isinstance(line[0], PFSTableLabelTags):
+					self._prop.setRowHeight(i, 100)
 				i = i + 1
 				
 	def closeTab(self, ind):

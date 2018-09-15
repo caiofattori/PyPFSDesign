@@ -46,3 +46,13 @@ class PFSRelationButton(QToolButton):
 		p.drawLine(r.left() + 5, r.bottom() - 5, r.right() - 5, r.top() + 5)
 		p.drawLine(r.right() - 15, r.top() + 10, r.right() - 5, r.top() + 5)
 		p.drawLine(r.right() - 10, r.top() + 15, r.right() - 5, r.top() + 5)
+		
+class PFSAddButton(QToolButton):
+	def __init__(self):
+		QToolButton.__init__(self)
+	
+	def paintEvent(self, ev: QPaintEvent):
+		p = QPainter(self)
+		r = self.rect()
+		p.drawEllipse(r.x(), r.y(), r.width()-1, r.height()-1)
+		p.drawText(r, Qt.AlignCenter, "+")

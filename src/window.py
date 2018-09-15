@@ -6,6 +6,7 @@ from page import PFSNet
 from PyQt5.QtGui import QIcon, QKeySequence
 from statemachine import PFSStateMachine
 from xml import PFSXmlBase
+from element import PFSRelation, PFSDistributor, PFSActivity
 
 class PFSWindow(QWidget):
 	empty = pyqtSignal()
@@ -143,6 +144,7 @@ class PFSWindow(QWidget):
 			self._tab.setCurrentIndex(i)
 			if self._tab.count() == 1:
 				self.updateUndoRedoAction()
+			self._sm.fixTransitions(net._pages[0]._scene)
 	
 	def updateUndoRedoAction(self):
 		self._main.undoToolBar.clear()
@@ -171,12 +173,16 @@ class PFSWindow(QWidget):
 		yh = self._tab.currentWidget()._tab.currentWidget()._scene.sceneRect().top()
 		if len(aux) > 0:
 			for elem in aux:
+				if not (isinstance(elem, PFSActivity) or isinstance(elem, PFSDistributor)):
+					continue
 				if x > elem._x:
 					x = elem._x
 				if y > elem._y:
 					y = elem._y
 			self._bufferElements = []
 			for elem in aux:
+				if isinstance(elem, PFSRelation) and not(elem._source in aux and elem._target in aux):
+					continue
 				self._bufferElements.append(elem.copy(x, y))
 	
 	def pasteElements(self):
