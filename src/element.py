@@ -23,6 +23,9 @@ class PFSActivity(PFSActive):
 		self.minimunRect()
 		self._width = self._minWidth
 		self._height = self._minHeight
+		self._inputNum = 1
+		self._outputNum = 2
+		self._space = 5
 		
 	def copy(self, x, y):
 		ans = PFSActivityContent()
@@ -140,12 +143,22 @@ class PFSActivity(PFSActive):
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
-		p.drawLine(self._x, self._y, self._x + 6, self._y)
-		p.drawLine(self._x, self._y + self._height, self._x + 6, self._y + self._height)
-		p.drawLine(self._x, self._y, self._x, self._y + self._height)
-		p.drawLine(self._x + self._width, self._y, self._x + self._width - 6, self._y)
-		p.drawLine(self._x + self._width, self._y + self._height, self._x + self._width - 6, self._y + self._height)
-		p.drawLine(self._x + self._width, self._y, self._x + self._width, self._y + self._height)		
+		h = (self._height -self._space*(self._inputNum-1))/self._inputNum
+		p.save()
+		p.translate(self._x, self._y)
+		for i in range(self._inputNum):
+			p.drawLine(0, 0, 6, 0)
+			p.drawLine(0, h, 6, h)
+			p.drawLine(0, 0, 0, h)
+			p.translate(0, h + self._space)
+		p.restore()
+		h = (self._height -self._space*(self._outputNum-1))/self._outputNum
+		p.translate(self._x + self._width, self._y)
+		for i in range(self._outputNum):
+			p.drawLine(0, 0, -6, 0)
+			p.drawLine(0, h, -6, h)
+			p.drawLine(0, 0, 0, h)
+			p.translate(0, h + self._space)	
 		p.restore()
 		
 	def setText(self, text: str):
@@ -266,6 +279,7 @@ class PFSOpenActivity(PFSActive):
 	def __init__(self, id, x, y, h):
 		PFSActive.__init__(self, id, x, y)
 		self._h = h
+		self._space = 5
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
 	def canDelete(self):
@@ -335,9 +349,14 @@ class PFSOpenActivity(PFSActive):
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
-		p.drawLine(self._x, self._y, self._x + 6, self._y)
-		p.drawLine(self._x, self._y + self._h, self._x + 6, self._y + self._h)
-		p.drawLine(self._x, self._y, self._x, self._y + self._h)
+		h = (self._h -self._space*(ref._inputNum-1))/ref._inputNum
+		p.save()
+		p.translate(self._x, self._y)
+		for i in range(ref._inputNum):
+			p.drawLine(0, 0, 6, 0)
+			p.drawLine(0, h, 6, h)
+			p.drawLine(0, 0, 0, h)
+			p.translate(0, h + self._space)
 		p.restore()
 		
 	def propertiesTable(self):
@@ -398,6 +417,7 @@ class PFSCloseActivity(PFSActive):
 	def __init__(self, id, x, y, h):
 		PFSActive.__init__(self, id, x, y)
 		self._h = h
+		self._space = 5
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
 	def canDelete(self):
@@ -467,9 +487,14 @@ class PFSCloseActivity(PFSActive):
 				p.setPen(PFSElement.SELECTED_PEN_ALT)
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
-		p.drawLine(self._x, self._y, self._x - 6, self._y)
-		p.drawLine(self._x, self._y + self._h, self._x - 6, self._y + self._h)
-		p.drawLine(self._x, self._y, self._x, self._y + self._h)
+		h = (self._h -self._space*(ref._outputNum-1))/ref._outputNum
+		p.save()
+		p.translate(self._x, self._y)
+		for i in range(ref._outputNum):
+			p.drawLine(0, 0, -6, 0)
+			p.drawLine(0, h, -6, h)
+			p.drawLine(0, 0, 0, h)
+			p.translate(0, h + self._space)
 		p.restore()
 		
 	def propertiesTable(self):
