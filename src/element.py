@@ -85,6 +85,8 @@ class PFSActivity(PFSActive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("activity")
 		xml.writeAttribute("id", self._id)
+		xml.writeAttribute("inputNum", self._inputNum)
+		xml.writeAttribute("outputNum", self._outputNum)
 		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._width, self._height), self._pen, self._brush)
 		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text", align="center")
 		PFSBasicElement.generateXml(self, xml)
