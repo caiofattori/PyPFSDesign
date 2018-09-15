@@ -214,18 +214,50 @@ class PFSUndoPropertyText(QUndoCommand):
 		self._new = prop.text()
 			
 	def undo(self):
-		self._prop._obj.blockSignals(True)
-		self._prop.setText(self._old)
-		self._prop._obj.blockSignals(False)
+		try:
+			self._prop._obj.blockSignals(True)
+			self._prop.setText(self._old)
+			self._prop._obj.blockSignals(False)
+		except:
+			pass
 		self._text = self._old
 		self._func(self._text)
 		 
 	def redo(self):
-		self._prop._obj.blockSignals(True)
-		self._prop.setText(self._new)
-		self._prop._obj.blockSignals(False)
+		try:
+			self._prop._obj.blockSignals(True)
+			self._prop.setText(self._new)
+			self._prop._obj.blockSignals(False)
+		except:
+			pass		
 		self._text = self._new
 		self._func(self._text)
+		
+class PFSUndoPropertyTextSimetric(QUndoCommand):
+	def __init__(self, prop, func):
+		super(QUndoCommand, self).__init__()
+		self._func = func
+		self._prop = prop
+		self._old = str(-float(prop.text()))
+		self._new = prop.text()
+			
+	def undo(self):
+		try:
+			self._prop._obj.blockSignals(True)
+			self._prop.setText("")
+			self._prop._obj.blockSignals(False)
+		except:
+			pass		
+		self._func(self._old)
+		 
+	def redo(self):
+		try:
+			self._prop._obj.blockSignals(True)
+			self._prop.setText("")
+			self._prop._obj.blockSignals(False)
+		except:
+			pass		
+		self._func(self._new)
 		
 class PFSUndoPropertyButton(QUndoCommand):
 	def __init__(self, newValue, oldValue, func):

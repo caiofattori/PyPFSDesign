@@ -115,14 +115,12 @@ class PFSPage(PFSBasicElement, QWidget):
 			x = PFSUndoRectPage(self._scene, QRect(l, t, r-l, b-t,))
 			self._net.undoStack.push(x)
 	
-	def resizeScene(self, width=None, height=None):
-		if width is None:
-			width = self._scene.sceneRect().width()
-		if height is None:
-			height = self._scene.sceneRect().height()
+	def resizeScene(self, width=0, height=0):
+		width = self._scene.sceneRect().width() + width
+		height = self._scene.sceneRect().height() + height
 		self._scene.resize(int(float(width)), int(float(height)))
 	
-	def newPage(id: str, sm: PFSStateMachine, net, width = 4000, height = 4000):
+	def newPage(id: str, sm: PFSStateMachine, net, width = 600, height = 120):
 		return PFSPage(id, width, height, sm, net)
 	
 	def createFromXml(node: QDomNode):
@@ -197,9 +195,9 @@ class PFSPage(PFSBasicElement, QWidget):
 						relations.append(relation)
 		if id is not None and id != "" and mainpage is not None:
 			if width is None:
-				width = 4000
+				width = 600
 			if height is None:
-				height = 4000
+				height = 120
 			page = PFSPageContent()
 			page._id = id
 			page._width = width
@@ -285,12 +283,28 @@ class PFSPage(PFSBasicElement, QWidget):
 		lblValue.setFlags(Qt.NoItemFlags)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Largura")
-		lblValue = PFSTableValueText(str(self._scene.sceneRect().width()))
-		lblValue.edited.connect(self.changePageWidth)
+		lblValue = PFSTableNormal(str(self._scene.sceneRect().width()))
+		lblValue.setFlags(Qt.NoItemFlags)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Altura")
-		lblValue = PFSTableValueText(str(self._scene.sceneRect().height()))
-		lblValue.edited.connect(self.changePageHeight)
+		lblValue = PFSTableNormal(str(self._scene.sceneRect().height()))
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Redimen. esquerda")
+		lblValue = PFSTableValueText("")
+		lblValue.edited.connect(self.changePageWidthLeft)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Redimen. direita")
+		lblValue = PFSTableValueText("")
+		lblValue.edited.connect(self.changePageWidthRight)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Redimen. cima")
+		lblValue = PFSTableValueText("")
+		lblValue.edited.connect(self.changePageHeightTop)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Redimen. baixo")
+		lblValue = PFSTableValueText("")
+		lblValue.edited.connect(self.changePageHeightBottom)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabel("Mostra grid")
 		lblValue = PFSTableValueCheck("", self._scene._paintGrid)
@@ -301,18 +315,62 @@ class PFSPage(PFSBasicElement, QWidget):
 		ans.append([lblType, lblValue])		
 		return ans
 	
-	def changePageWidth(self, prop):
-		x = PFSUndoPropertyText(prop, self.resizeWidth)
-		self._net.undoStack.push(x)
+	def changePageWidthLeft(self, prop):
+		try:
+			a = float(prop.text())
+			x = PFSUndoPropertyTextSimetric(prop, self.resizeWidthLeft)
+			self._net.undoStack.push(x)
+		except:
+			pass
 		
-	def changePageHeight(self, prop):
-		x = PFSUndoPropertyText(prop, self.resizeHeight)
-		self._net.undoStack.push(x)
+	def changePageWidthRight(self, prop):
+		try:
+			a = float(prop.text())
+			x = PFSUndoPropertyTextSimetric(prop, self.resizeWidthRight)
+			self._net.undoStack.push(x)
+		except:
+			pass
+		
+	def changePageHeightTop(self, prop):
+		try:
+			a = float(prop.text())
+			x = PFSUndoPropertyTextSimetric(prop, self.resizeHeightTop)
+			self._net.undoStack.push(x)
+		except:
+			pass
+	
+	def changePageHeightBottom(self, prop):
+		try:
+			a = float(prop.text())		
+			x = PFSUndoPropertyTextSimetric(prop, self.resizeHeightBottom)
+			self._net.undoStack.push(x)
+		except:
+			pass
 
-	def resizeWidth(self, txt):	
+	def resizeWidthLeft(self, txt):
+		rel = []
+		for item in self._scene.items():
+			item.moveX(txt, False)
+			if isinstance(item, PFSRelation):
+				rel.append(item)
+		for r in rel:
+			r.updatePoints()
 		self.resizeScene(width=int(float(txt)))
-		
-	def resizeHeigh(self, txt):	
+
+	def resizeWidthRight(self, txt):	
+		self.resizeScene(width=int(float(txt)))
+	
+	def resizeHeightTop(self, txt):
+		rel = []
+		for item in self._scene.items():
+			item.moveY(txt, False)
+			if isinstance(item, PFSRelation):
+				rel.append(item)
+		for r in rel:
+			r.updatePoints()
+		self.resizeScene(height=int(float(txt)))	
+	
+	def resizeHeightBottom(self, txt):
 		self.resizeScene(height=int(float(txt)))
 	
 	def createTag(self):
@@ -348,10 +406,12 @@ class PFSNet(QWidget):
 		self._prop.itemChanged.connect(self.propertiesItemChanged)
 		self._prop.verticalHeader().hide()
 		self._prop.setColumnWidth(1, 180)
+		self._prop.setMaximumWidth(300)
 		lv = QVBoxLayout()
 		lv.addWidget(self._prop)
 		self._tree = QTreeWidget()
 		self._tree.itemClicked.connect(self.treeItemClicked)
+		self._tree.setMaximumWidth(300)
 		lv.addWidget(self._tree)
 		layout.addLayout(lv)
 		self._pages = []

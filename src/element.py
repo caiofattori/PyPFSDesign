@@ -380,13 +380,15 @@ class PFSOpenActivity(PFSActive):
 			x = PFSUndoPropertyText(prop, self.resizeHeight)
 			self.scene()._page._net.undoStack.push(x)
 
-	def moveX(self, txt):
-		self._x = float(txt)
-		self.scene().update()
+	def moveX(self, txt, update=True):
+		self._x = self._x + float(txt)
+		if update:
+			self.scene().update()
 
-	def moveY(self, txt):
-		self._y = float(txt)
-		self.scene().update()
+	def moveY(self, txt, update=True):
+		self._y = self._y + float(txt)
+		if update:
+			self.scene().update()
 
 	def resizeHeight(self, txt):
 		self._height = float(txt)
@@ -510,13 +512,15 @@ class PFSCloseActivity(PFSActive):
 			x = PFSUndoPropertyText(prop, self.resizeHeight)
 			self.scene()._page._net.undoStack.push(x)
 
-	def moveX(self, txt):
-		self._x = float(txt)
-		self.scene().update()
+	def moveX(self, txt, update=True):
+		self._x = self._x + float(txt)
+		if update:
+			self.scene().update()
 
-	def moveY(self, txt):
-		self._y = float(txt)
-		self.scene().update()
+	def moveY(self, txt, update=True):
+		self._y = self._y + float(txt)
+		if update:
+			self.scene().update()
 
 	def resizeHeight(self, txt):
 		self._height = float(txt)
@@ -687,6 +691,20 @@ class PFSRelation(PFSElement):
 		self._pen = QPen(Qt.black)
 		self._obj = PFSGraphItems()
 		self.penEdited = self._obj.penEdited
+	
+	def moveX(self, txt, update=True):
+		value = float(txt)
+		for point in self._midPoints:
+			point.setX(point.x() + value)
+		if update:
+			self.scene().update()
+			
+	def moveY(self, txt, update=True):
+		value = float(txt)
+		for point in self._midPoints:
+			point.setY(point.y() + value)
+		if update:
+			self.scene().update()	
 	
 	def simpleTree(self, parent):
 		return QTreeWidgetItem(parent, ["Relação " + self._id], 0)

@@ -233,13 +233,15 @@ class PFSNode(PFSElement):
 			x = PFSUndoPropertyButton(color, self._brush.color(), self.setBrushColor)
 			self.scene()._page._net.undoStack.push(x)
 	
-	def moveX(self, txt):
-		self._x = float(txt)
-		self.scene().update()
+	def moveX(self, txt, update=True):
+		self._x = self._x + float(txt)
+		if update:
+			self.scene().update()
 	
-	def moveY(self, txt):
-		self._y = float(txt)
-		self.scene().update()	
+	def moveY(self, txt, update=True):
+		self._y = self._y + float(txt)
+		if update:
+			self.scene().update()	
 	
 	def resizeWidth(self, txt):
 		self._width = float(txt)
