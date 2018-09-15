@@ -79,13 +79,9 @@ class PFSBasicElement(object):
 		self._tags = []
 		
 	def addTag(self, name, use=""):
-		print("x1")
 		tag = PFSTags(name, use)
-		print("x2")
 		tag.removed.connect(self.deleteTag)
-		print("x3")
 		self._tags.append(tag)
-		print("x4")
 	
 	def createTag(self, net):
 		name, use, ans = PFSDialogTag.getTag()

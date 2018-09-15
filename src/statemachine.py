@@ -171,4 +171,4 @@ class PFSStateMachine(QStateMachine):
 		self.trans5 = self.tiping.addTransition(scene.inserted, self.normal)
 		self.trans6 = self.normal.addTransition(scene.edited, self.tiping)
 		self.trans7 = self.insRelationT.addTransition(scene.shiftInserted, self.insRelationS)
-		self.trans7 = self.pasting.addTransition(scene.inserted, self.normal)
+		self.trans8 = self.pasting.addTransition(scene.inserted, self.normal)

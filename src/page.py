@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
 from generic import PFSNode, PFSBasicElement
-from element import PFSActivity, PFSActivityContent, PFSDistributor, PFSDistributorContent, PFSRelation, PFSOpenActivity, PFSCloseActivity
+from element import PFSActivity, PFSDistributor,  PFSRelation, PFSOpenActivity, PFSCloseActivity
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from undo import *
@@ -13,7 +13,7 @@ from table import PFSTableLabel, PFSTableValueText, PFSTableNormal, PFSTableValu
 from image import PFSImage, PFSPageIcon
 from generic import PFSActive, PFSPassive
 from tree import PFSTreeItem
-from contents import PFSPageContent
+from contents import *
 
 class PFSPage(PFSBasicElement, QWidget):
 	clicked = pyqtSignal()
@@ -558,16 +558,27 @@ class PFSNet(QWidget):
 	
 	def pasteItems(self, pos):
 		ans = []
+		aux = {}
 		for elem in self._pasteList:
-			if isinstance(elem, PFSRelation):
+			if isinstance(elem, PFSRelationContent):
 				continue
+			oldId = elem._id
 			id = self.requestId(elem)
 			if isinstance(elem, PFSActivityContent):
 				e = PFSActivity.paste(elem, id, pos.x(), pos.y())
 				ans.append(e)
+				aux[oldId] = e
 			elif isinstance(elem, PFSDistributorContent):
 				e = PFSDistributor.paste(elem, id, pos.x(), pos.y())
 				ans.append(e)
+				aux[oldId] = e
+		for elem in self._pasteList:
+			if not isinstance(elem, PFSRelationContent):
+				continue
+			oldId = elem._id
+			id = self.requestId(elem)
+			e = PFSRelation.paste(elem, id, pos.x(), pos.y(), aux)
+			ans.append(e)
 		x = PFSUndoAdd(ans, self._tab.currentWidget()._scene)
 		self.undoStack.push(x)
 		

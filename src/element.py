@@ -1,7 +1,7 @@
 from generic import *
 from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
-from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject
+from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject, QPointF
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor, QIcon
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog, QTreeWidgetItem
 import math
@@ -26,6 +26,7 @@ class PFSActivity(PFSActive):
 		
 	def copy(self, x, y):
 		ans = PFSActivityContent()
+		ans._id = self._id
 		ans._x = self._x - x
 		ans._y = self._y - y
 		ans._text = self._text
@@ -35,6 +36,7 @@ class PFSActivity(PFSActive):
 		ans._fontMetrics = self._fontMetrics
 		ans._pen = self._pen
 		ans._brush = self._brush
+		ans._tags = self._tags
 		return ans
 	
 	def paste(content, id, dx, dy):
@@ -45,6 +47,8 @@ class PFSActivity(PFSActive):
 		ans._fontMetrics = content._fontMetrics
 		ans._pen = content._pen
 		ans._brush = content._brush
+		for tag in content._tags:
+			ans.addTag(tag._name, tag._use, False)
 		return ans
 	
 	def tree(self, parent):
@@ -530,12 +534,14 @@ class PFSDistributor(PFSPassive):
 		
 	def copy(self, x, y):
 		ans = PFSDistributorContent()
+		ans._id = self._id
 		ans._x = self._x - x
 		ans._y = self._y - y
 		ans._width = self._width
 		ans._height = self._height
 		ans._pen = self._pen
 		ans._brush = self._brush
+		ans._tags = self._tags
 		return ans
 	
 	def paste(content, id, dx, dy):
@@ -544,6 +550,8 @@ class PFSDistributor(PFSPassive):
 		ans._height = content._height
 		ans._pen = content._pen
 		ans._brush = content._brush
+		for tag in content._tags:
+			ans.addTag(tag._name, tag._use, False)
 		return ans	
 		
 	def tree(self, parent):
@@ -692,6 +700,27 @@ class PFSRelation(PFSElement):
 	
 	def hasSubPage(self):
 		return False
+	
+	def copy(self, x, y):
+		ans = PFSRelationContent()
+		ans._id = self._id
+		ans._midPoints = []
+		for point in ans._midPoints:
+			ans._midPoints.append(QPoint(point.x()-x, point.y()-y))
+		ans._pen = self._pen
+		ans._tags = self._tags
+		ans._source = self._source._id
+		ans._target = self._target._id
+		return ans
+	
+	def paste(content, id, dx, dy, itemList):
+		ans = PFSRelation(id, itemList[content._source], itemList[content._target])
+		ans._pen = content._pen
+		for tag in content._tags:
+			ans.addTag(tag._name, tag._use, False)
+		for point in content._midPoints:
+			ans._midPoints.append(QPoint(point.x()+dx, point.y()+dy))
+		return ans
 	
 	def createRelation(id: str, source: PFSNode, target: PFSNode):
 		if isinstance(source, PFSActive):
