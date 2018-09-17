@@ -107,11 +107,11 @@ class PFSActivity(PFSActive):
 		childs = node.childNodes()
 		graphics = None
 		text = None
-		if node.attributes().contains("inputnum")):
+		if node.attributes().contains("inputnum"):
 			inputNum =  node.attributes().namedItem("inputnum").nodeValue()
 		else:
 			inputNum = 1
-		if node.attributes().contains("outputnum")):
+		if node.attributes().contains("outputnum"):
 			outputNum =  node.attributes().namedItem("outputnum").nodeValue()
 		else:
 			outputNum = 1
@@ -183,6 +183,12 @@ class PFSActivity(PFSActive):
 			self.scene().update()
 			self.changed.emit()
 			
+	def setInputNum(self, text: str):
+		self._inputNum = int(text)
+		if self.scene() is not None:
+			self.scene().update()
+			self.changed.emit()
+			
 	def setFont(self, font: QFont):
 		self._textFont = font
 		self._fontMetrics = QFontMetrics(font)
@@ -213,6 +219,28 @@ class PFSActivity(PFSActive):
 			y = self._y
 		elif p.y() > self._y + self._height:
 			y = self._y + self._height
+		return QPoint(x, y)
+		
+	def getBestRelationPointInput(self, p: QPoint, i: int) -> QPoint:
+		x = self._x
+		h = (self._height - (self._inputNum - 1)*self._space)/self._inputNum
+		y0 = self._y + (self._space + h)*i
+		y = p.y()
+		if y < y0:
+			y = y0
+		elif y > y0 + h:
+			y = y0 + h
+		return QPoint(x, y)
+		
+	def getBestRelationPointOutput(self, p: QPoint, i: int) -> QPoint:
+		x = self._x + self._width
+		h = (self._height - (self._outputNum - 1)*self._space)/self._outputNum
+		y0 = self._y + (self._space + h)*i
+		y = p.y()
+		if y < y0:
+			y = y0
+		elif y > y0 + h:
+			y = y0 + h
 		return QPoint(x, y)
 	
 	def propertiesTable(self):
@@ -266,6 +294,10 @@ class PFSActivity(PFSActive):
 		lblValue = PFSTableValueButton(self._brush.color().name())
 		lblValue.clicked.connect(self.changeFillColor)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Entradas")
+		lblValue = PFSTableValueText(str(self._inputNum))
+		lblValue.edited.connect(self.changeInputNum)
+		ans.append([lblType, lblValue])
 		lblType = PFSTableLabelTags("Tags")
 		lblValue = PFSTableValueBox(self._tags, self.createTag)
 		ans.append([lblType, lblValue])
@@ -274,7 +306,11 @@ class PFSActivity(PFSActive):
 	def changeText(self, prop):
 		x = PFSUndoPropertyText(prop, self.setText)
 		self.scene()._page._net.undoStack.push(x)
-		
+	
+	def changeInputNum(self, prop):
+		x = PFSUndoPropertyText(prop, self.setInputNum)
+		self.scene()._page._net.undoStack.push(x)
+	
 	def changeFont(self):
 		font, ans = QFontDialog.getFont(self._textFont, self.scene()._page._net, "Escolha a fonte do texto")
 		if ans:
