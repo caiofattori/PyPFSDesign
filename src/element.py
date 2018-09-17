@@ -40,6 +40,8 @@ class PFSActivity(PFSActive):
 		ans._pen = self._pen
 		ans._brush = self._brush
 		ans._tags = self._tags
+		ans._inputNum = self._inputNum
+		ans._outputNum = self._outputNum
 		return ans
 	
 	def paste(content, id, dx, dy):
@@ -50,6 +52,8 @@ class PFSActivity(PFSActive):
 		ans._fontMetrics = content._fontMetrics
 		ans._pen = content._pen
 		ans._brush = content._brush
+		ans._inputNum = content._inputNum
+		ans._outputNum = content._outputNum
 		for tag in content._tags:
 			ans.addTag(tag._name, tag._use, False)
 		return ans
@@ -103,6 +107,14 @@ class PFSActivity(PFSActive):
 		childs = node.childNodes()
 		graphics = None
 		text = None
+		if node.attributes().contains("inputnum")):
+			inputNum =  node.attributes().namedItem("inputnum").nodeValue()
+		else:
+			inputNum = 1
+		if node.attributes().contains("outputnum")):
+			outputNum =  node.attributes().namedItem("outputnum").nodeValue()
+		else:
+			outputNum = 1
 		tags = []
 		for i in range(childs.count()):
 			child = childs.at(i)
@@ -128,6 +140,8 @@ class PFSActivity(PFSActive):
 			if graphics.brush is not None:
 				ac._brush = graphics.brush
 			ac._tags = tags
+			ac._inputNum = inputNum
+			ac._outputNum = outputNum
 			return ac
 		return None
 		

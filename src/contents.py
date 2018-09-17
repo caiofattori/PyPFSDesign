@@ -12,6 +12,8 @@ class PFSActivityContent(object):
 		self._pen = None
 		self._brush = None
 		self._tags = None
+		self._outputNum = None
+		self._inputNum = None
 
 class PFSOpenActivityContent(object):
 	def __init__(self):
