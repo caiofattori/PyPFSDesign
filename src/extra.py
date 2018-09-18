@@ -25,6 +25,7 @@ class PFSTextBox(QGraphicsProxyWidget):
 			self._shift = True
 		if (ev.key() == Qt.Key_Enter or ev.key() == Qt.Key_Return) and self._shift:
 			x = PFSUndoSetText(self._activity, self._item.toPlainText(), self.scene())
+			x.setText("Mover")
 			self.scene()._net.undoStack.push(x)
 			self._activity.setSelected(False)
 			self._scene.inserted.emit()

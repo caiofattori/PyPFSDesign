@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog, QMessageBox, QMenu
 from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir, pyqtSignal, QTimer, QRect
 from PyQt5.QtXml import QDomDocument
 from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton
@@ -39,7 +39,17 @@ class PFSWindow(QWidget):
 		self.updateUndoRedoAction()
 		if net._filepath is not None:
 			self._lastPath = net._filepath
-			
+	
+	def prepareCloseTab(self, index: int):
+		if not self._tab.widget(index).undoStack.isClean():
+			ans = QMessageBox.question(self, "Arquivo não salvo...", "Deseja salvar o arquivo antes de fechá-lo?", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+			if ans == QMessageBox.Cancel:
+				return False
+			if ans == QMessageBox.Save:
+				if not self.saveNet():
+					return False
+		return True
+	
 	def closeTab(self, index: int):
 		self._tab.setCurrentIndex(index)
 		if not self._tab.widget(index).undoStack.isClean():
@@ -105,7 +115,7 @@ class PFSWindow(QWidget):
 		if net._filename is None:
 			filename, filter = QFileDialog.getSaveFileName(self, "Salvar arquivo...", self._lastPath, "XML files (*.xml *.pnml)")
 			if filename is None or not filename:
-				return
+				return False
 			if not (filename.endswith(".xml") or filename.endswith(".pnml")):
 				filename = filename + ".xml"
 			f = QFileInfo(filename)
@@ -114,6 +124,7 @@ class PFSWindow(QWidget):
 		self.saveFile(net, net._filepath, net._filename)
 		net.undoStack.setClean()
 		self._lastPath = net._filepath
+		return True
 		
 	def openNet(self):
 		filename, filter = QFileDialog.getOpenFileName(self, "Abrir arquivo...", self._lastPath, "XML files (*.xml *.pnml)")
@@ -148,8 +159,16 @@ class PFSWindow(QWidget):
 	
 	def updateUndoRedoAction(self):
 		self._main.undoToolBar.clear()
+		self._main.editMenu.clear()
 		self._main.undoToolBar.addAction(self._tab.currentWidget().undoAction)
 		self._main.undoToolBar.addAction(self._tab.currentWidget().redoAction)
+		self._main.editMenu.addAction(self._tab.currentWidget().undoAction)
+		self._main.editMenu.addAction(self._tab.currentWidget().redoAction)
+		self._main.editMenu.addSeparator()
+		self._main.editMenu.addAction(self._main.actCopy)
+		self._main.editMenu.addAction(self._main.actPaste)
+		self._main.editMenu.addAction(self._main.actDelete)
+		
 	
 	def changeCurrentTabName(self, value):
 		self._tab.setTabText(self._tab.currentIndex(), self._tab.currentWidget().getTabName())
@@ -189,6 +208,12 @@ class PFSWindow(QWidget):
 		if len(self._bufferElements) > 0:
 			self._tab.currentWidget().pasteElements(self._bufferElements)
 			self._main.paste.emit()
+	
+	def quit(self):
+		for i in range(self._tab.count()):
+			if not self.prepareCloseTab(i):
+				return False
+		return True
 		
 class PFSMain(QMainWindow):
 	tabChanged = pyqtSignal()
@@ -196,53 +221,69 @@ class PFSMain(QMainWindow):
 	def __init__(self):
 		super(QMainWindow, self).__init__()
 		icoNew = QIcon.fromTheme("document-new", QIcon("../icons/document-new.svg"))
-		actNew = QAction(icoNew, "New Model", self)
+		actNew = QAction(icoNew, "Novo", self)
 		actNew.setShortcuts(QKeySequence.New)
 		actNew.setStatusTip("Cria um novo arquivo de modelo")
 		icoOpen = QIcon.fromTheme("document-open", QIcon("../icons/document-open.svg"))
-		actOpen = QAction(icoOpen, "Open Model", self)
+		actOpen = QAction(icoOpen, "Abrir", self)
 		actOpen.setShortcuts(QKeySequence.Open)
 		actOpen.setStatusTip("Abre um arquivo com modelo")
 		icoSave = QIcon.fromTheme("document-save", QIcon("../icons/document-save.svg"))
-		actSave = QAction(icoSave, "Save Model", self)
+		actSave = QAction(icoSave, "Salvar", self)
 		actSave.setShortcuts(QKeySequence.Save)
 		actSave.setStatusTip("Salva o modelo em um arquivo")
 		self.actSave = actSave
 		icoSaveAs = QIcon.fromTheme("document-save-as", QIcon("../icons/document-save-as.svg"))
-		actSaveAs = QAction(icoSaveAs, "Save As Model", self)
+		actSaveAs = QAction(icoSaveAs, "Salvar Como", self)
 		actSaveAs.setShortcuts(QKeySequence.SaveAs)
 		actSaveAs.setStatusTip("Salva como o modelo em um arquivo")
 		self.actSaveAs = actSaveAs
 		icoExport = QIcon.fromTheme("insert-image", QIcon("../icons/document-export.svg"))
-		actExport = QAction(icoExport, "Export Model", self)
+		actExport = QAction(icoExport, "Exportar", self)
 		actExport.setShortcuts(QKeySequence.Print)
 		actExport.setStatusTip("Exporta o modelo como figura")
 		self.actExport = actExport
+		icoQuit = QIcon.fromTheme("exit", QIcon("../icons/exit.svg"))
+		actQuit = QAction(icoQuit, "Sair", self)
+		actQuit.setShortcuts(QKeySequence.Quit)
+		actQuit.setStatusTip("Sair do programa")
+		self.actQuit = actQuit		
 		toolBar = self.addToolBar("Basic")
 		toolBar.addAction(actNew)
 		toolBar.addAction(actOpen)
 		toolBar.addAction(actSave)
 		toolBar.addAction(actSaveAs)
 		toolBar.addAction(actExport)
+		fileMenu = self.menuBar().addMenu("Arquivo")
+		fileMenu.addAction(actNew)
+		fileMenu.addAction(actOpen)
+		fileMenu.addAction(actSave)
+		fileMenu.addAction(actSaveAs)
+		fileMenu.addSeparator()
+		fileMenu.addAction(actExport)
+		fileMenu.addSeparator()
+		fileMenu.addAction(actQuit)
+		editMenu = self.menuBar().addMenu("Editar")
+		self.editSeparator = editMenu.addSeparator()
 		toolBar = self.addToolBar("Edit")
 		icoCopy = QIcon.fromTheme("edit-copy", QIcon("../icons/edit-copy.svg"))
-		actCopy = QAction(icoCopy, "Copy Elements", self)
+		actCopy = QAction(icoCopy, "Copia Elementos", self)
 		actCopy.setShortcuts(QKeySequence.Copy)
 		actCopy.setStatusTip("Copia elementos do modelo")
 		self.actCopy = actCopy
 		toolBar.addAction(actCopy)
 		icoPaste = QIcon.fromTheme("edit-paste", QIcon("../icons/edit-paste.svg"))
-		actPaste = QAction(icoPaste, "Paste Elements", self)
+		actPaste = QAction(icoPaste, "Cola Elementos", self)
 		actPaste.setShortcuts(QKeySequence.Paste)
 		actPaste.setStatusTip("Cola elementos do modelo")
 		self.actPaste = actPaste
 		toolBar.addAction(actPaste)
 		icoDelete = QIcon.fromTheme("edit-delete", QIcon("../icons/edit-delete.svg"))
-		actDelete = QAction(icoDelete, "Delete Element", self)
+		actDelete = QAction(icoDelete, "Apaga Elementos", self)
 		actDelete.setShortcuts(QKeySequence.Delete)
 		actDelete.setStatusTip("Remove os elementos do modelo atual")
 		toolBar.addAction(actDelete)
-		self.actDelete = actDelete		
+		self.actDelete = actDelete
 		toolBar = self.addToolBar("Elements")
 		self.btnActivity = PFSActivityButton()
 		ac = toolBar.addWidget(self.btnActivity)
@@ -254,6 +295,10 @@ class PFSMain(QMainWindow):
 		ac = toolBar.addWidget(self.btnRelation)
 		ac.setVisible(True)
 		self.undoToolBar = self.addToolBar("Undo-Redo")
+		editMenu.addAction(actCopy)
+		editMenu.addAction(actPaste)
+		editMenu.addAction(actDelete)
+		self.editMenu = editMenu
 		self.wind = PFSWindow(self)
 		self.wind.empty.connect(self.disableButtons)
 		self.wind.nonempty.connect(self.enableButtons)
@@ -262,6 +307,7 @@ class PFSMain(QMainWindow):
 		actSave.triggered.connect(self.wind.saveNet)
 		actSaveAs.triggered.connect(self.wind.saveAsNet)
 		actExport.triggered.connect(self.wind.exportNet)
+		actQuit.triggered.connect(self.quit)
 		actDelete.triggered.connect(self.wind.deleteElements)
 		actCopy.triggered.connect(self.wind.copyElements)
 		actPaste.triggered.connect(self.wind.pasteElements)
@@ -275,7 +321,10 @@ class PFSMain(QMainWindow):
 	def disableEdits(self):
 		self.actCopy.setEnabled(False)
 		self.actDelete.setEnabled(False)
-		
+	
+	def quit(self):
+		if self.wind.quit():
+			self.close()
 	
 	def disableButtons(self):
 		self.btnActivity.setEnabled(False)

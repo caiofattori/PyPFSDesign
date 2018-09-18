@@ -320,30 +320,36 @@ class PFSActivity(PFSActive):
 	
 	def changeText(self, prop):
 		x = PFSUndoPropertyText(prop, self.setText)
+		x.setText("Alterar texto")
 		self.scene()._page._net.undoStack.push(x)
 	
 	def changeInputNum(self, prop):
 		x = PFSUndoPropertyText(prop, self.setInputNum)
+		x.setText("Alterar entradas")
 		self.scene()._page._net.undoStack.push(x)
 		
 	def changeOutputNum(self, prop):
 		x = PFSUndoPropertyText(prop, self.setOutputNum)
+		x.setText("Alterar saídas")
 		self.scene()._page._net.undoStack.push(x)	
 	
 	def changeFont(self):
 		font, ans = QFontDialog.getFont(self._textFont, self.scene()._page._net, "Escolha a fonte do texto")
 		if ans:
 			x = PFSUndoPropertyButton(font, self._textFont, self.setFont)
+			x.setText("Alterar fonte")
 			self.scene()._page._net.undoStack.push(x)
 	
 	def changeElementWidth(self, prop):
 		if float(prop.text()) > self._minWidth:
 			x = PFSUndoPropertyText(prop, self.resizeWidth)
+			x.setText("Alterar largura")
 			self.scene()._page._net.undoStack.push(x)
 
 	def changeElementHeight(self, prop):
 		if float(prop.text()) > self._minHeight:
 			x = PFSUndoPropertyText(prop, self.resizeHeight)
+			x.setText("Alterar altura")
 			self.scene()._page._net.undoStack.push(x)	
 	
 class PFSOpenActivity(PFSActive):
@@ -475,15 +481,18 @@ class PFSOpenActivity(PFSActive):
 	
 	def changeElementPosX(self, prop):
 		x = PFSUndoPropertyText(prop, self.moveX)
+		x.setText("Mover")
 		self.scene()._page._net.undoStack.push(x)
 
 	def changeElementPosY(self, prop):
 		x = PFSUndoPropertyText(prop, self.moveY)
+		x.setText("Mover")
 		self.scene()._page._net.undoStack.push(x)
 
 	def changeElementHeight(self, prop):
 		if float(prop.text()) > self._minHeight:
 			x = PFSUndoPropertyText(prop, self.resizeHeight)
+			x.setText("Alterar altura")
 			self.scene()._page._net.undoStack.push(x)
 
 	def moveX(self, txt, update=True):
@@ -629,15 +638,18 @@ class PFSCloseActivity(PFSActive):
 	
 	def changeElementPosX(self, prop):
 		x = PFSUndoPropertyText(prop, self.moveX)
+		x.setText("Mover")
 		self.scene()._page._net.undoStack.push(x)
 
 	def changeElementPosY(self, prop):
 		x = PFSUndoPropertyText(prop, self.moveY)
+		x.setText("Mover")
 		self.scene()._page._net.undoStack.push(x)
 
 	def changeElementHeight(self, prop):
 		if float(prop.text()) > self._minHeight:
 			x = PFSUndoPropertyText(prop, self.resizeHeight)
+			x.setText("Alterar altura")
 			self.scene()._page._net.undoStack.push(x)
 
 	def moveX(self, txt, update=True):
@@ -1112,20 +1124,24 @@ class PFSRelation(PFSElement):
 		color = QColorDialog.getColor(self._pen.color(), self.scene()._page._net, "Escolha a cor do contorno")
 		if color.isValid() and color != self._pen.color():
 			x = PFSUndoPropertyButton(color, self._pen.color(), self.setPenColor)
+			x.setText("Alterar cor")
 			self.scene()._page._net.undoStack.push(x)
 			
 	def changeLineStyle(self, text):
 		if text in self.PEN_LIST:
 			x = PFSUndoPropertyCombo(self.PEN_LIST[text], self._pen.style(), self.setPenStyle)
+			x.setText("Alterar linha")
 			self.scene()._page._net.undoStack.push(x)
 	
 	def changeLineWidth(self, prop):
 		x = PFSUndoPropertyText(prop, self.setPenWidth)
+		x.setText("Alterar espessura")
 		self.scene()._page._net.undoStack.push(x)
 		
 	def changeSourceNum(self, text):
 		try:
 			x = PFSUndoPropertyCombo(str(int(text)-1), str(self._sourceNum), self.setSourceNum)
+			x.setText("Alterar porta entrada")
 			self.scene()._page._net.undoStack.push(x)
 		except:
 			pass
@@ -1133,6 +1149,7 @@ class PFSRelation(PFSElement):
 	def changeTargetNum(self, text):
 		try:
 			x = PFSUndoPropertyCombo(str(int(text)-1), str(self._targetNum), self.setTargetNum)
+			x.setText("Alterar porta saída")
 			self.scene()._page._net.undoStack.push(x)
 		except:
 			pass
