@@ -12,6 +12,8 @@ class PFSActivityContent(object):
 		self._pen = None
 		self._brush = None
 		self._tags = None
+		self._outputNum = None
+		self._inputNum = None
 
 class PFSOpenActivityContent(object):
 	def __init__(self):
@@ -58,7 +60,9 @@ class PFSRelationContent(object):
 	def __init__(self):
 		self._id = None
 		self._source = None
+		self._sourceNum = None
 		self._target = None
+		self._targetNum = None
 		self._midPoints = None
 		self._pen = None
 		self._tags = None

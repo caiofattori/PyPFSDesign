@@ -212,7 +212,7 @@ class PFSMain(QMainWindow):
 		actSaveAs = QAction(icoSaveAs, "Save As Model", self)
 		actSaveAs.setShortcuts(QKeySequence.SaveAs)
 		actSaveAs.setStatusTip("Salva como o modelo em um arquivo")
-		self.actSaveAs = actSaveAs		
+		self.actSaveAs = actSaveAs
 		icoExport = QIcon.fromTheme("insert-image", QIcon("../icons/document-export.svg"))
 		actExport = QAction(icoExport, "Export Model", self)
 		actExport.setShortcuts(QKeySequence.Print)
