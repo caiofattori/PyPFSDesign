@@ -235,6 +235,8 @@ class PFSPage(PFSBasicElement, QWidget):
 			it._fontMetrics = item._fontMetrics
 			it._height = item._height
 			it._width = item._width
+			it._inputNum = item._inputNum
+			it._outputNum = item._outputNum
 			for tag in item._tags:
 				it.addTag(tag._name, tag._use, False)
 			items[item._id] = it
@@ -252,6 +254,8 @@ class PFSPage(PFSBasicElement, QWidget):
 			target = items[item._target]
 			if (isinstance(source, PFSActive) and isinstance(target, PFSPassive)) or (isinstance(source, PFSPassive) and isinstance(target, PFSActive)):
 				it = PFSRelation(item._id, source, target)
+				it._sourceNum = item._sourceNum
+				it._targetNum = item._targetNum
 				it._midPoints = item._midPoints
 				it._pen = item._pen
 				for tag in item._tags:

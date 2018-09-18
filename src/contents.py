@@ -60,7 +60,9 @@ class PFSRelationContent(object):
 	def __init__(self):
 		self._id = None
 		self._source = None
+		self._sourceNum = None
 		self._target = None
+		self._targetNum = None
 		self._midPoints = None
 		self._pen = None
 		self._tags = None

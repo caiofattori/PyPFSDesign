@@ -24,8 +24,14 @@ class PFSActivity(PFSActive):
 		self._width = self._minWidth
 		self._height = self._minHeight
 		self._inputNum = 1
-		self._outputNum = 2
+		self._outputNum = 1
 		self._space = 5
+		
+	def inputNum(self):
+		return self._inputNum
+	
+	def outputNum(self):
+		return self._outputNum
 		
 	def copy(self, x, y):
 		ans = PFSActivityContent()
@@ -89,12 +95,11 @@ class PFSActivity(PFSActive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("activity")
 		xml.writeAttribute("id", self._id)
-		xml.writeAttribute("inputNum", self._inputNum)
-		xml.writeAttribute("outputNum", self._outputNum)
+		xml.writeAttribute("inputnum", str(self._inputNum))
+		xml.writeAttribute("outputnum", str(self._outputNum))
 		PFSXmlBase.graphicsNode(xml, QRectF(self._x, self._y, self._width, self._height), self._pen, self._brush)
 		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text", align="center")
 		PFSBasicElement.generateXml(self, xml)
-		#xml.writeEndElement()
 		xml.writeEndElement() #fecha activity
 		PFSXmlBase.close(xml)
 	
@@ -108,11 +113,11 @@ class PFSActivity(PFSActive):
 		graphics = None
 		text = None
 		if node.attributes().contains("inputnum"):
-			inputNum =  node.attributes().namedItem("inputnum").nodeValue()
+			inputNum =  int(node.attributes().namedItem("inputnum").nodeValue())
 		else:
 			inputNum = 1
 		if node.attributes().contains("outputnum"):
-			outputNum =  node.attributes().namedItem("outputnum").nodeValue()
+			outputNum =  int(node.attributes().namedItem("outputnum").nodeValue())
 		else:
 			outputNum = 1
 		tags = []
@@ -188,6 +193,12 @@ class PFSActivity(PFSActive):
 		if self.scene() is not None:
 			self.scene().update()
 			self.changed.emit()
+	
+	def setOutputNum(self, text: str):
+		self._outputNum = int(text)
+		if self.scene() is not None:
+			self.scene().update()
+			self.changed.emit()	
 			
 	def setFont(self, font: QFont):
 		self._textFont = font
@@ -298,6 +309,10 @@ class PFSActivity(PFSActive):
 		lblValue = PFSTableValueText(str(self._inputNum))
 		lblValue.edited.connect(self.changeInputNum)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Saídas")
+		lblValue = PFSTableValueText(str(self._outputNum))
+		lblValue.edited.connect(self.changeOutputNum)
+		ans.append([lblType, lblValue])		
 		lblType = PFSTableLabelTags("Tags")
 		lblValue = PFSTableValueBox(self._tags, self.createTag)
 		ans.append([lblType, lblValue])
@@ -310,6 +325,10 @@ class PFSActivity(PFSActive):
 	def changeInputNum(self, prop):
 		x = PFSUndoPropertyText(prop, self.setInputNum)
 		self.scene()._page._net.undoStack.push(x)
+		
+	def changeOutputNum(self, prop):
+		x = PFSUndoPropertyText(prop, self.setOutputNum)
+		self.scene()._page._net.undoStack.push(x)	
 	
 	def changeFont(self):
 		font, ans = QFontDialog.getFont(self._textFont, self.scene()._page._net, "Escolha a fonte do texto")
@@ -333,6 +352,12 @@ class PFSOpenActivity(PFSActive):
 		self._h = h
 		self._space = 5
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
+	
+	def inputNum(self):
+		return self.scene()._page._subRef.inputNum()
+	
+	def outputNum(self):
+		return self.scene()._page._subRef.outputNum()
 	
 	def canDelete(self):
 		return False
@@ -384,13 +409,22 @@ class PFSOpenActivity(PFSActive):
 			return oa
 		return None	
 	
-	def getBestRelationPoint(self, p: QPoint) -> QPoint:
+	def getBestRelationPoint(self, p: QPoint, i: int) -> QPoint:
+		ref = self.scene()._page._subRef
+		h = (self._h - (ref._inputNum - 1)*self._space)/ref._inputNum
+		y0 = self._y + (self._space + h)*i
 		y = p.y()
-		if p.y() < self._y + 5:
-			y = self._y + 5
-		elif p.y() > self._y + self._h - 5:
-			y = self._y + self._h - 5
+		if y < y0:
+			y = y0
+		elif y > y0 + h:
+			y = y0 + h		
 		return QPoint(self._x, y)
+	
+	def getBestRelationPointInput(self, p: QPoint, i: int) -> QPoint:
+		return self.getBestRelationPoint(p, i)
+	
+	def getBestRelationPointOutput(self, p: QPoint, i: int) -> QPoint:
+		return self.getBestRelationPoint(p, i)	
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		ref = self.scene()._page._subRef
@@ -402,7 +436,6 @@ class PFSOpenActivity(PFSActive):
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
 		h = (self._h -self._space*(ref._inputNum-1))/ref._inputNum
-		p.save()
 		p.translate(self._x, self._y)
 		for i in range(ref._inputNum):
 			p.drawLine(0, 0, 6, 0)
@@ -472,6 +505,12 @@ class PFSCloseActivity(PFSActive):
 		self._space = 5
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
+	def inputNum(self):
+		return self.scene()._page._subRef.inputNum()
+	
+	def outputNum(self):
+		return self.scene()._page._subRef.outputNum()
+	
 	def canDelete(self):
 		return False
 	
@@ -522,13 +561,22 @@ class PFSCloseActivity(PFSActive):
 			return ca
 		return None	
 	
-	def getBestRelationPoint(self, p: QPoint) -> QPoint:
+	def getBestRelationPoint(self, p: QPoint, i: int) -> QPoint:
+		ref = self.scene()._page._subRef
+		h = (self._h - (ref._outputNum - 1)*self._space)/ref._outputNum
+		y0 = self._y + (self._space + h)*i
 		y = p.y()
-		if p.y() < self._y + 5:
-			y = self._y + 5
-		elif p.y() > self._y + self._h - 5:
-			y = self._h - 5
+		if y < y0:
+			y = y0
+		elif y > y0 + h:
+			y = y0 + h		
 		return QPoint(self._x, y)
+	
+	def getBestRelationPointInput(self, p: QPoint, i: int) -> QPoint:
+		return self.getBestRelationPoint(p, i)
+	
+	def getBestRelationPointOutput(self, p: QPoint, i: int) -> QPoint:
+		return self.getBestRelationPoint(p, i)	
 		
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		ref = self.scene()._page._subRef
@@ -540,7 +588,6 @@ class PFSCloseActivity(PFSActive):
 			else:
 				p.setPen(PFSElement.SELECTED_PEN)
 		h = (self._h -self._space*(ref._outputNum-1))/ref._outputNum
-		p.save()
 		p.translate(self._x, self._y)
 		for i in range(ref._outputNum):
 			p.drawLine(0, 0, -6, 0)
@@ -612,7 +659,13 @@ class PFSDistributor(PFSPassive):
 	
 	def hasSubPage(self):
 		return False
-		
+	
+	def inputNum(self):
+		return 1
+	
+	def outputNum(self):
+		return 1
+	
 	def copy(self, x, y):
 		ans = PFSDistributorContent()
 		ans._id = self._id
@@ -703,6 +756,12 @@ class PFSDistributor(PFSPassive):
 		ang = math.atan2(p.y()-y, p.x()-x)
 		return QPoint(math.cos(ang)*self._width/2 + x, math.sin(ang)*self._height/2 + y)
 	
+	def getBestRelationPointInput(self, p: QPoint, i: int) -> QPoint:
+		return self.getBestRelationPoint(p)
+	
+	def getBestRelationPointOutput(self, p: QPoint, i: int) -> QPoint:
+		return self.getBestRelationPoint(p)	
+	
 	def propertiesTable(self):
 		ans = []
 		lblType = PFSTableLabel("Elemento")
@@ -760,7 +819,9 @@ class PFSRelation(PFSElement):
 	def __init__(self, id: str, source: PFSNode, target: PFSNode):
 		PFSElement.__init__(self,id)
 		self._source = source
+		self._sourceNum = 0
 		self._target = target
+		self._targetNum = 0
 		self._midPoints = []
 		self._firstPoint = None
 		self._lastPoint = None
@@ -838,15 +899,15 @@ class PFSRelation(PFSElement):
 	
 	def updatePoints(self):
 		if len(self._midPoints) == 0:
-			if isinstance(self._source, PFSActivity):
-				self._firstPoint = self._source.getBestRelationPoint(QRect(self._target._x, self._target._y, self._target._width, self._target._height).center())
-				self._lastPoint = self._target.getBestRelationPoint(self._firstPoint)
+			if isinstance(self._source, PFSActive):
+				self._firstPoint = self._source.getBestRelationPointOutput(QRect(self._target._x, self._target._y, self._target._width, self._target._height).center(), self._sourceNum)
+				self._lastPoint = self._target.getBestRelationPointInput(self._firstPoint, self._targetNum)
 			else:
-				self._lastPoint = self._target.getBestRelationPoint(QRect(self._source._x, self._source._y, self._source._width, self._source._height).center())
-				self._firstPoint = self._source.getBestRelationPoint(self._lastPoint)
+				self._lastPoint = self._target.getBestRelationPointInput(QRect(self._source._x, self._source._y, self._source._width, self._source._height).center(), self._targetNum)
+				self._firstPoint = self._source.getBestRelationPointOutput(self._lastPoint, self._sourceNum)
 		else:
-			self._firstPoint = self._source.getBestRelationPoint(self._midPoints[0])
-			self._lastPoint = self._target.getBestRelationPoint(self._midPoints[-1])
+			self._firstPoint = self._source.getBestRelationPointOutput(self._midPoints[0], self._sourceNum)
+			self._lastPoint = self._target.getBestRelationPointInput(self._midPoints[-1], self._targetNum)
 	
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		p.setPen(self._pen)
@@ -892,7 +953,9 @@ class PFSRelation(PFSElement):
 		xml.writeStartElement("relation")
 		xml.writeAttribute("id", self._id)
 		xml.writeAttribute("source", self._source._id)
+		xml.writeAttribute("sourceport", str(self._sourceNum))
 		xml.writeAttribute("target", self._target._id)
+		xml.writeAttribute("targetport", str(self._targetNum))
 		PFSXmlBase.graphicsArc(xml, self._midPoints, self._pen)
 		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha distributor
@@ -914,6 +977,12 @@ class PFSRelation(PFSElement):
 			return None
 		source = attr.namedItem("source").nodeValue()
 		target = attr.namedItem("target").nodeValue()
+		sourceNum = 0
+		targetNum = 0
+		if attr.contains("sourceport"):
+			sourceNum = int(attr.namedItem("sourceport").nodeValue())
+		if attr.contains("targetport"):
+			targetNum = int(attr.namedItem("targetport").nodeValue())
 		graphics = None
 		tags = []
 		childs = node.childNodes()
@@ -926,7 +995,9 @@ class PFSRelation(PFSElement):
 		re = PFSRelationContent()
 		re._id = id
 		re._source = source
+		re._sourceNum = sourceNum
 		re._target = target
+		re._targetNum = targetNum
 		if graphics is not None and graphics.line is not None:
 			re._pen = graphics.line
 		if graphics is not None and graphics.pos is not None:
@@ -974,7 +1045,19 @@ class PFSRelation(PFSElement):
 		
 	def setPenWidth(self, width: str):
 		self._pen.setWidth(float(width))
-		self.scene().update()	
+		self.scene().update()
+		
+	def setSourceNum(self, text: str):
+		self._sourceNum = int(text)
+		if self.scene() is not None:
+			self.updatePoints()
+			self.scene().update()
+			
+	def setTargetNum(self, text: str):
+		self._targetNum = int(text)
+		if self.scene() is not None:
+			self.updatePoints()
+			self.scene().update()	
 	
 	def propertiesTable(self):
 		ans = []
@@ -999,6 +1082,14 @@ class PFSRelation(PFSElement):
 		lblValue = PFSTableValueText(str(self._pen.width()))
 		lblValue.edited.connect(self.changeLineWidth)
 		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Porta origem")
+		lblValue = PFSTableValueCombo({str(x+1):str(x) for x in range(self._source.outputNum())}, str(self._sourceNum))
+		lblValue.currentTextChanged.connect(self.changeSourceNum)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Porta destino")
+		lblValue = PFSTableValueCombo({str(x+1):str(x) for x in range(self._target.inputNum())}, str(self._targetNum))
+		lblValue.currentTextChanged.connect(self.changeTargetNum)
+		ans.append([lblType, lblValue])
 		lblType = PFSTableLabelTags("Tags")
 		lblValue = PFSTableValueBox(self._tags, self.createTag)
 		ans.append([lblType, lblValue])		
@@ -1017,4 +1108,18 @@ class PFSRelation(PFSElement):
 	
 	def changeLineWidth(self, prop):
 		x = PFSUndoPropertyText(prop, self.setPenWidth)
-		self.scene()._page._net.undoStack.push(x)	
+		self.scene()._page._net.undoStack.push(x)
+		
+	def changeSourceNum(self, text):
+		try:
+			x = PFSUndoPropertyCombo(str(int(text)-1), str(self._sourceNum), self.setSourceNum)
+			self.scene()._page._net.undoStack.push(x)
+		except:
+			pass
+		
+	def changeTargetNum(self, text):
+		try:
+			x = PFSUndoPropertyCombo(str(int(text)-1), str(self._targetNum), self.setTargetNum)
+			self.scene()._page._net.undoStack.push(x)
+		except:
+			pass
