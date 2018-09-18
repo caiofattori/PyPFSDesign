@@ -357,7 +357,7 @@ class PFSOpenActivity(PFSActive):
 		return self.scene()._page._subRef.inputNum()
 	
 	def outputNum(self):
-		return self.scene()._page._subRef.outputNum()
+		return self.scene()._page._subRef.inputNum()
 	
 	def canDelete(self):
 		return False
@@ -410,6 +410,8 @@ class PFSOpenActivity(PFSActive):
 		return None	
 	
 	def getBestRelationPoint(self, p: QPoint, i: int) -> QPoint:
+		if self.scene() is None:
+			return None
 		ref = self.scene()._page._subRef
 		h = (self._h - (ref._inputNum - 1)*self._space)/ref._inputNum
 		y0 = self._y + (self._space + h)*i
@@ -506,7 +508,7 @@ class PFSCloseActivity(PFSActive):
 		self.setFlag(QGraphicsItem.ItemIsSelectable)
 	
 	def inputNum(self):
-		return self.scene()._page._subRef.inputNum()
+		return self.scene()._page._subRef.outputNum()
 	
 	def outputNum(self):
 		return self.scene()._page._subRef.outputNum()
@@ -562,6 +564,8 @@ class PFSCloseActivity(PFSActive):
 		return None	
 	
 	def getBestRelationPoint(self, p: QPoint, i: int) -> QPoint:
+		if self.scene() is None:
+			return None
 		ref = self.scene()._page._subRef
 		h = (self._h - (ref._outputNum - 1)*self._space)/ref._outputNum
 		y0 = self._y + (self._space + h)*i
@@ -751,6 +755,8 @@ class PFSDistributor(PFSPassive):
 		return QRectF(self._x, self._y, self._width + 2, self._height + 2)
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
+		if p is None:
+			return None
 		x = self._x + self._width/2
 		y = self._y + self._height/2
 		ang = math.atan2(p.y()-y, p.x()-x)
@@ -867,15 +873,20 @@ class PFSRelation(PFSElement):
 		ans._tags = self._tags
 		ans._source = self._source._id
 		ans._target = self._target._id
+		ans._sourceNum = self._sourceNum
+		ans._targetNum = self._targetNum
 		return ans
 	
 	def paste(content, id, dx, dy, itemList):
-		ans = PFSRelation(id, itemList[content._source], itemList[content._target])
+		ans = PFSRelation.createRelation(id, itemList[content._source], itemList[content._target])
 		ans._pen = content._pen
+		ans._sourceNum = content._sourceNum
+		ans._targetNum = content._targetNum
 		for tag in content._tags:
 			ans.addTag(tag._name, tag._use, False)
 		for point in content._midPoints:
 			ans._midPoints.append(QPoint(point.x()+dx, point.y()+dy))
+		ans.updatePoints()
 		return ans
 	
 	def createRelation(id: str, source: PFSNode, target: PFSNode):
@@ -933,6 +944,8 @@ class PFSRelation(PFSElement):
 		p.drawLine(-10, 6, 0, 0)
 	
 	def boundingRect(self):
+		if self._firstPoint is None or self._lastPoint is None:
+			self.updatePoints()
 		t = min(self._firstPoint.y(),self._lastPoint.y())
 		b = max(self._firstPoint.y(),self._lastPoint.y())
 		l = min(self._firstPoint.x(),self._lastPoint.x())
