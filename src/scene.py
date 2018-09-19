@@ -2,10 +2,11 @@ from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsProxyWidget
 from PyQt5.QtWidgets import QTableWidgetItem, QGraphicsSceneMouseEvent
 from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint
 from PyQt5.QtGui import QMouseEvent, QTransform, QKeyEvent, QPainter
-from element import PFSActivity, PFSDistributor, PFSRelation
+from element import PFSActivity, PFSDistributor
 from statemachine import PFSStateMachine
 from extra import PFSTextBox
 from undo import *
+from relation import *
 
 class PFSScene(QGraphicsScene):
 	DELTA = 20.0

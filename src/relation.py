@@ -3,7 +3,7 @@ from generic import *
 from PyQt5.QtCore import Qt, QPoint, QRect, QRectF, QXmlStreamWriter
 from tree import PFSTreeItem
 from image import PFSRelationIcon
-from content import PFSRelationContent
+from contents import PFSRelationContent
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
 from PyQt5.QtGui import QPainter, QIcon, QPainterPath, QPolygon, QPolygonF, QColor
 from xml import *
@@ -116,9 +116,9 @@ class PFSRelation(PFSElement):
 		p.setPen(self._pen)
 		if self.isSelected():
 			if self._pen.color() == PFSElement.SELECTED_PEN:
-				p.setPen(PFSElement.SELECTED_PEN_ALT)
+				p.pen().setColor(PFSElement.SELECTED_PEN_ALT)
 			else:
-				p.setPen(PFSElement.SELECTED_PEN)
+				p.pen().setColor(PFSElement.SELECTED_PEN)
 		lastPoint = self._firstPoint
 		for point in self._midPoints:
 			p.drawLine(lastPoint, point)
@@ -219,14 +219,14 @@ class PFSRelation(PFSElement):
 		for m in self._midPoints:
 			p.append(m)
 		p.append(self._lastPoint)
-		p.translate(0, -5)
+		p.translate(-5, -5)
 		n = p.count()
 		finalPolygon = QPolygonF()
 		finalPolygon.append(self._firstPoint)
 		for i in range(n):
 			finalPolygon.append(p.point(i))
 		finalPolygon.append(self._lastPoint)
-		p.translate(0, 10)
+		p.translate(10, 10)
 		for i in range(n):
 			finalPolygon.append(p.point(n-i-1))
 		finalPolygon.append(self._firstPoint)
@@ -333,3 +333,110 @@ class PFSRelation(PFSElement):
 			self.scene()._page._net.undoStack.push(x)
 		except:
 			pass
+		
+class PFSSecondaryFlow(PFSRelation):
+	def __init__(self, id, source, target):
+		PFSRelation.__init__(self, id, source, target)
+		self._pen.setWidth(5)
+		self._lineX = 0
+	
+	def createSecondaryFlow(id: str, source: PFSNode, target: PFSNode):
+		if isinstance(source, PFSActivity) and isinstance(target, PFSPassive):
+			r = PFSSecondaryFlow(id, source, target)
+			source.changed.connect(r.updatePoints)
+			target.changed.connect(r.updatePoints)
+			source.deleted.connect(r.putInDelete)
+			target.deleted.connect(r.putInDelete)
+			return r
+		if isinstance(source, PFSPassive) and isinstance(target, PFSActivity):
+			r = PFSSecondaryFlow(id, source, target)
+			source.changed.connect(r.updatePoints)
+			target.changed.connect(r.updatePoints)
+			source.deleted.connect(r.putInDelete)
+			target.deleted.connect(r.putInDelete)
+			return r
+		return None
+	
+	def generateXml(self, xml: QXmlStreamWriter):
+		PFSXmlBase.open(xml)
+		xml.writeStartElement("secondaryflow")
+		xml.writeAttribute("id", self._id)
+		xml.writeAttribute("source", self._source._id)
+		xml.writeAttribute("target", self._target._id)
+		PFSXmlBase.graphicsArc(xml, self._midPoints, self._pen)
+		PFSBasicElement.generateXml(self, xml)
+		xml.writeEndElement() #fecha distributor
+		PFSXmlBase.close(xml)	
+		
+	def createFromXml(node: QDomNode):
+		if node.nodeName() != "secondaryflow":
+			return None
+		attr = node.attributes()
+		if not (node.hasAttributes() and attr.contains("id")):
+			return None
+		id = attr.namedItem("id").nodeValue()
+		if not (attr.contains("source") and attr.contains("target")):
+			return None
+		source = attr.namedItem("source").nodeValue()
+		target = attr.namedItem("target").nodeValue()
+		graphics = None
+		tags = []
+		childs = node.childNodes()
+		for i in range(childs.count()):
+			child = childs.at(i)
+			if child.nodeName() == "graphics":
+				graphics = PFSXmlBase.getArc(child)
+			if child.nodeName() == "tags":
+				tags = PFSBasicElement.createFromXml(child)
+		re = PFSRelationContent()
+		re._id = id
+		re._source = source
+		re._target = target
+		if graphics is not None and graphics.line is not None:
+			re._pen = graphics.line
+		if graphics is not None and graphics.pos is not None:
+			re._midPoints = graphics.pos
+		else:
+			re._midPoints = []
+		re._tags = tags
+		return re
+		
+	def propertiesTable(self):
+		ans = []
+		lblType = PFSTableLabel("Elemento")
+		lblValue = PFSTableNormal("Fluxo secundário")
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("ID")
+		lblValue = PFSTableNormal(self._id)
+		lblValue.setFlags(Qt.NoItemFlags)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Cor do contorno")
+		lblValue = PFSTableValueButton(self._pen.color().name())
+		lblValue.clicked.connect(self.changeLineColor)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Linha do contorno")
+		lblValue = PFSTableValueCombo(self.PEN_LIST, self._pen.style())
+		self.penEdited.connect(lblValue.updateText)
+		lblValue.currentTextChanged.connect(self.changeLineStyle)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabel("Espessura do contorno")
+		lblValue = PFSTableValueText(str(self._pen.width()))
+		lblValue.edited.connect(self.changeLineWidth)
+		ans.append([lblType, lblValue])
+		lblType = PFSTableLabelTags("Tags")
+		lblValue = PFSTableValueBox(self._tags, self.createTag)
+		ans.append([lblType, lblValue])		
+		return ans
+	
+	def updatePoints(self):
+		if len(self._midPoints) == 0:
+			if isinstance(self._source, PFSActive):
+				self._firstPoint = self._source.getBestRelationPointSecondary(QRect(self._target._x, self._target._y, self._target._width, self._target._height).center(), self._lineX)
+				self._lastPoint = self._target.getBestRelationPointInput(self._firstPoint, 0)
+			else:
+				self._lastPoint = self._target.getBestRelationPointSecondary(QRect(self._source._x, self._source._y, self._source._width, self._source._height).center(), self._lineX)
+				self._firstPoint = self._source.getBestRelationPointOutput(self._lastPoint, 0)
+		else:
+			self._firstPoint = self._source.getBestRelationPointOutput(self._midPoints[0], self._sourceNum)
+			self._lastPoint = self._target.getBestRelationPointInput(self._midPoints[-1], self._targetNum)

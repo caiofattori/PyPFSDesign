@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
 from generic import PFSNode, PFSBasicElement
-from element import PFSActivity, PFSDistributor,  PFSRelation, PFSOpenActivity, PFSCloseActivity
+from element import PFSActivity, PFSDistributor, PFSOpenActivity, PFSCloseActivity
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from undo import *
@@ -14,6 +14,7 @@ from image import PFSImage, PFSPageIcon
 from generic import PFSActive, PFSPassive
 from tree import PFSTreeItem
 from contents import *
+from relation import *
 
 class PFSPage(PFSBasicElement, QWidget):
 	clicked = pyqtSignal()

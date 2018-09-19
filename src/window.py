@@ -6,7 +6,8 @@ from page import PFSNet
 from PyQt5.QtGui import QIcon, QKeySequence
 from statemachine import PFSStateMachine
 from xml import PFSXmlBase
-from element import PFSRelation, PFSDistributor, PFSActivity
+from element import PFSDistributor, PFSActivity
+from relation import *
 
 class PFSWindow(QWidget):
 	empty = pyqtSignal()

@@ -126,8 +126,8 @@ class PFSBasicElement(object):
 		return ans
 
 class PFSElement(PFSBasicElement, QGraphicsItem):
-	SELECTED_PEN = QPen(Qt.red)
-	SELECTED_PEN_ALT = QPen(Qt.blue)
+	SELECTED_PEN = Qt.red
+	SELECTED_PEN_ALT = Qt.blue
 	PEN_LIST = {"Solida": Qt.SolidLine, "Tracejada": Qt.DashLine, "Pontilhada": Qt.DotLine}
 	def __init__(self, id: str):
 		PFSBasicElement.__init__(self, id)

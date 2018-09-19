@@ -254,6 +254,13 @@ class PFSActivity(PFSActive):
 			y = y0 + h
 		return QPoint(x, y)
 	
+	def getBestRelationPointSecondary(self, p: QPoint, posX: float) -> QPoint:
+		x = self._x + 6 + posX*(self._width - 12)
+		y = self._y
+		if p.y() > self._y + self._height:
+			y = self._y + self._height
+		return QPoint(x, y)
+	
 	def propertiesTable(self):
 		ans = []
 		lblType = PFSTableLabel("Elemento")
