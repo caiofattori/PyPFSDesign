@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog, QMessageBox, QMenu
 from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir, pyqtSignal, QTimer, QRect
 from PyQt5.QtXml import QDomDocument
-from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton
+from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton, PFSSecondaryFlowButton
 from page import PFSNet
 from PyQt5.QtGui import QIcon, QKeySequence
 from statemachine import PFSStateMachine
@@ -295,6 +295,9 @@ class PFSMain(QMainWindow):
 		self.btnRelation = PFSRelationButton()
 		ac = toolBar.addWidget(self.btnRelation)
 		ac.setVisible(True)
+		self.btnSecFlow = PFSSecondaryFlowButton()
+		sf = toolBar.addWidget(self.btnSecFlow)
+		sf.setVisible(True)
 		self.undoToolBar = self.addToolBar("Undo-Redo")
 		editMenu.addAction(actCopy)
 		editMenu.addAction(actPaste)
