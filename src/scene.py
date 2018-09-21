@@ -82,10 +82,28 @@ class PFSScene(QGraphicsScene):
 				self._tempSource = it
 				self.inserted.emit()
 			return
+		if self._parentState._sSFlowS:
+			it = self._lastItemClicked
+			if it is not None:
+				self._tempSource = it
+				self.inserted.emit()
+			return		
 		if self._parentState._sRelationT:
 			it = self._lastItemClicked
 			if it is not None:
 				elem = PFSRelation.createRelation(self._page._net.requestId(PFSRelation), self._tempSource, it)
+				if elem is not None:
+					self._page._net.addItem(elem, self._page)
+			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
+				self.inserted.emit()
+			else:
+				self.shiftInserted.emit()
+			self._tempSource = None
+			return
+		if self._parentState._sSFlowT:
+			it = self._lastItemClicked
+			if it is not None:
+				elem = PFSSecondaryFlow.createSecondaryFlow(self._page._net.requestId(PFSRelation), self._tempSource, it)
 				if elem is not None:
 					self._page._net.addItem(elem, self._page)
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:

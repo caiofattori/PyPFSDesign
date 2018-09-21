@@ -21,8 +21,10 @@ class PFSRelation(PFSElement):
 		self._midPoints = []
 		self._firstPoint = None
 		self._lastPoint = None
-		self.updatePoints()
+		#self.updatePoints()
 		self._pen = QPen(Qt.black)
+		self._penSelected = QPen(PFSElement.SELECTED_PEN)
+		self._penSelectedAlt = QPen(PFSElement.SELECTED_PEN_ALT)
 		self._obj = PFSGraphItems()
 		self.penEdited = self._obj.penEdited
 	
@@ -116,9 +118,9 @@ class PFSRelation(PFSElement):
 		p.setPen(self._pen)
 		if self.isSelected():
 			if self._pen.color() == PFSElement.SELECTED_PEN:
-				p.pen().setColor(PFSElement.SELECTED_PEN_ALT)
+				p.setPen(self._penSelectedAlt)
 			else:
-				p.pen().setColor(PFSElement.SELECTED_PEN)
+				p.setPen(self._penSelected)
 		lastPoint = self._firstPoint
 		for point in self._midPoints:
 			p.drawLine(lastPoint, point)
@@ -151,7 +153,13 @@ class PFSRelation(PFSElement):
 				t = p.y()
 			if p.y() > b:
 				b = p.y()
-		return QRectF(l, t, r-l, b-t)
+		w = r-l
+		if w < 5:
+			w = 5
+		h = b-t
+		if h < 5:
+			h = 5
+		return QRectF(l, t, w, h)
 	
 	def generateXml(self, xml: QXmlStreamWriter):
 		PFSXmlBase.open(xml)
@@ -337,8 +345,14 @@ class PFSRelation(PFSElement):
 class PFSSecondaryFlow(PFSRelation):
 	def __init__(self, id, source, target):
 		PFSRelation.__init__(self, id, source, target)
-		self._pen.setWidth(5)
+		self._pen = QPen(QBrush(Qt.black, Qt.SolidPattern), 5)
+		self._penSelected = QPen(QBrush(PFSElement.SELECTED_PEN, Qt.SolidPattern), 5)
+		self._penSelectedAlt = QPen(QBrush(PFSElement.SELECTED_PEN_ALT, Qt.SolidPattern), 5)
 		self._lineX = 0
+	
+	def sceneEvent(self, ev):
+		print(ev.type())
+		return True
 	
 	def createSecondaryFlow(id: str, source: PFSNode, target: PFSNode):
 		if isinstance(source, PFSActivity) and isinstance(target, PFSPassive):
@@ -363,6 +377,7 @@ class PFSSecondaryFlow(PFSRelation):
 		xml.writeAttribute("id", self._id)
 		xml.writeAttribute("source", self._source._id)
 		xml.writeAttribute("target", self._target._id)
+		xml.writeAttribute("linex", str(self._lineX))
 		PFSXmlBase.graphicsArc(xml, self._midPoints, self._pen)
 		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha distributor
@@ -379,6 +394,9 @@ class PFSSecondaryFlow(PFSRelation):
 			return None
 		source = attr.namedItem("source").nodeValue()
 		target = attr.namedItem("target").nodeValue()
+		lineX = 0
+		if attr.contains("linex"):
+			lineX = float(attr.namedItem("linex").nodeValue())
 		graphics = None
 		tags = []
 		childs = node.childNodes()
@@ -392,6 +410,7 @@ class PFSSecondaryFlow(PFSRelation):
 		re._id = id
 		re._source = source
 		re._target = target
+		re._lineX = lineX
 		if graphics is not None and graphics.line is not None:
 			re._pen = graphics.line
 		if graphics is not None and graphics.pos is not None:
@@ -420,14 +439,24 @@ class PFSSecondaryFlow(PFSRelation):
 		self.penEdited.connect(lblValue.updateText)
 		lblValue.currentTextChanged.connect(self.changeLineStyle)
 		ans.append([lblType, lblValue])
-		lblType = PFSTableLabel("Espessura do contorno")
-		lblValue = PFSTableValueText(str(self._pen.width()))
-		lblValue.edited.connect(self.changeLineWidth)
+		lblType = PFSTableLabel("Posição na atividade")
+		lblValue = PFSTableValueText(str(self._lineX))
+		lblValue.edited.connect(self.changeLineX)
 		ans.append([lblType, lblValue])
 		lblType = PFSTableLabelTags("Tags")
 		lblValue = PFSTableValueBox(self._tags, self.createTag)
-		ans.append([lblType, lblValue])		
+		ans.append([lblType, lblValue])
 		return ans
+	
+	def changeLineX(self, prop):
+		x = PFSUndoPropertyText(prop, self.setLineX)
+		x.setText("Alterar posição do arco")
+		self.scene()._page._net.undoStack.push(x)
+	
+	def setLineX(self, txt):
+		self._lineX = float(txt)
+		self.updatePoints()
+		self.scene().update()
 	
 	def updatePoints(self):
 		if len(self._midPoints) == 0:

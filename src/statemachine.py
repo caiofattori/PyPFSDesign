@@ -155,12 +155,12 @@ class PFSStateMachine(QStateMachine):
 		insRelationT = PFSStateInsRelationTarget(window)
 		tiping = PFSStateTiping(window)
 		pasting = PFSStatePasting(window)
-		insSFlowS = PFSStateInsSecondaryFlowS(window)
-		insSFlowT = PFSState InsSecondaryFlowT(window)
+		insSecFlowS = PFSStateInsSecondaryFlowSource(window)
+		insSecFlowT = PFSStateInsSecondaryFlowTarget(window)
 		normal.addTransition(window.btnActivity.clicked, insActivity)
 		normal.addTransition(window.btnDistributor.clicked, insDistributor)
 		normal.addTransition(window.btnRelation.clicked, insRelationS)
-		normal.addTransition(window.btnSecFlow.clicked, insSFlowS)
+		normal.addTransition(window.btnSecFlow.clicked, insSecFlowS)
 		insDistributor.addTransition(window.btnActivity.clicked, insActivity)
 		insDistributor.addTransition(window.btnDistributor.clicked, normal)
 		insActivity.addTransition(window.btnDistributor.clicked, insDistributor)
@@ -184,25 +184,37 @@ class PFSStateMachine(QStateMachine):
 		insDistributor.addTransition(window.tabChanged, normal)
 		insActivity.addTransition(window.tabChanged, normal)
 		insRelationS.addTransition(window.tabChanged, normal)
+		insSecFlowS.addTransition(window.tabChanged, normal)
 		insRelationT.addTransition(window.tabChanged, normal)
+		insSecFlowT.addTransition(window.tabChanged, normal)
 		tiping.addTransition(window.tabChanged, normal)
 		normal.addTransition(window.paste, pasting)
 		insActivity.addTransition(window.paste, pasting)
 		insDistributor.addTransition(window.paste, pasting)
 		insRelationS.addTransition(window.paste, pasting)
+		insSecFlowS.addTransition(window.paste, pasting)
 		insRelationT.addTransition(window.paste, pasting)
+		insSecFlowT.addTransition(window.paste, pasting)
+		insRelationS.addTransition(window.btnSecFlow.clicked, insSecFlowS)
+		insSecFlowS.addTransition(window.btnRelation.clicked, insRelationS)
+		insRelationT.addTransition(window.btnSecFlow.clicked, insSecFlowS)
+		insSecFlowT.addTransition(window.btnRelation.clicked, insRelationS)
 		self.insActivity = insActivity
 		self.normal = normal
 		self.insDistributor = insDistributor
 		self.insRelationS = insRelationS
+		self.insSecFlowS = insSecFlowS
 		self.insRelationT = insRelationT
+		self.insSecFlowT = insSecFlowT
 		self.tiping = tiping
 		self.pasting = pasting
 		self.addState(normal)
 		self.addState(insActivity)
 		self.addState(insDistributor)
 		self.addState(insRelationS)
+		self.addState(insSecFlowS)
 		self.addState(insRelationT)
+		self.addState(insSecFlowT)
 		self.addState(tiping)
 		self.addState(pasting)
 		self.setInitialState(normal)
@@ -216,3 +228,6 @@ class PFSStateMachine(QStateMachine):
 		self.trans6 = self.normal.addTransition(scene.edited, self.tiping)
 		self.trans7 = self.insRelationT.addTransition(scene.shiftInserted, self.insRelationS)
 		self.trans8 = self.pasting.addTransition(scene.inserted, self.normal)
+		self.trans9 = self.insSecFlowS.addTransition(scene.inserted, self.insSecFlowT)
+		self.trans10 = self.insSecFlowT.addTransition(scene.inserted, self.normal)
+		self.trans11 = self.insSecFlowT.addTransition(scene.shiftInserted, self.insSecFlowS)
