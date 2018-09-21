@@ -646,7 +646,7 @@ class PFSNet(QWidget):
 		ans = []
 		aux = {}
 		for elem in self._pasteList:
-			if isinstance(elem, PFSRelationContent):
+			if isinstance(elem, PFSRelationContent) or isinstance(elem, PFSSecondaryFlowContent):
 				continue
 			oldId = elem._id
 			id = self.requestId(elem)
@@ -659,12 +659,16 @@ class PFSNet(QWidget):
 				ans.append(e)
 				aux[oldId] = e
 		for elem in self._pasteList:
-			if not isinstance(elem, PFSRelationContent):
-				continue
-			oldId = elem._id
-			id = self.requestId(elem)
-			e = PFSRelation.paste(elem, id, pos.x(), pos.y(), aux)
-			ans.append(e)
+			if isinstance(elem, PFSRelationContent):
+				oldId = elem._id
+				id = self.requestId(elem)
+				e = PFSRelation.paste(elem, id, pos.x(), pos.y(), aux)
+				ans.append(e)
+			elif isinstance(elem, PFSSecondaryFlowContent):
+				oldId = elem._id
+				id = self.requestId(elem)
+				e = PFSSecondaryFlow.paste(elem, id, pos.x(), pos.y(), aux)
+				ans.append(e)
 		x = PFSUndoAdd(ans, self._tab.currentWidget()._scene)
 		self.undoStack.push(x)
 		

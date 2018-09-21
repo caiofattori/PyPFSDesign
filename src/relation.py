@@ -3,7 +3,7 @@ from generic import *
 from PyQt5.QtCore import Qt, QPoint, QRect, QRectF, QXmlStreamWriter
 from tree import PFSTreeItem
 from image import PFSRelationIcon
-from contents import PFSRelationContent
+from contents import PFSRelationContent, PFSSecondaryFlowContent
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
 from PyQt5.QtGui import QPainter, QIcon, QPainterPath, QPolygon, QPolygonF, QColor
 from xml import *
@@ -350,9 +350,29 @@ class PFSSecondaryFlow(PFSRelation):
 		self._penSelectedAlt = QPen(QBrush(PFSElement.SELECTED_PEN_ALT, Qt.SolidPattern), 5)
 		self._lineX = 0
 	
-	def sceneEvent(self, ev):
-		print(ev.type())
-		return True
+	def copy(self, x, y):
+		ans = PFSSecondaryFlowContent()
+		ans._id = self._id
+		ans._midPoints = []
+		for point in ans._midPoints:
+			ans._midPoints.append(QPoint(point.x()-x, point.y()-y))
+		ans._pen = self._pen
+		ans._tags = self._tags
+		ans._source = self._source._id
+		ans._target = self._target._id
+		ans._lineX = self._lineX
+		return ans
+	
+	def paste(content, id, dx, dy, itemList):
+		ans = PFSSecondaryFlow.createSecondaryFlow(id, itemList[content._source], itemList[content._target])
+		ans._pen = content._pen
+		ans._lineX = content._lineX
+		for tag in content._tags:
+			ans.addTag(tag._name, tag._use, False)
+		for point in content._midPoints:
+			ans._midPoints.append(QPoint(point.x()+dx, point.y()+dy))
+		ans.updatePoints()
+		return ans	
 	
 	def createSecondaryFlow(id: str, source: PFSNode, target: PFSNode):
 		if isinstance(source, PFSActivity) and isinstance(target, PFSPassive):
@@ -406,7 +426,7 @@ class PFSSecondaryFlow(PFSRelation):
 				graphics = PFSXmlBase.getArc(child)
 			if child.nodeName() == "tags":
 				tags = PFSBasicElement.createFromXml(child)
-		re = PFSRelationContent()
+		re = PFSSecondaryFlowContent()
 		re._id = id
 		re._source = source
 		re._target = target
