@@ -67,3 +67,12 @@ class PFSRelationContent(object):
 		self._pen = None
 		self._tags = None
 		
+class PFSSecondaryFlowContent(object):
+	def __init__(self):
+		self._id = None
+		self._source = None
+		self._target = None
+		self._midPoints = None
+		self._pen = None
+		self._tags = None
+		self._lineX = None

@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
 from generic import PFSNode, PFSBasicElement
-from element import PFSActivity, PFSDistributor,  PFSRelation, PFSOpenActivity, PFSCloseActivity
+from element import PFSActivity, PFSDistributor, PFSOpenActivity, PFSCloseActivity
 from xml import PFSXmlBase
 from statemachine import PFSStateMachine
 from undo import *
@@ -14,6 +14,7 @@ from image import PFSImage, PFSPageIcon
 from generic import PFSActive, PFSPassive
 from tree import PFSTreeItem
 from contents import *
+from relation import *
 
 class PFSPage(PFSBasicElement, QWidget):
 	clicked = pyqtSignal()
@@ -136,6 +137,7 @@ class PFSPage(PFSBasicElement, QWidget):
 		closeactivities = []
 		distributors = []
 		relations = []
+		secondaries = []
 		childs = node.childNodes()
 		tags = []
 		for i in range(childs.count()):
@@ -193,6 +195,12 @@ class PFSPage(PFSBasicElement, QWidget):
 					relation = PFSRelation.createFromXml(confChilds.at(0))
 					if relation is not None:
 						relations.append(relation)
+			elif PFSXmlBase.toolHasChild(child, "secondaryflow"):
+				confChilds = child.childNodes()
+				if confChilds.at(0).nodeName() == "secondaryflow":
+					secondary = PFSSecondaryFlow.createFromXml(confChilds.at(0))
+					if secondary is not None:
+						secondaries.append(secondary)
 		if id is not None and id != "" and mainpage is not None:
 			if width is None:
 				width = 600
@@ -209,6 +217,7 @@ class PFSPage(PFSBasicElement, QWidget):
 			page._activities = activities
 			page._distributors = distributors
 			page._relations = relations
+			page._secondaries = secondaries
 			return page
 		return None
 	
@@ -256,6 +265,18 @@ class PFSPage(PFSBasicElement, QWidget):
 				it = PFSRelation.createRelation(item._id, source, target)
 				it._sourceNum = item._sourceNum
 				it._targetNum = item._targetNum
+				it._midPoints = item._midPoints
+				it.updatePoints()
+				it._pen = item._pen
+				for tag in item._tags:
+					it.addTag(tag._name, tag._use, False)				
+				items[item._id] = it
+		for item in content._secondaries:
+			source = items[item._source]
+			target = items[item._target]
+			if (isinstance(source, PFSActive) and isinstance(target, PFSPassive)) or (isinstance(source, PFSPassive) and isinstance(target, PFSActive)):
+				it = PFSSecondaryFlow.createSecondaryFlow(item._id, source, target)
+				it._lineX = item._lineX
 				it._midPoints = item._midPoints
 				it.updatePoints()
 				it._pen = item._pen
@@ -625,7 +646,7 @@ class PFSNet(QWidget):
 		ans = []
 		aux = {}
 		for elem in self._pasteList:
-			if isinstance(elem, PFSRelationContent):
+			if isinstance(elem, PFSRelationContent) or isinstance(elem, PFSSecondaryFlowContent):
 				continue
 			oldId = elem._id
 			id = self.requestId(elem)
@@ -638,12 +659,16 @@ class PFSNet(QWidget):
 				ans.append(e)
 				aux[oldId] = e
 		for elem in self._pasteList:
-			if not isinstance(elem, PFSRelationContent):
-				continue
-			oldId = elem._id
-			id = self.requestId(elem)
-			e = PFSRelation.paste(elem, id, pos.x(), pos.y(), aux)
-			ans.append(e)
+			if isinstance(elem, PFSRelationContent):
+				oldId = elem._id
+				id = self.requestId(elem)
+				e = PFSRelation.paste(elem, id, pos.x(), pos.y(), aux)
+				ans.append(e)
+			elif isinstance(elem, PFSSecondaryFlowContent):
+				oldId = elem._id
+				id = self.requestId(elem)
+				e = PFSSecondaryFlow.paste(elem, id, pos.x(), pos.y(), aux)
+				ans.append(e)
 		x = PFSUndoAdd(ans, self._tab.currentWidget()._scene)
 		self.undoStack.push(x)
 		

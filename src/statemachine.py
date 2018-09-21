@@ -91,6 +91,37 @@ class PFSStateInsRelationTarget(QState):
 		self._button.setChecked(False)
 		self.machine()._sRelationT = False
 
+class PFSStateInsSecondaryFlowSource(QState):
+	def __init__(self, window):
+		super(QState, self).__init__()
+		self._statusBar = window.statusBar()
+		self._button = window.btnSecFlow
+	
+	def onEntry(self, ev: QEvent):
+		self._statusBar.showMessage("Selecione o nó de origem")
+		self._button.setChecked(True)
+		self.machine()._sSFlowS = True
+		
+	def onExit(self, ev: QEvent):
+		self._statusBar.showMessage("")
+		self._button.setChecked(False)
+		self.machine()._sSFlowS = False
+
+class PFSStateInsSecondaryFlowTarget(QState):
+	def __init__(self, window):
+		super(QState, self).__init__()
+		self._statusBar = window.statusBar()
+		self._button = window.btnSecFlow
+	
+	def onEntry(self, ev: QEvent):
+		self._statusBar.showMessage("Selecione o nó de destino")
+		self._button.setChecked(True)
+		self.machine()._sSFlowT = True
+		
+	def onExit(self, ev: QEvent):
+		self._statusBar.showMessage("")
+		self._button.setChecked(False)
+		self.machine()._sSFlowT = False
 
 class PFSStateTiping(QState):
 	def __init__(self, window):
@@ -115,6 +146,8 @@ class PFSStateMachine(QStateMachine):
 		self._sRelationT = False
 		self._sTiping = False
 		self._sPasting = False
+		self._sSFlowS = False
+		self._sSFlowT = False
 		normal = PFSStateNormal()
 		insActivity = PFSStateInsActivity(window)
 		insDistributor = PFSStateInsDistributor(window)
@@ -122,43 +155,66 @@ class PFSStateMachine(QStateMachine):
 		insRelationT = PFSStateInsRelationTarget(window)
 		tiping = PFSStateTiping(window)
 		pasting = PFSStatePasting(window)
+		insSecFlowS = PFSStateInsSecondaryFlowSource(window)
+		insSecFlowT = PFSStateInsSecondaryFlowTarget(window)
 		normal.addTransition(window.btnActivity.clicked, insActivity)
 		normal.addTransition(window.btnDistributor.clicked, insDistributor)
 		normal.addTransition(window.btnRelation.clicked, insRelationS)
+		normal.addTransition(window.btnSecFlow.clicked, insSecFlowS)
 		insDistributor.addTransition(window.btnActivity.clicked, insActivity)
 		insDistributor.addTransition(window.btnDistributor.clicked, normal)
 		insActivity.addTransition(window.btnDistributor.clicked, insDistributor)
 		insActivity.addTransition(window.btnActivity.clicked, normal)
 		insDistributor.addTransition(window.btnRelation.clicked, insRelationS)
+		insDistributor.addTransition(window.btnSecFlow.clicked, insSecFlowS)
 		insRelationS.addTransition(window.btnDistributor.clicked, insDistributor)
+		insSecFlowS.addTransition(window.btnDistributor.clicked, insDistributor)
 		insRelationS.addTransition(window.btnRelation.clicked, normal)
+		insSecFlowS.addTransition(window.btnRelation.clicked, normal)
 		insRelationT.addTransition(window.btnDistributor.clicked, insDistributor)
+		insSecFlowT.addTransition(window.btnDistributor.clicked, insDistributor)
 		insRelationT.addTransition(window.btnRelation.clicked, normal)
+		insSecFlowT.addTransition(window.btnSecFlow.clicked, normal)
 		insActivity.addTransition(window.btnRelation.clicked, insRelationS)
+		insActivity.addTransition(window.btnSecFlow.clicked, insSecFlowS)
 		insRelationS.addTransition(window.btnActivity.clicked, insActivity)
+		insSecFlowS.addTransition(window.btnActivity.clicked, insActivity)
 		insRelationT.addTransition(window.btnActivity.clicked, insActivity)
+		insSecFlowT.addTransition(window.btnActivity.clicked, insActivity)
 		insDistributor.addTransition(window.tabChanged, normal)
 		insActivity.addTransition(window.tabChanged, normal)
 		insRelationS.addTransition(window.tabChanged, normal)
+		insSecFlowS.addTransition(window.tabChanged, normal)
 		insRelationT.addTransition(window.tabChanged, normal)
+		insSecFlowT.addTransition(window.tabChanged, normal)
 		tiping.addTransition(window.tabChanged, normal)
 		normal.addTransition(window.paste, pasting)
 		insActivity.addTransition(window.paste, pasting)
 		insDistributor.addTransition(window.paste, pasting)
 		insRelationS.addTransition(window.paste, pasting)
+		insSecFlowS.addTransition(window.paste, pasting)
 		insRelationT.addTransition(window.paste, pasting)
+		insSecFlowT.addTransition(window.paste, pasting)
+		insRelationS.addTransition(window.btnSecFlow.clicked, insSecFlowS)
+		insSecFlowS.addTransition(window.btnRelation.clicked, insRelationS)
+		insRelationT.addTransition(window.btnSecFlow.clicked, insSecFlowS)
+		insSecFlowT.addTransition(window.btnRelation.clicked, insRelationS)
 		self.insActivity = insActivity
 		self.normal = normal
 		self.insDistributor = insDistributor
 		self.insRelationS = insRelationS
+		self.insSecFlowS = insSecFlowS
 		self.insRelationT = insRelationT
+		self.insSecFlowT = insSecFlowT
 		self.tiping = tiping
 		self.pasting = pasting
 		self.addState(normal)
 		self.addState(insActivity)
 		self.addState(insDistributor)
 		self.addState(insRelationS)
+		self.addState(insSecFlowS)
 		self.addState(insRelationT)
+		self.addState(insSecFlowT)
 		self.addState(tiping)
 		self.addState(pasting)
 		self.setInitialState(normal)
@@ -172,3 +228,6 @@ class PFSStateMachine(QStateMachine):
 		self.trans6 = self.normal.addTransition(scene.edited, self.tiping)
 		self.trans7 = self.insRelationT.addTransition(scene.shiftInserted, self.insRelationS)
 		self.trans8 = self.pasting.addTransition(scene.inserted, self.normal)
+		self.trans9 = self.insSecFlowS.addTransition(scene.inserted, self.insSecFlowT)
+		self.trans10 = self.insSecFlowT.addTransition(scene.inserted, self.normal)
+		self.trans11 = self.insSecFlowT.addTransition(scene.shiftInserted, self.insSecFlowS)
