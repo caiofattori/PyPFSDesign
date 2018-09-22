@@ -115,6 +115,11 @@ class PFSScene(QGraphicsScene):
 		if self._parentState._sNormal:
 			self._page._net._prop.clear()
 			it = self._lastItemClicked
+			if int(ev.modifiers()) & Qt.MetaModifier == 0:
+				if isinstance(it, PFSActivity):
+					if not it.hasSubPage():
+						self._page._net.createPage(it)
+					self._page._net.openPage(it)
 			return
 		if self._parentState._sTiping:
 			it = self._lastItemClicked
@@ -168,14 +173,6 @@ class PFSScene(QGraphicsScene):
 				QGraphicsScene.keyPressEvent(self, ev)
 			return
 		QGraphicsScene.keyPressEvent(self, ev)
-		
-	def mouseDoubleClickEvent(self, ev):
-		pos = ev.scenePos()
-		it = self.itemAt(pos, QTransform())
-		if isinstance(it, PFSActivity):
-			if not it.hasSubPage():
-				self._page._net.createPage(it)
-			self._page._net.openPage(it)
 	
 	def mouseMoveEvent(self, ev: QGraphicsSceneMouseEvent):
 		if ev.buttons() == Qt.NoButton:
