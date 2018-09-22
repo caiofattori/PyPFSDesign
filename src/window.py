@@ -221,30 +221,30 @@ class PFSMain(QMainWindow):
 	paste = pyqtSignal()
 	def __init__(self):
 		super(QMainWindow, self).__init__()
-		icoNew = QIcon.fromTheme("document-new", QIcon("../icons/document-new.svg"))
+		icoNew = QIcon.fromTheme("document-new", QIcon("icons/document-new.svg"))
 		actNew = QAction(icoNew, "Novo", self)
 		actNew.setShortcuts(QKeySequence.New)
 		actNew.setStatusTip("Cria um novo arquivo de modelo")
-		icoOpen = QIcon.fromTheme("document-open", QIcon("../icons/document-open.svg"))
+		icoOpen = QIcon.fromTheme("document-open", QIcon("icons/document-open.svg"))
 		actOpen = QAction(icoOpen, "Abrir", self)
 		actOpen.setShortcuts(QKeySequence.Open)
 		actOpen.setStatusTip("Abre um arquivo com modelo")
-		icoSave = QIcon.fromTheme("document-save", QIcon("../icons/document-save.svg"))
+		icoSave = QIcon.fromTheme("document-save", QIcon("icons/document-save.svg"))
 		actSave = QAction(icoSave, "Salvar", self)
 		actSave.setShortcuts(QKeySequence.Save)
 		actSave.setStatusTip("Salva o modelo em um arquivo")
 		self.actSave = actSave
-		icoSaveAs = QIcon.fromTheme("document-save-as", QIcon("../icons/document-save-as.svg"))
+		icoSaveAs = QIcon.fromTheme("document-save-as", QIcon("icons/document-save-as.svg"))
 		actSaveAs = QAction(icoSaveAs, "Salvar Como", self)
 		actSaveAs.setShortcuts(QKeySequence.SaveAs)
 		actSaveAs.setStatusTip("Salva como o modelo em um arquivo")
 		self.actSaveAs = actSaveAs
-		icoExport = QIcon.fromTheme("insert-image", QIcon("../icons/document-export.svg"))
+		icoExport = QIcon.fromTheme("insert-image", QIcon("icons/document-export.svg"))
 		actExport = QAction(icoExport, "Exportar", self)
 		actExport.setShortcuts(QKeySequence.Print)
 		actExport.setStatusTip("Exporta o modelo como figura")
 		self.actExport = actExport
-		icoQuit = QIcon.fromTheme("exit", QIcon("../icons/exit.svg"))
+		icoQuit = QIcon.fromTheme("application-exit", QIcon("icons/application-exit.svg"))
 		actQuit = QAction(icoQuit, "Sair", self)
 		actQuit.setShortcuts(QKeySequence.Quit)
 		actQuit.setStatusTip("Sair do programa")
@@ -267,19 +267,19 @@ class PFSMain(QMainWindow):
 		editMenu = self.menuBar().addMenu("Editar")
 		self.editSeparator = editMenu.addSeparator()
 		toolBar = self.addToolBar("Edit")
-		icoCopy = QIcon.fromTheme("edit-copy", QIcon("../icons/edit-copy.svg"))
+		icoCopy = QIcon.fromTheme("edit-copy", QIcon("icons/edit-copy.svg"))
 		actCopy = QAction(icoCopy, "Copia Elementos", self)
 		actCopy.setShortcuts(QKeySequence.Copy)
 		actCopy.setStatusTip("Copia elementos do modelo")
 		self.actCopy = actCopy
 		toolBar.addAction(actCopy)
-		icoPaste = QIcon.fromTheme("edit-paste", QIcon("../icons/edit-paste.svg"))
+		icoPaste = QIcon.fromTheme("edit-paste", QIcon("icons/edit-paste.svg"))
 		actPaste = QAction(icoPaste, "Cola Elementos", self)
 		actPaste.setShortcuts(QKeySequence.Paste)
 		actPaste.setStatusTip("Cola elementos do modelo")
 		self.actPaste = actPaste
 		toolBar.addAction(actPaste)
-		icoDelete = QIcon.fromTheme("edit-delete", QIcon("../icons/edit-delete.svg"))
+		icoDelete = QIcon.fromTheme("edit-delete", QIcon("icons/edit-delete.svg"))
 		actDelete = QAction(icoDelete, "Apaga Elementos", self)
 		actDelete.setShortcuts(QKeySequence.Delete)
 		actDelete.setStatusTip("Remove os elementos do modelo atual")
@@ -327,8 +327,11 @@ class PFSMain(QMainWindow):
 		self.actDelete.setEnabled(False)
 	
 	def quit(self):
+		self.close()
+	
+	def closeEvent(self, ev):
 		if self.wind.quit():
-			self.close()
+			self.close()		
 	
 	def disableButtons(self):
 		self.btnActivity.setEnabled(False)
@@ -350,7 +353,10 @@ class PFSMain(QMainWindow):
 
 if __name__ == "__main__":
 	import sys
-	app = QApplication(sys.argv)
+	try:
+		app
+	except:
+		app = QApplication(sys.argv)
 	win = PFSMain()
 	stateMachine = PFSStateMachine(win)
 	win.setStateMachine(stateMachine)

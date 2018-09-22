@@ -454,10 +454,10 @@ class PFSNet(QWidget):
 		self.undoStack = QUndoStack(self)
 		self.undoAction = self.undoStack.createUndoAction(self, "Desfazer")
 		self.undoAction.setShortcuts(QKeySequence.Undo)
-		self.undoAction.setIcon(QIcon.fromTheme("edit-undo", QIcon("../icons/edit-undo.svg")))
+		self.undoAction.setIcon(QIcon.fromTheme("edit-undo", QIcon("icons/edit-undo.svg")))
 		self.redoAction = self.undoStack.createRedoAction(self, "Refazer")
 		self.redoAction.setShortcuts(QKeySequence.Redo)
-		self.redoAction.setIcon(QIcon.fromTheme("edit-redo", QIcon("../icons/edit-redo.svg")))
+		self.redoAction.setIcon(QIcon.fromTheme("edit-redo", QIcon("icons/edit-redo.svg")))
 		self._pasteList = []
 		
 	def tree(self):
