@@ -16,11 +16,10 @@ class PFSActivity(PFSActive):
 		PFSActive.__init__(self, id, x, y)
 		self._subPage = None
 		self._textFont = QFont("Helvetica", 15)
-		self.setText(text)
 		self._fontMetrics = QFontMetrics(self._textFont)
 		self._minWidth = 0
 		self._minHeight = 0
-		self.minimunRect()
+		self.setText(text)
 		self._width = self._minWidth
 		self._height = self._minHeight
 		self._inputNum = 1
@@ -184,6 +183,11 @@ class PFSActivity(PFSActive):
 		
 	def setText(self, text: str):
 		self._text = text
+		r = self.minimunRect()
+		if self._width < r.width():
+			self._width = r.width()
+		if self._height < r.height():
+			self._height = r.height()
 		if self.scene() is not None:
 			self.scene().update()
 			self.changed.emit()

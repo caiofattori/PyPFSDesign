@@ -115,7 +115,7 @@ class PFSScene(QGraphicsScene):
 		if self._parentState._sNormal:
 			self._page._net._prop.clear()
 			it = self._lastItemClicked
-			if int(ev.modifiers()) & Qt.MetaModifier == 0:
+			if int(ev.modifiers()) & Qt.ControlModifier == Qt.ControlModifier:
 				if isinstance(it, PFSActivity):
 					if not it.hasSubPage():
 						self._page._net.createPage(it)

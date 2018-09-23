@@ -285,6 +285,9 @@ class PFSPage(PFSBasicElement, QWidget):
 				items[item._id] = it
 		for i, item in items.items():
 			page._scene.addItem(item)
+		'''for item in page._scene.items():
+			if isinstance(item, PFSRelation):
+				item.installFilters()'''
 		return page
 	
 	def getAllSubPages(self):

@@ -83,6 +83,9 @@ class PFSWindow(QWidget):
 		xml = QXmlStreamWriter(file)
 		net.generateXml(xml)
 		file.close()
+		net._filename = filename
+		net._filepath = filepath
+		self._tab.setTabText(self._tab.currentIndex(), net.getTabName())
 		
 	def autoSave(self):
 		for i in range(self._tab.count()):

@@ -245,10 +245,12 @@ class PFSNode(PFSElement):
 	
 	def resizeWidth(self, txt):
 		self._width = float(txt)
+		self.changed.emit()
 		self.scene().update()
 		
 	def resizeHeight(self, txt):
 		self._height = float(txt)
+		self.changed.emit()
 		self.scene().update()
 	
 class PFSActive(PFSNode):

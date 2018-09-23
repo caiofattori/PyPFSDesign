@@ -1,6 +1,6 @@
 from element import *
 from generic import *
-from PyQt5.QtCore import Qt, QPoint, QRect, QRectF, QXmlStreamWriter
+from PyQt5.QtCore import Qt, QPoint, QRect, QRectF, QXmlStreamWriter, QEvent
 from tree import PFSTreeItem
 from image import PFSRelationIcon
 from contents import PFSRelationContent, PFSSecondaryFlowContent
@@ -27,6 +27,16 @@ class PFSRelation(PFSElement):
 		self._penSelectedAlt = QPen(PFSElement.SELECTED_PEN_ALT)
 		self._obj = PFSGraphItems()
 		self.penEdited = self._obj.penEdited
+	
+	def sceneEventFilter(self, item, ev:QEvent):
+		print(ev.type())
+		return QGraphicsItem.sceneEventFilter(self, item, ev)
+	
+	'''def installFilters(self):
+		if isinstance(self._source, QGraphicsItem):
+			self.installSceneEventFilter(self._source)
+		if isinstance(self._target, QGraphicsItem):
+			self.installSceneEventFilter(self._target)'''
 	
 	def moveX(self, txt, update=True):
 		value = float(txt)
