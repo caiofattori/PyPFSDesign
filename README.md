@@ -6,6 +6,9 @@ Design tool for Production Flow Schema in PyQt
 * Qt5 (https://www.qt.io/download)
 * PyQt5 (https://riverbankcomputing.com/software/pyqt/download5)
 
+## Installing
+For installing you just need to clone the repository or download zip file of github menu.
+
 ## Running 
 
 For Linux users:
