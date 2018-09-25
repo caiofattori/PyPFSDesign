@@ -1,0 +1,26 @@
+<html>
+<meta charset="UTF-8">
+<head>
+<title>Ajuda para o PyPFSDesign</title>
+</head>
+<body>
+<h1>Adicionar ou editar <u>atividade</u></h1>
+<p>A <u>atividade</u> é representada por um par de abertura e fechamento de colchetes em torno de um texto que representa a atividade descrita nela.</p>
+<p>A <u>atividade</u> possui as seguintes propriedades:</p>
+<ul>
+<li><b>ID</b>: obrigatório e não editável;</li>
+<li><b>Texto</b>: obrigatório e livre;</li>
+<li><b>Posição</b>: obrigatório e representado pelo par X,Y das coordenadas superior esquerda do elemento em relação a origem do modelo;</li>
+<li><b>Dimensões</b>: obrigatório e representado pelo par altura, largura em que há uma restrição de não poderem ser menores do que o espaço mínimo para o texto e os colchetes;</li>
+<li><b>Fonte</b>: opcional e escolhida entre as opções do sistema operacional, pode afetar as dimensões mínimas;</li>
+<li><b>Contorno</b>: opcional e representado pela trinca cor, tipo e espessura, em que tipo pode ser sólida, tracejada ou pontilhada, as cores são RGB e espessura é numérica;</li>
+<li><b>Preenchimento</b>: opcional e representado pela cor do preenchimento em RGB;</li>
+<li><b>Portas</b>: obrigatório e representado pelo par entradas e saídas, indicando a quantidade de opções de fluxos de entrada e saída da atividade, respectivamente;</li>
+<li><b>tags</b>: opcional e serve para compatibilidade com ferramentas externas.</li>
+</ul>
+<p>As portas das <u>atividades</u> são utilizadas para modelar fluxos paralelos ou concorrentes possíveis para acessar uma <u>atividade</u> ou de retorno da mesma.</p>
+<p>Os <u>relacionamentos</u> que tem uma <u>atividade</u> como origem ou destino, devem indicar a porta em que estão conectados nesse elemento.</p>
+<p>Para inserir uma <u>atividade</u> na tela, usa-se o primeiro botão do terceiro grupo da barra de ferramentas. Ao clicar no botão, ele ativa mudando de cor. Ao clicar novamente no botão, ou em outro botão de elementos, o botão desativa. Com o botão ativo, adiciona-se uma <u>atividade</u> à tela de edição clicando na posição X,Y da mesma. Ao adicionar a <u>atividade</u> o botão respectivo é desativado, exceto se no momento em que clicar na tela de edição estiver pressionado o botão Shift do teclado.</p>
+<p>Para mover a <u>atividade</u>, basta selecioná-la na tela de edição e pressionar e arrastar o mouse para a posição desejada, ou utilizar as setas direcionais do teclado.</p>
+</body>
+</html>
