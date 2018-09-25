@@ -1,0 +1,32 @@
+<html>
+<meta charset="UTF-8">
+<head>
+<title>Ajuda para o PyPFSDesign</title>
+</head>
+<body>
+<h1>Ajuda do PyPFSDesign</h1>
+<p>O PyPFSDesign é uma ferramenta para modelagem em <i>Production Flow Schema</i> (PFS).</p>
+<p>O PFS é composto do 3 elementos básicos: <u>atividades</u>, <u>distribuidores</u> e <u>relacionamentos</u>. As <u>atividades</u> são elementos ativos, modelam eventos que alteram estados e são representadas por um texto entre colchetes. Os <u>distribuidores</u> são elementos passívos, modelam os estados e são representados por circunferências. Os <u>relacionamentos</u> são elementos de ligação, modelam o fluxo entre estados a as relações entre <u>atividades</u> e <u>distribuidores</u>, e são representados por arcos com uma seta apontada para o elemento de destino e partindo do elemento de origem.</p>
+<p>Dos elementos básicos, alguns elementos se derivam. A partir das <u>atividades</u> existem a <u>abertura de atividade</u> e o <u>fechamento de atividade</u>, ambos também se comportam como elementos ativos. A partir do <u>relacionamento</u> existe o <u>fluxo secundário</u> que é um elemento utilizado para modelar envio de mensagens entre serviços complexos.<p>
+<p>Por regra, os <u>relacionamentos</u> e suas derivações apenas podem ligar um elemento passivo a um elemento ativo ou um elemento ativo a um elemento passivo. Nunca é possível ligar dois elementos ativos nem dois elementos passivos.</p>
+<p>O PFS permite também aplicar a metodologia <i>top-down</i> para a modelagem, uma vez que as atividades podem ser expandidas em modelos com maior grau de detalhamento.</p>
+<p>O sumário dessa ajuda se divide nos seguintes passos:</p>
+<ul>
+<li><a href="abrirapp.html">Abrir o PyPFSDesign</a></li>
+<li><a href="novodoc.html">Criar novo documento</a></li>
+<li><a href="abrirdoc.html">Abrir documento existente</a></li>
+<li><a href="salvardoc.html">Salvar documento</a></li>
+<li><a href="salvarcomodoc.html">Salvar como documento existente</a></li>
+<li><a href="exportardoc.html">Exportar documento como imagem</a></li>
+<li><a href="fbasicas.html">Funções básicas de edição</a></li>
+<li><a href="atividade.html">Adicionar ou editar atividade</a></li>
+<li><a href="distribuidor.html">Adicionar ou editar distribuidor</a></li>
+<li><a href="relacionamento.html">Adicionar ou editar relacionamento</a></li>
+<li><a href="fluxosec.html">Adicionar ou editar fluxo secundário</a></li>
+<li><a href="pagina.html">Configurações do modelo</a></li>
+<li><a href="subpagina.html">Criar um sub-modelo de uma atividade</a></li>
+<li><a href="propriedades.html">Tabela de propriedades</a></li>
+<li><a href="arvore.html">Trabalhar com a árvore de objetos</a></li>
+</ul>
+</body>
+</html>
