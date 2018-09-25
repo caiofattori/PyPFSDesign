@@ -574,6 +574,7 @@ class PFSNet(QWidget):
 						break
 			net._page = aux["main"]
 			net._pages = [aux["main"]]
+			net.tree()
 			nets.append(net)
 		return nets	
 	
