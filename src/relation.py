@@ -1,6 +1,6 @@
 from element import *
 from generic import *
-from PyQt5.QtCore import Qt, QPoint, QRect, QRectF, QXmlStreamWriter, QEvent
+from PyQt5.QtCore import Qt, QPoint, QRect, QRectF, QXmlStreamWriter, QEvent, QLineF
 from tree import PFSTreeItem
 from image import PFSRelationIcon
 from contents import PFSRelationContent, PFSSecondaryFlowContent
@@ -32,11 +32,63 @@ class PFSRelation(PFSElement):
 		print(ev.type())
 		return QGraphicsItem.sceneEventFilter(self, item, ev)
 	
-	'''def installFilters(self):
-		if isinstance(self._source, QGraphicsItem):
-			self.installSceneEventFilter(self._source)
-		if isinstance(self._target, QGraphicsItem):
-			self.installSceneEventFilter(self._target)'''
+	def closestMiddlePoint(self, pos:QPointF):
+		d = -1
+		p1 = None
+		for p in self._midPoints:
+			aux = QLineF(pos, p).length()
+			if p1 is None or aux < d:
+				p1 = p
+				d = aux
+		return p1
+	
+	def closeMiddlePoint(self, pos:QPointF):
+		for p in self._midPoints:
+			if QLineF(pos, p).length() < 3:
+				return p
+		return None
+	
+	def closestPoint(self, pos:QPointF):
+		d = -1
+		p = None
+		p1 = self._firstPoint
+		for p2 in self._midPoints:
+			l = QLineF(p1, p2)
+			x = QPointF.dotProduct(p1-pos, p2-pos)/l.length()
+			if x < 0:
+				paux = p1
+			elif x > 1:
+				paux = p2
+			else:
+				paux = l.pointAt(x)
+			aux = QLineF(paux, pos).length()
+			if p is None or aux < d:
+				p = paux
+				d = aux
+			p1 = p2
+		p2 = self._lastPoint
+		l = QLineF(p1, p2)
+		x = QPointF.dotProduct(p1-pos, p2-pos)/l.length()
+		if x < 0:
+			paux = p1
+		elif x > 1:
+			paux = p2
+		else:
+			paux = l.pointAt(x)
+		aux = QLineF(paux, pos).length()
+		if p is None or aux < d:
+			p = paux
+			d = aux
+		return p
+	
+	def addMiddlePoint(self, point:QPointF):
+		self._midPoints.append(point)
+	
+	def createMiddlePoint(self, pos:QPointF):
+		p = self.closestPoint(pos)
+		self.addMiddlePoint(pos)
+		self.scene().update()
+	
 	
 	def moveX(self, txt, update=True):
 		value = float(txt)
@@ -232,7 +284,7 @@ class PFSRelation(PFSElement):
 	
 	def shape(self) -> QPainterPath:
 		path = QPainterPath()
-		p = QPolygon()
+		p = QPolygonF()
 		p.append(self._firstPoint)
 		for m in self._midPoints:
 			p.append(m)
@@ -242,11 +294,11 @@ class PFSRelation(PFSElement):
 		finalPolygon = QPolygonF()
 		finalPolygon.append(self._firstPoint)
 		for i in range(n):
-			finalPolygon.append(p.point(i))
+			finalPolygon.append(p[i])
 		finalPolygon.append(self._lastPoint)
 		p.translate(10, 10)
 		for i in range(n):
-			finalPolygon.append(p.point(n-i-1))
+			finalPolygon.append(p[n-i-1])
 		finalPolygon.append(self._firstPoint)
 		path.addPolygon(finalPolygon)
 		return path
