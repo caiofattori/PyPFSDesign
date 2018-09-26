@@ -52,9 +52,11 @@ class PFSRelation(PFSElement):
 		d = -1
 		p = None
 		p1 = self._firstPoint
-		for p2 in self._midPoints:
+		prev = -1
+		for i in range(len(self._midPoints)):
+			p2 = self._midPoints[i]
 			l = QLineF(p1, p2)
-			x = QPointF.dotProduct(p1-pos, p2-pos)/l.length()
+			x = QPointF.dotProduct(pos-p1, p2-p1)/l.length()
 			if x < 0:
 				paux = p1
 			elif x > 1:
@@ -65,10 +67,11 @@ class PFSRelation(PFSElement):
 			if p is None or aux < d:
 				p = paux
 				d = aux
+				prev = i
 			p1 = p2
 		p2 = self._lastPoint
 		l = QLineF(p1, p2)
-		x = QPointF.dotProduct(p1-pos, p2-pos)/l.length()
+		x = QPointF.dotProduct(pos-p1, p2-p1)/l.length()
 		if x < 0:
 			paux = p1
 		elif x > 1:
@@ -79,14 +82,18 @@ class PFSRelation(PFSElement):
 		if p is None or aux < d:
 			p = paux
 			d = aux
-		return p
+			prev = -1
+		return p, prev
 	
-	def addMiddlePoint(self, point:QPointF):
-		self._midPoints.append(point)
+	def addMiddlePoint(self, point:QPointF, i=-1):
+		if i < 0:
+			self._midPoints.append(point)
+		else:
+			self._midPoints.insert(i, point)
 	
 	def createMiddlePoint(self, pos:QPointF):
-		p = self.closestPoint(pos)
-		self.addMiddlePoint(pos)
+		p, i = self.closestPoint(pos)
+		self.addMiddlePoint(p, i)
 		self.scene().update()
 	
 	
@@ -275,10 +282,10 @@ class PFSRelation(PFSElement):
 		re._targetNum = targetNum
 		if graphics is not None and graphics.line is not None:
 			re._pen = graphics.line
+		re._midPoints = []
 		if graphics is not None and graphics.pos is not None:
-			re._midPoints = graphics.pos
-		else:
-			re._midPoints = []
+			for pos in graphics.pos:
+				re._midPoints.append(QPointF(pos.x, pos.y))
 		re._tags = tags
 		return re
 	
