@@ -160,6 +160,9 @@ class PFSWindow(QWidget):
 			if self._tab.count() == 1:
 				self.updateUndoRedoAction()
 			self._sm.fixTransitions(net._pages[0]._scene)
+			self.nonempty.emit()
+			if self._tab.count() == 1:
+				self.updateUndoRedoAction()
 	
 	def updateUndoRedoAction(self):
 		self._main.undoToolBar.clear()

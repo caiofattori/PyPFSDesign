@@ -59,6 +59,7 @@ class PFSScene(QGraphicsScene):
 			return
 		self._lastPos = ev.scenePos()
 		self._lastItemClicked = self.itemAt(ev.scenePos(), QTransform())
+		print(ev.scenePos())
 		if self._parentState._sPasting:
 			self._page._net.pasteItems(self._lastPos)
 			self.inserted.emit()

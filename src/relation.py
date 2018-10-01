@@ -10,6 +10,7 @@ from xml import *
 from PyQt5.QtXml import QDomNode
 from table import *
 from undo import *
+from polygon import PFSPolygon
 
 class PFSRelation(PFSElement):
 	def __init__(self, id: str, source: PFSNode, target: PFSNode):
@@ -71,7 +72,7 @@ class PFSRelation(PFSElement):
 			p1 = p2
 		p2 = self._lastPoint
 		l = QLineF(p1, p2)
-		x = QPointF.dotProduct(pos-p1, p2-p1)/l.length()
+		x = QPointF.dotProduct(pos-p1, p2-p1)/(l.length()*l.length())
 		if x < 0:
 			paux = p1
 		elif x > 1:
@@ -290,25 +291,53 @@ class PFSRelation(PFSElement):
 		return re
 	
 	def shape(self) -> QPainterPath:
-		path = QPainterPath()
-		p = QPolygonF()
-		p.append(self._firstPoint)
-		for m in self._midPoints:
-			p.append(m)
-		p.append(self._lastPoint)
-		p.translate(-5, -5)
-		n = p.count()
-		finalPolygon = QPolygonF()
-		finalPolygon.append(self._firstPoint)
-		for i in range(n):
-			finalPolygon.append(p[i])
-		finalPolygon.append(self._lastPoint)
-		p.translate(10, 10)
-		for i in range(n):
-			finalPolygon.append(p[n-i-1])
-		finalPolygon.append(self._firstPoint)
-		path.addPolygon(finalPolygon)
-		return path
+		ans = QPainterPath()
+		f = None
+		path = QPolygonF()
+		aux = PFSPolygon()
+		p1 = self._firstPoint
+		for p2 in self._midPoints:
+			aux.setPoint(p1.x(), p1.y())
+			l = QLineF(p1, p2)
+			aux.setAngle(360-l.angle())
+			aux.translate(-90)
+			if f is None:
+				f = aux.move(5)
+				path.append(f)
+			else:
+				path.append(aux.move(5))
+			aux.translate(90)
+			path.append(aux.move(l.length()))
+			p1 = p2
+		aux.setPoint(p1.x(), p1.y())
+		l = QLineF(p1, self._lastPoint)
+		aux.setAngle(360-l.angle())
+		aux.translate(-90)
+		path.append(aux.move(5))
+		aux.translate(90)
+		path.append(aux.move(l.length()))
+		
+		p1 = self._lastPoint
+		for p2 in reversed(self._midPoints):
+			aux.setPoint(p1.x(), p1.y())
+			l = QLineF(p1, p2)
+			aux.setAngle(360-l.angle())
+			aux.translate(-90)
+			path.append(aux.move(5))
+			aux.translate(90)
+			path.append(aux.move(l.length()))
+			p1 = p2
+		
+		aux.setPoint(p1.x(), p1.y())
+		l = QLineF(p1, self._firstPoint)
+		aux.setAngle(360-l.angle())
+		aux.translate(-90)
+		path.append(aux.move(5))
+		aux.translate(90)
+		path.append(aux.move(l.length()))
+		path.append(f)
+		ans.addPolygon(path)
+		return ans
 		
 	def putInDelete(self):
 		if self.scene() is not None:
