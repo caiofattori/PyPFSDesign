@@ -143,7 +143,7 @@ class PFSWindow(QWidget):
 		ans, errMsg, errLine, errColl = doc.setContent(file)
 		if not ans:
 			return
-		nets = PFSNet.createFromXml(doc, self)
+		nets = PFSNet.createFromXml(doc, self, self._tab)
 		if len(nets) == 0:
 			return
 		self.nonempty.emit()

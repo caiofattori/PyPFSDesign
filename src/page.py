@@ -221,7 +221,7 @@ class PFSPage(PFSBasicElement, QWidget):
 			return page
 		return None
 	
-	def createFromContent(content: PFSPageContent, sm, net):
+	def createFromContent(content: PFSPageContent, sm, net, tab):
 		page = PFSPage(content._id, content._width, content._height, sm, net)
 		for tag in content._tags:
 			page.addTag(tag._name, tag._use)
@@ -283,11 +283,12 @@ class PFSPage(PFSBasicElement, QWidget):
 				for tag in item._tags:
 					it.addTag(tag._name, tag._use, False)				
 				items[item._id] = it
+		tab.blockSignals(True)
+		indice = tab.addTab(page, "Abrindo")
 		for i, item in items.items():
 			page._scene.addItem(item)
-		'''for item in page._scene.items():
-			if isinstance(item, PFSRelation):
-				item.installFilters()'''
+		tab.removeTab(indice)
+		tab.blockSignals(False)
 		return page
 	
 	def getAllSubPages(self):
@@ -516,7 +517,7 @@ class PFSNet(QWidget):
 		if isinstance(item, PFSTreeItem):
 			item.clicked.emit()
 	
-	def createFromXml(doc: QDomDocument, window):
+	def createFromXml(doc: QDomDocument, window, tab):
 		el = doc.documentElement()
 		nodes = el.childNodes()
 		nets = []
@@ -541,7 +542,7 @@ class PFSNet(QWidget):
 				continue
 			aux = {}
 			for page in pages:
-				p = PFSPage.createFromContent(page, window._sm, net)
+				p = PFSPage.createFromContent(page, window._sm, net, tab)
 				if p is not None:
 					i = page._ref
 					if i is None or not i:
@@ -573,7 +574,7 @@ class PFSNet(QWidget):
 						page.setName("Ref_" + elem._id)
 						break
 			net._page = aux["main"]
-			net._pages = [aux["main"]]
+			net._pages.append(aux["main"])
 			net.tree()
 			nets.append(net)
 		return nets	
