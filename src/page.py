@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QUndoStack, QTableWidget
-from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
+from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPointF, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
 from generic import PFSNode, PFSBasicElement
@@ -16,11 +16,10 @@ from tree import PFSTreeItem
 from contents import *
 from relation import *
 
-class PFSPage(PFSBasicElement, QWidget):
+class PFSPage(QWidget, PFSBasicElement):
 	clicked = pyqtSignal()
 	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net):
-		PFSBasicElement.__init__(self, id)
-		QWidget.__init__(self)
+		super().__init__(id=id)
 		self._id = id
 		self._net = net
 		self._scene = PFSScene(w, h, stateMachine, self)
@@ -221,7 +220,7 @@ class PFSPage(PFSBasicElement, QWidget):
 			return page
 		return None
 	
-	def createFromContent(content: PFSPageContent, sm, net, tab):
+	def createFromContent(content: PFSPageContent, sm, net, window):
 		page = PFSPage(content._id, content._width, content._height, sm, net)
 		for tag in content._tags:
 			page.addTag(tag._name, tag._use)
@@ -265,7 +264,8 @@ class PFSPage(PFSBasicElement, QWidget):
 				it = PFSRelation.createRelation(item._id, source, target)
 				it._sourceNum = item._sourceNum
 				it._targetNum = item._targetNum
-				it._midPoints = item._midPoints
+				for point in item._midPoints:
+					it._midPoints.append(QPointF(point.x, point.y))
 				it.updatePoints()
 				it._pen = item._pen
 				for tag in item._tags:
@@ -283,12 +283,17 @@ class PFSPage(PFSBasicElement, QWidget):
 				for tag in item._tags:
 					it.addTag(tag._name, tag._use, False)				
 				items[item._id] = it
-		tab.blockSignals(True)
-		indice = tab.addTab(page, "Abrindo")
+		#tab.blockSignals(True)
+		x = QWidget()
+		page.show()
+		indice = window._tab.addTab(page, "Abrindo")
+		window._tab.setCurrentIndex(indice)
+		window._tab.update()
 		for i, item in items.items():
 			page._scene.addItem(item)
-		tab.removeTab(indice)
-		tab.blockSignals(False)
+		page._scene.update()
+		#window._tab.removeTab(indice)
+		#tab.blockSignals(False)
 		return page
 	
 	def getAllSubPages(self):
@@ -517,7 +522,7 @@ class PFSNet(QWidget):
 		if isinstance(item, PFSTreeItem):
 			item.clicked.emit()
 	
-	def createFromXml(doc: QDomDocument, window, tab):
+	def createFromXml(doc: QDomDocument, window):
 		el = doc.documentElement()
 		nodes = el.childNodes()
 		nets = []
@@ -542,7 +547,7 @@ class PFSNet(QWidget):
 				continue
 			aux = {}
 			for page in pages:
-				p = PFSPage.createFromContent(page, window._sm, net, tab)
+				p = PFSPage.createFromContent(page, window._sm, net, window)
 				if p is not None:
 					i = page._ref
 					if i is None or not i:

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsProxyWidget
 from PyQt5.QtWidgets import QTableWidgetItem, QGraphicsSceneMouseEvent
-from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint
+from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPointF
 from PyQt5.QtGui import QMouseEvent, QTransform, QKeyEvent, QPainter
 from element import PFSActivity, PFSDistributor
 from statemachine import PFSStateMachine
@@ -22,7 +22,7 @@ class PFSScene(QGraphicsScene):
 		self._page = page
 		self._tempSource = None
 		self._tempActivity = None
-		self._lastPos = QPoint(0,0)
+		self._lastPos = QPointF(0,0)
 		self._lastItemClicked = None
 		self._wasMoving = False
 		
@@ -34,15 +34,12 @@ class PFSScene(QGraphicsScene):
 		self.setSceneRect(l, t, w, h)
 		sx = int(w/self.DELTA - 1)
 		sy = int(h/self.DELTA - 1)
-		self._backgroundPoints = [QPoint((i+0.5)*self.DELTA, (j+0.5)*self.DELTA) for i in range(sx) for j in range(sy)]
+		self._backgroundPoints = [QPointF((i+0.5)*self.DELTA, (j+0.5)*self.DELTA) for i in range(sx) for j in range(sy)]
 		self.update()
 		
 	def mouseReleaseEvent(self, ev: QGraphicsSceneMouseEvent):
 		if self._parentState._sNormal and not self._wasMoving:
 			it = self.itemAt(ev.scenePos(), QTransform())
-			print(str(ev.scenePos()))
-			for i in self.items():
-				print(str(i.isVisible()) + " " + str(i.boundingRect()))
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.clearSelection()
 			if it is not None:
@@ -186,7 +183,6 @@ class PFSScene(QGraphicsScene):
 		itList = self.selectedItems()
 		if len(itList) > 0:
 			self._wasMoving = True
-			pos = ev.scenePos()
 			x = pos.x() - self._lastPos.x()
 			y = pos.y() - self._lastPos.y()
 			x = PFSUndoMouseMove(itList, x, y)

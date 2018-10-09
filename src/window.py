@@ -21,7 +21,7 @@ class PFSWindow(QWidget):
 		self._sm = None
 		self._idNet = 0
 		self._lastPath = "./"
-		self._tab.currentChanged.connect(self.changeTab)
+		#self._tab.currentChanged.connect(self.changeTab)
 		self._tab.tabCloseRequested.connect(self.closeTab)
 		self._tab.setTabsClosable(True)
 		self._main = main
@@ -143,7 +143,13 @@ class PFSWindow(QWidget):
 		ans, errMsg, errLine, errColl = doc.setContent(file)
 		if not ans:
 			return
-		nets = PFSNet.createFromXml(doc, self, self._tab)
+		lay = QVBoxLayout()
+		q = QWidget()
+		q.setLayout(lay)
+		q.show()
+		i = self._tab.addTab(q, "Abrindo")
+		self._tab.update()
+		nets = PFSNet.createFromXml(doc, self)
 		if len(nets) == 0:
 			return
 		self.nonempty.emit()
@@ -198,10 +204,10 @@ class PFSWindow(QWidget):
 			for elem in aux:
 				if not (isinstance(elem, PFSActivity) or isinstance(elem, PFSDistributor)):
 					continue
-				if x > elem._x:
-					x = elem._x
-				if y > elem._y:
-					y = elem._y
+				if x > elem.x():
+					x = elem.x()
+				if y > elem.y():
+					y = elem.y()
 			self._bufferElements = []
 			for elem in aux:
 				if isinstance(elem, PFSRelation) and not(elem._source in aux and elem._target in aux):

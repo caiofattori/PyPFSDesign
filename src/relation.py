@@ -1,6 +1,6 @@
 from element import *
 from generic import *
-from PyQt5.QtCore import Qt, QPoint, QRect, QRectF, QXmlStreamWriter, QEvent
+from PyQt5.QtCore import Qt, QPointF, QRect, QRectF, QXmlStreamWriter, QEvent
 from tree import PFSTreeItem
 from image import PFSRelationIcon
 from contents import PFSRelationContent, PFSSecondaryFlowContent
@@ -72,7 +72,7 @@ class PFSRelation(PFSElement):
 		ans._id = self._id
 		ans._midPoints = []
 		for point in ans._midPoints:
-			ans._midPoints.append(QPoint(point.x()-x, point.y()-y))
+			ans._midPoints.append(QPointF(point.x()-x, point.y()-y))
 		ans._pen = self._pen
 		ans._tags = self._tags
 		ans._source = self._source._id
@@ -89,7 +89,7 @@ class PFSRelation(PFSElement):
 		for tag in content._tags:
 			ans.addTag(tag._name, tag._use, False)
 		for point in content._midPoints:
-			ans._midPoints.append(QPoint(point.x()+dx, point.y()+dy))
+			ans._midPoints.append(QPointF(point.x()+dx, point.y()+dy))
 		ans.updatePoints()
 		return ans
 	
@@ -115,10 +115,10 @@ class PFSRelation(PFSElement):
 	def updatePoints(self):
 		if len(self._midPoints) == 0:
 			if isinstance(self._source, PFSActive):
-				self._firstPoint = self._source.getBestRelationPointOutput(QRect(self._target._x, self._target._y, self._target._width, self._target._height).center(), self._sourceNum)
+				self._firstPoint = self._source.getBestRelationPointOutput(QRect(self._target.x(), self._target.y(), self._target._width, self._target._height).center(), self._sourceNum)
 				self._lastPoint = self._target.getBestRelationPointInput(self._firstPoint, self._targetNum)
 			else:
-				self._lastPoint = self._target.getBestRelationPointInput(QRect(self._source._x, self._source._y, self._source._width, self._source._height).center(), self._targetNum)
+				self._lastPoint = self._target.getBestRelationPointInput(QRect(self._source.x(), self._source.y(), self._source._width, self._source._height).center(), self._targetNum)
 				self._firstPoint = self._source.getBestRelationPointOutput(self._lastPoint, self._sourceNum)
 		else:
 			self._firstPoint = self._source.getBestRelationPointOutput(self._midPoints[0], self._sourceNum)
@@ -185,7 +185,7 @@ class PFSRelation(PFSElement):
 		PFSXmlBase.close(xml)
 		
 	def move(self, x, y):
-		delta = QPoint(x, y)
+		delta = QPointF(x, y)
 		for p in self._midPoints:
 			p += delta
 	
@@ -365,7 +365,7 @@ class PFSSecondaryFlow(PFSRelation):
 		ans._id = self._id
 		ans._midPoints = []
 		for point in ans._midPoints:
-			ans._midPoints.append(QPoint(point.x()-x, point.y()-y))
+			ans._midPoints.append(QPointF(point.x()-x, point.y()-y))
 		ans._pen = self._pen
 		ans._tags = self._tags
 		ans._source = self._source._id
@@ -380,7 +380,7 @@ class PFSSecondaryFlow(PFSRelation):
 		for tag in content._tags:
 			ans.addTag(tag._name, tag._use, False)
 		for point in content._midPoints:
-			ans._midPoints.append(QPoint(point.x()+dx, point.y()+dy))
+			ans._midPoints.append(QPointF(point.x()+dx, point.y()+dy))
 		ans.updatePoints()
 		return ans	
 	
@@ -491,10 +491,10 @@ class PFSSecondaryFlow(PFSRelation):
 	def updatePoints(self):
 		if len(self._midPoints) == 0:
 			if isinstance(self._source, PFSActive):
-				self._firstPoint = self._source.getBestRelationPointSecondary(QRect(self._target._x, self._target._y, self._target._width, self._target._height).center(), self._lineX)
+				self._firstPoint = self._source.getBestRelationPointSecondary(QRect(self._target.x(), self._target.y(), self._target._width, self._target._height).center(), self._lineX)
 				self._lastPoint = self._target.getBestRelationPointInput(self._firstPoint, 0)
 			else:
-				self._lastPoint = self._target.getBestRelationPointSecondary(QRect(self._source._x, self._source._y, self._source._width, self._source._height).center(), self._lineX)
+				self._lastPoint = self._target.getBestRelationPointSecondary(QRect(self._source.x(), self._source.y(), self._source._width, self._source._height).center(), self._lineX)
 				self._firstPoint = self._source.getBestRelationPointOutput(self._lastPoint, 0)
 		else:
 			self._firstPoint = self._source.getBestRelationPointOutput(self._midPoints[0], self._sourceNum)
