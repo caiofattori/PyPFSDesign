@@ -251,7 +251,7 @@ class PFSActivity(PFSActive):
 		
 	def getBestRelationPointOutput(self, p: QPointF, i: int) -> QPointF:
 		r = self.sceneBoundingRect()
-		x = r.left()
+		x = r.right()
 		h = (self._height - (self._outputNum - 1)*self._space)/self._outputNum
 		y0 = r.y() + (self._space + h)*i
 		y = p.y()

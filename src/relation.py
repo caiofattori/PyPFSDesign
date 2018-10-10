@@ -5,7 +5,7 @@ from tree import PFSTreeItem
 from image import PFSRelationIcon
 from contents import PFSRelationContent, PFSSecondaryFlowContent
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget
-from PyQt5.QtGui import QPainter, QIcon, QPainterPath, QPolygon, QPolygonF, QColor
+from PyQt5.QtGui import QPainter, QIcon, QPainterPath, QPolygon, QPolygonF, QColor, QPainterPathStroker
 from xml import *
 from PyQt5.QtXml import QDomNode
 from table import *
@@ -22,12 +22,13 @@ class PFSRelation(PFSElement):
 		self._midPoints = []
 		self._firstPoint = None
 		self._lastPoint = None
-		#self.updatePoints()
 		self._pen = QPen(Qt.black)
 		self._penSelected = QPen(PFSElement.SELECTED_PEN)
 		self._penSelectedAlt = QPen(PFSElement.SELECTED_PEN_ALT)
 		self._obj = PFSGraphItems()
 		self.penEdited = self._obj.penEdited
+		self._stroke = QPainterPathStroker()
+		self._stroke.setWidth(20)
 	
 	def sceneEventFilter(self, item, ev:QEvent):
 		print(ev.type())
@@ -184,6 +185,19 @@ class PFSRelation(PFSElement):
 			self._firstPoint = self._source.getBestRelationPointOutput(self._midPoints[0], self._sourceNum)
 			self._lastPoint = self._target.getBestRelationPointInput(self._midPoints[-1], self._targetNum)
 	
+	def getPath(self) -> QPainterPath:
+		pol = QPolygonF()
+		pol.append(self._firstPoint)
+		for p in self._midPoints:
+			pol.append(p)
+		pol.append(self._lastPoint)
+		ans = QPainterPath()
+		ans.addPolygon(pol)
+		return ans
+	
+	def shape(self) -> QPainterPath:
+		return self._stroke.createStroke(self.getPath())
+	
 	def paint(self, p: QPainter, o: QStyleOptionGraphicsItem, w: QWidget):
 		p.setPen(self._pen)
 		if self.isSelected():
@@ -191,12 +205,12 @@ class PFSRelation(PFSElement):
 				p.setPen(self._penSelectedAlt)
 			else:
 				p.setPen(self._penSelected)
-		lastPoint = self._firstPoint
-		for point in self._midPoints:
-			p.drawLine(lastPoint, point)
-			lastPoint = point
-		p.drawLine(lastPoint, self._lastPoint)
-		ang = math.atan2(self._lastPoint.y()-lastPoint.y(), self._lastPoint.x()-lastPoint.x())
+		path = self.getPath()
+		p.drawPath(path)
+		if len(self._midPoints) == 0:
+			ang = math.atan2(self._lastPoint.y()-self._firstPoint.y(), self._lastPoint.x()-self._firstPoint.x())
+		else:
+			ang = math.atan2(self._lastPoint.y()-self._midPoints[-1].y(), self._lastPoint.x()-self._midPoints[-1].x())
 		p.save()
 		p.translate(self._lastPoint)
 		p.rotate(ang*180/math.pi)
@@ -289,55 +303,6 @@ class PFSRelation(PFSElement):
 				re._midPoints.append(QPointF(pos.x, pos.y))
 		re._tags = tags
 		return re
-	
-	def shape(self) -> QPainterPath:
-		ans = QPainterPath()
-		f = None
-		path = QPolygonF()
-		aux = PFSPolygon()
-		p1 = self._firstPoint
-		for p2 in self._midPoints:
-			aux.setPoint(p1.x(), p1.y())
-			l = QLineF(p1, p2)
-			aux.setAngle(360-l.angle())
-			aux.translate(-90)
-			if f is None:
-				f = aux.move(5)
-				path.append(f)
-			else:
-				path.append(aux.move(5))
-			aux.translate(90)
-			path.append(aux.move(l.length()))
-			p1 = p2
-		aux.setPoint(p1.x(), p1.y())
-		l = QLineF(p1, self._lastPoint)
-		aux.setAngle(360-l.angle())
-		aux.translate(-90)
-		path.append(aux.move(5))
-		aux.translate(90)
-		path.append(aux.move(l.length()))
-		
-		p1 = self._lastPoint
-		for p2 in reversed(self._midPoints):
-			aux.setPoint(p1.x(), p1.y())
-			l = QLineF(p1, p2)
-			aux.setAngle(360-l.angle())
-			aux.translate(-90)
-			path.append(aux.move(5))
-			aux.translate(90)
-			path.append(aux.move(l.length()))
-			p1 = p2
-		
-		aux.setPoint(p1.x(), p1.y())
-		l = QLineF(p1, self._firstPoint)
-		aux.setAngle(360-l.angle())
-		aux.translate(-90)
-		path.append(aux.move(5))
-		aux.translate(90)
-		path.append(aux.move(l.length()))
-		path.append(f)
-		ans.addPolygon(path)
-		return ans
 		
 	def putInDelete(self):
 		if self.scene() is not None:
