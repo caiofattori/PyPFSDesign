@@ -1,6 +1,6 @@
 from element import *
 from generic import *
-from PyQt5.QtCore import Qt, QPoint, QRect, QRectF, QXmlStreamWriter, QEvent
+from PyQt5.QtCore import Qt, QPointF, QRect, QRectF, QXmlStreamWriter, QEvent, QLineF
 from tree import PFSTreeItem
 from image import PFSRelationIcon
 from contents import PFSRelationContent, PFSSecondaryFlowContent
@@ -10,6 +10,7 @@ from xml import *
 from PyQt5.QtXml import QDomNode
 from table import *
 from undo import *
+from polygon import PFSPolygon
 
 class PFSRelation(PFSElement):
 	def __init__(self, id: str, source: PFSNode, target: PFSNode):
@@ -32,11 +33,70 @@ class PFSRelation(PFSElement):
 		print(ev.type())
 		return QGraphicsItem.sceneEventFilter(self, item, ev)
 	
-	'''def installFilters(self):
-		if isinstance(self._source, QGraphicsItem):
-			self.installSceneEventFilter(self._source)
-		if isinstance(self._target, QGraphicsItem):
-			self.installSceneEventFilter(self._target)'''
+	def closestMiddlePoint(self, pos:QPointF):
+		d = -1
+		p1 = None
+		for p in self._midPoints:
+			aux = QLineF(pos, p).length()
+			if p1 is None or aux < d:
+				p1 = p
+				d = aux
+		return p1
+	
+	def closeMiddlePoint(self, pos:QPointF):
+		for p in self._midPoints:
+			if QLineF(pos, p).length() < 3:
+				return p
+		return None
+	
+	def closestPoint(self, pos:QPointF):
+		d = -1
+		p = None
+		p1 = self._firstPoint
+		prev = -1
+		for i in range(len(self._midPoints)):
+			p2 = self._midPoints[i]
+			l = QLineF(p1, p2)
+			x = QPointF.dotProduct(pos-p1, p2-p1)/l.length()
+			if x < 0:
+				paux = p1
+			elif x > 1:
+				paux = p2
+			else:
+				paux = l.pointAt(x)
+			aux = QLineF(paux, pos).length()
+			if p is None or aux < d:
+				p = paux
+				d = aux
+				prev = i
+			p1 = p2
+		p2 = self._lastPoint
+		l = QLineF(p1, p2)
+		x = QPointF.dotProduct(pos-p1, p2-p1)/(l.length()*l.length())
+		if x < 0:
+			paux = p1
+		elif x > 1:
+			paux = p2
+		else:
+			paux = l.pointAt(x)
+		aux = QLineF(paux, pos).length()
+		if p is None or aux < d:
+			p = paux
+			d = aux
+			prev = -1
+		return p, prev
+	
+	def addMiddlePoint(self, point:QPointF, i=-1):
+		if i < 0:
+			self._midPoints.append(point)
+		else:
+			self._midPoints.insert(i, point)
+	
+	def createMiddlePoint(self, pos:QPointF):
+		p, i = self.closestPoint(pos)
+		self.addMiddlePoint(p, i)
+		self.scene().update()
+	
 	
 	def moveX(self, txt, update=True):
 		value = float(txt)
@@ -72,7 +132,7 @@ class PFSRelation(PFSElement):
 		ans._id = self._id
 		ans._midPoints = []
 		for point in ans._midPoints:
-			ans._midPoints.append(QPoint(point.x()-x, point.y()-y))
+			ans._midPoints.append(QPointF(point.x()-x, point.y()-y))
 		ans._pen = self._pen
 		ans._tags = self._tags
 		ans._source = self._source._id
@@ -89,7 +149,7 @@ class PFSRelation(PFSElement):
 		for tag in content._tags:
 			ans.addTag(tag._name, tag._use, False)
 		for point in content._midPoints:
-			ans._midPoints.append(QPoint(point.x()+dx, point.y()+dy))
+			ans._midPoints.append(QPointF(point.x()+dx, point.y()+dy))
 		ans.updatePoints()
 		return ans
 	
@@ -115,10 +175,10 @@ class PFSRelation(PFSElement):
 	def updatePoints(self):
 		if len(self._midPoints) == 0:
 			if isinstance(self._source, PFSActive):
-				self._firstPoint = self._source.getBestRelationPointOutput(QRect(self._target._x, self._target._y, self._target._width, self._target._height).center(), self._sourceNum)
+				self._firstPoint = self._source.getBestRelationPointOutput(QRect(self._target.x(), self._target.y(), self._target._width, self._target._height).center(), self._sourceNum)
 				self._lastPoint = self._target.getBestRelationPointInput(self._firstPoint, self._targetNum)
 			else:
-				self._lastPoint = self._target.getBestRelationPointInput(QRect(self._source._x, self._source._y, self._source._width, self._source._height).center(), self._targetNum)
+				self._lastPoint = self._target.getBestRelationPointInput(QRect(self._source.x(), self._source.y(), self._source._width, self._source._height).center(), self._targetNum)
 				self._firstPoint = self._source.getBestRelationPointOutput(self._lastPoint, self._sourceNum)
 		else:
 			self._firstPoint = self._source.getBestRelationPointOutput(self._midPoints[0], self._sourceNum)
@@ -185,7 +245,7 @@ class PFSRelation(PFSElement):
 		PFSXmlBase.close(xml)
 		
 	def move(self, x, y):
-		delta = QPoint(x, y)
+		delta = QPointF(x, y)
 		for p in self._midPoints:
 			p += delta
 	
@@ -223,33 +283,61 @@ class PFSRelation(PFSElement):
 		re._targetNum = targetNum
 		if graphics is not None and graphics.line is not None:
 			re._pen = graphics.line
+		re._midPoints = []
 		if graphics is not None and graphics.pos is not None:
-			re._midPoints = graphics.pos
-		else:
-			re._midPoints = []
+			for pos in graphics.pos:
+				re._midPoints.append(QPointF(pos.x, pos.y))
 		re._tags = tags
 		return re
 	
 	def shape(self) -> QPainterPath:
-		path = QPainterPath()
-		p = QPolygon()
-		p.append(self._firstPoint)
-		for m in self._midPoints:
-			p.append(m)
-		p.append(self._lastPoint)
-		p.translate(-5, -5)
-		n = p.count()
-		finalPolygon = QPolygonF()
-		finalPolygon.append(self._firstPoint)
-		for i in range(n):
-			finalPolygon.append(p.point(i))
-		finalPolygon.append(self._lastPoint)
-		p.translate(10, 10)
-		for i in range(n):
-			finalPolygon.append(p.point(n-i-1))
-		finalPolygon.append(self._firstPoint)
-		path.addPolygon(finalPolygon)
-		return path
+		ans = QPainterPath()
+		f = None
+		path = QPolygonF()
+		aux = PFSPolygon()
+		p1 = self._firstPoint
+		for p2 in self._midPoints:
+			aux.setPoint(p1.x(), p1.y())
+			l = QLineF(p1, p2)
+			aux.setAngle(360-l.angle())
+			aux.translate(-90)
+			if f is None:
+				f = aux.move(5)
+				path.append(f)
+			else:
+				path.append(aux.move(5))
+			aux.translate(90)
+			path.append(aux.move(l.length()))
+			p1 = p2
+		aux.setPoint(p1.x(), p1.y())
+		l = QLineF(p1, self._lastPoint)
+		aux.setAngle(360-l.angle())
+		aux.translate(-90)
+		path.append(aux.move(5))
+		aux.translate(90)
+		path.append(aux.move(l.length()))
+		
+		p1 = self._lastPoint
+		for p2 in reversed(self._midPoints):
+			aux.setPoint(p1.x(), p1.y())
+			l = QLineF(p1, p2)
+			aux.setAngle(360-l.angle())
+			aux.translate(-90)
+			path.append(aux.move(5))
+			aux.translate(90)
+			path.append(aux.move(l.length()))
+			p1 = p2
+		
+		aux.setPoint(p1.x(), p1.y())
+		l = QLineF(p1, self._firstPoint)
+		aux.setAngle(360-l.angle())
+		aux.translate(-90)
+		path.append(aux.move(5))
+		aux.translate(90)
+		path.append(aux.move(l.length()))
+		path.append(f)
+		ans.addPolygon(path)
+		return ans
 		
 	def putInDelete(self):
 		if self.scene() is not None:
@@ -365,7 +453,7 @@ class PFSSecondaryFlow(PFSRelation):
 		ans._id = self._id
 		ans._midPoints = []
 		for point in ans._midPoints:
-			ans._midPoints.append(QPoint(point.x()-x, point.y()-y))
+			ans._midPoints.append(QPointF(point.x()-x, point.y()-y))
 		ans._pen = self._pen
 		ans._tags = self._tags
 		ans._source = self._source._id
@@ -380,7 +468,7 @@ class PFSSecondaryFlow(PFSRelation):
 		for tag in content._tags:
 			ans.addTag(tag._name, tag._use, False)
 		for point in content._midPoints:
-			ans._midPoints.append(QPoint(point.x()+dx, point.y()+dy))
+			ans._midPoints.append(QPointF(point.x()+dx, point.y()+dy))
 		ans.updatePoints()
 		return ans	
 	
@@ -491,10 +579,10 @@ class PFSSecondaryFlow(PFSRelation):
 	def updatePoints(self):
 		if len(self._midPoints) == 0:
 			if isinstance(self._source, PFSActive):
-				self._firstPoint = self._source.getBestRelationPointSecondary(QRect(self._target._x, self._target._y, self._target._width, self._target._height).center(), self._lineX)
+				self._firstPoint = self._source.getBestRelationPointSecondary(QRect(self._target.x(), self._target.y(), self._target._width, self._target._height).center(), self._lineX)
 				self._lastPoint = self._target.getBestRelationPointInput(self._firstPoint, 0)
 			else:
-				self._lastPoint = self._target.getBestRelationPointSecondary(QRect(self._source._x, self._source._y, self._source._width, self._source._height).center(), self._lineX)
+				self._lastPoint = self._target.getBestRelationPointSecondary(QRect(self._source.x(), self._source.y(), self._source._width, self._source._height).center(), self._lineX)
 				self._firstPoint = self._source.getBestRelationPointOutput(self._lastPoint, 0)
 		else:
 			self._firstPoint = self._source.getBestRelationPointOutput(self._midPoints[0], self._sourceNum)

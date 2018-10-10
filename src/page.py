@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QTabWidget, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QUndoStack, QTableWidget
-from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPoint, QXmlStreamWriter, QSize
+from PyQt5.QtCore import Qt, pyqtSignal, QRect, QPointF, QXmlStreamWriter, QSize
 from PyQt5.QtGui import QKeySequence, QIcon
 from PyQt5.QtXml import QDomDocument, QDomNode
 from generic import PFSNode, PFSBasicElement
@@ -16,11 +16,10 @@ from tree import PFSTreeItem
 from contents import *
 from relation import *
 
-class PFSPage(PFSBasicElement, QWidget):
+class PFSPage(QWidget, PFSBasicElement):
 	clicked = pyqtSignal()
 	def __init__(self, id: str, w: int, h: int, stateMachine: PFSStateMachine, net):
-		PFSBasicElement.__init__(self, id)
-		QWidget.__init__(self)
+		super().__init__(id=id)
 		self._id = id
 		self._net = net
 		self._scene = PFSScene(w, h, stateMachine, self)
@@ -222,7 +221,8 @@ class PFSPage(PFSBasicElement, QWidget):
 		return None
 	
 	def createFromContent(content: PFSPageContent, sm, net):
-		page = PFSPage(content._id, content._width, content._height, sm, net)
+		page = PFSPage.newPage(content._id, sm, net, content._width, content._height)
+
 		for tag in content._tags:
 			page.addTag(tag._name, tag._use)
 		items = {}
@@ -265,7 +265,8 @@ class PFSPage(PFSBasicElement, QWidget):
 				it = PFSRelation.createRelation(item._id, source, target)
 				it._sourceNum = item._sourceNum
 				it._targetNum = item._targetNum
-				it._midPoints = item._midPoints
+				for point in item._midPoints:
+					it._midPoints.append(QPointF(point.x(), point.y()))
 				it.updatePoints()
 				it._pen = item._pen
 				for tag in item._tags:
@@ -285,9 +286,6 @@ class PFSPage(PFSBasicElement, QWidget):
 				items[item._id] = it
 		for i, item in items.items():
 			page._scene.addItem(item)
-		'''for item in page._scene.items():
-			if isinstance(item, PFSRelation):
-				item.installFilters()'''
 		return page
 	
 	def getAllSubPages(self):
@@ -573,7 +571,7 @@ class PFSNet(QWidget):
 						page.setName("Ref_" + elem._id)
 						break
 			net._page = aux["main"]
-			net._pages = [aux["main"]]
+			net._pages.append(aux["main"])
 			net.tree()
 			nets.append(net)
 		return nets	

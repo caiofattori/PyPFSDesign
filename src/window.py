@@ -21,7 +21,7 @@ class PFSWindow(QWidget):
 		self._sm = None
 		self._idNet = 0
 		self._lastPath = "./"
-		self._tab.currentChanged.connect(self.changeTab)
+		#self._tab.currentChanged.connect(self.changeTab)
 		self._tab.tabCloseRequested.connect(self.closeTab)
 		self._tab.setTabsClosable(True)
 		self._main = main
@@ -160,6 +160,9 @@ class PFSWindow(QWidget):
 			if self._tab.count() == 1:
 				self.updateUndoRedoAction()
 			self._sm.fixTransitions(net._pages[0]._scene)
+			self.nonempty.emit()
+			if self._tab.count() == 1:
+				self.updateUndoRedoAction()
 	
 	def updateUndoRedoAction(self):
 		self._main.undoToolBar.clear()
@@ -198,10 +201,10 @@ class PFSWindow(QWidget):
 			for elem in aux:
 				if not (isinstance(elem, PFSActivity) or isinstance(elem, PFSDistributor)):
 					continue
-				if x > elem._x:
-					x = elem._x
-				if y > elem._y:
-					y = elem._y
+				if x > elem.x():
+					x = elem.x()
+				if y > elem.y():
+					y = elem.y()
 			self._bufferElements = []
 			for elem in aux:
 				if isinstance(elem, PFSRelation) and not(elem._source in aux and elem._target in aux):
