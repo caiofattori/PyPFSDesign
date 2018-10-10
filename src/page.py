@@ -417,10 +417,11 @@ class PFSPage(QWidget, PFSBasicElement):
 
 class PFSNet(QWidget):
 	changed = pyqtSignal()
-	def __init__(self, id: str, window):
+	def __init__(self, id: str, window, tempName = None):
 		super(QWidget, self).__init__()
 		self._filename = None
 		self._filepath = None
+		self._tempName = tempName
 		self._id = id
 		layout = QHBoxLayout()
 		self._tab = QTabWidget()
@@ -577,16 +578,18 @@ class PFSNet(QWidget):
 		return nets	
 	
 	def getTabName(self) -> str:
-		if self._filename is None:
+		if self._filename is None and self._tempName is None:
 			ans = "New model"
+		elif self._filename is None:
+			ans = self._tempName
 		else:
 			ans = self._filename
 		if self.undoStack.isClean():
 			return ans
 		return ans + "*"
 		
-	def newNet(id, window):
-		ans = PFSNet(id, window)
+	def newNet(id, window, tempName="newmodel.xml"):
+		ans = PFSNet(id, window, tempName)
 		page = PFSPage.newPage(ans.requestId(PFSPage), window._sm, ans)
 		ans._page = page
 		ans._pages.append(page)
