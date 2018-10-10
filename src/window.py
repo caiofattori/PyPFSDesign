@@ -30,6 +30,12 @@ class PFSWindow(QWidget):
 		timer.start(30000)
 		self._bufferElements = []
 		self._pasteRect = None
+		self._countNewPages = 0
+	
+	def getNewTemporaryName(self):
+		name = "newmodel" + str(self._countNewPages) + ".xml"
+		self._countNewPages = self._countNewPages + 1
+		return name
 	
 	def changeTab(self, index: int):
 		if index < 0:
@@ -67,7 +73,7 @@ class PFSWindow(QWidget):
 		self._sm = sm
 		
 	def newNet(self):
-		w = PFSNet.newNet("n" + str(self._idNet), self)
+		w = PFSNet.newNet("n" + str(self._idNet), self, self.getNewTemporaryName())
 		w.undoStack.cleanChanged.connect(self.changeCurrentTabName)
 		self._idNet = self._idNet + 1
 		i = self._tab.addTab(w, w.getTabName())
@@ -77,14 +83,15 @@ class PFSWindow(QWidget):
 		if self._tab.count() == 1:
 			self.updateUndoRedoAction()
 	
-	def saveFile(self, net, filepath, filename):
+	def saveFile(self, net, filepath, filename, store=True):
 		file = QFile(QFileInfo(QDir(filepath), filename).absoluteFilePath())
 		file.open(QIODevice.WriteOnly)
 		xml = QXmlStreamWriter(file)
 		net.generateXml(xml)
 		file.close()
-		net._filename = filename
-		net._filepath = filepath
+		if store:
+			net._filename = filename
+			net._filepath = filepath
 		self._tab.setTabText(self._tab.currentIndex(), net.getTabName())
 		
 	def autoSave(self):
@@ -93,12 +100,15 @@ class PFSWindow(QWidget):
 			if net.undoStack.isClean():
 				continue
 			if net._filename is None:
-				filename = "newmodel.xml~"
+				if net._tempName is None:
+					filename = "newmodel.xml~"
+				else:
+					filename = net._tempName + "~"
 				filepath = self._lastPath
 			else:
 				filename = net._filename + "~"
 				filepath = net._filepath
-			self.saveFile(net, filepath, filename)
+			self.saveFile(net, filepath, filename, False)
 	
 	def saveAsNet(self):
 		net = self._tab.currentWidget()
@@ -201,10 +211,10 @@ class PFSWindow(QWidget):
 			for elem in aux:
 				if not (isinstance(elem, PFSActivity) or isinstance(elem, PFSDistributor)):
 					continue
-				if x > elem._x:
-					x = elem._x
-				if y > elem._y:
-					y = elem._y
+				if x > elem.x():
+					x = elem.x()
+				if y > elem.y():
+					y = elem.y()
 			self._bufferElements = []
 			for elem in aux:
 				if isinstance(elem, PFSRelation) and not(elem._source in aux and elem._target in aux):

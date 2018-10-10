@@ -163,8 +163,7 @@ class PFSNode(PFSElement):
 	
 	def __init__(self, id: str, x: int, y: int):
 		PFSElement.__init__(self, id)
-		self._x = x
-		self._y = y
+		self.setPos(x/2, y/2)
 		self._width = 0
 		self._height = 0
 		self._pen = QPen(Qt.black)
@@ -175,8 +174,7 @@ class PFSNode(PFSElement):
 		self.penEdited = self.emitter.penEdited
 		
 	def move(self, x, y):
-		self._x = self._x + x
-		self._y = self._y + y
+		self.moveBy(x/2, y/2)
 		self.changed.emit()
 		for it in self.scene().items():
 			print(str(it.__class__) + " " + str(it.shape().boundingRect()))
@@ -236,12 +234,12 @@ class PFSNode(PFSElement):
 			self.scene()._page._net.undoStack.push(x)
 	
 	def moveX(self, txt, update=True):
-		self._x = self._x + float(txt)
+		self.moveBy(float(txt)/2, 0)
 		if update:
 			self.scene().update()
 	
 	def moveY(self, txt, update=True):
-		self._y = self._y + float(txt)
+		self.moveBy(0, float(txt)/2)
 		if update:
 			self.scene().update()	
 	
