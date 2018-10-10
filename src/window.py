@@ -143,12 +143,6 @@ class PFSWindow(QWidget):
 		ans, errMsg, errLine, errColl = doc.setContent(file)
 		if not ans:
 			return
-		lay = QVBoxLayout()
-		q = QWidget()
-		q.setLayout(lay)
-		q.show()
-		i = self._tab.addTab(q, "Abrindo")
-		self._tab.update()
 		nets = PFSNet.createFromXml(doc, self)
 		if len(nets) == 0:
 			return
@@ -166,6 +160,9 @@ class PFSWindow(QWidget):
 			if self._tab.count() == 1:
 				self.updateUndoRedoAction()
 			self._sm.fixTransitions(net._pages[0]._scene)
+			self.nonempty.emit()
+			if self._tab.count() == 1:
+				self.updateUndoRedoAction()
 	
 	def updateUndoRedoAction(self):
 		self._main.undoToolBar.clear()

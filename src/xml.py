@@ -44,8 +44,8 @@ class PFSXmlBase:
 		if not (node.hasAttributes() and node.attributes().contains("x") and node.attributes().contains("y")):
 			return None
 		ans = PFSAux()
-		ans.x = int(float(node.attributes().namedItem("x").nodeValue()))
-		ans.y = int(float(node.attributes().namedItem("y").nodeValue()))
+		ans.x = float(node.attributes().namedItem("x").nodeValue())
+		ans.y = float(node.attributes().namedItem("y").nodeValue())
 		return ans
 		
 	def font(xml: QXmlStreamWriter, font: QFont, align: str="left", rotation: int=0, tag: str="font"):
@@ -154,8 +154,6 @@ class PFSXmlBase:
 					xml.writeAttribute("gradient-rotation", "diagonal")
 			xml.writeAttribute("color", grad.stops()[0][1].name())
 			xml.writeAttribute("gradient-color", grad.stops()[1][1].name())
-		#elif brush.textureImage() is not None:
-		#	xml.writeAttribute("image", brush.textureImage().uri())
 		else:
 			xml.writeAttribute("color", brush.color().name())
 		xml.writeEndElement() #fecha fill

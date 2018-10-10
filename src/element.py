@@ -183,11 +183,11 @@ class PFSActivity(PFSActive):
 		
 	def setText(self, text: str):
 		self._text = text
-		r = self.minimunSize()
-		if self._width < r.width():
-			self._width = r.width()
-		if self._height < r.height():
-			self._height = r.height()
+		s = self.minimunSize()
+		if self._width < s.width():
+			self._width = s.width()
+		if self._height < s.height():
+			self._height = s.height()
 		if self.scene() is not None:
 			self.scene().update()
 			self.changed.emit()
@@ -219,27 +219,29 @@ class PFSActivity(PFSActive):
 		return QSizeF(self._minWidth, self._minHeight)
 	
 	def boundingRect(self):
-		r = self.minimunSize()
-		width = max(self._width,r.width()) 
-		height = max(self._height,r.height())
+		s = self.minimunSize()
+		width = max(self._width,s.width()) 
+		height = max(self._height,s.height())
 		return QRectF(self.x(), self.y(), width, height)
 	
 	def getBestRelationPoint(self, p: QPointF) -> QPointF:
-		if p.x() > self.x() + self._width/2:
-			x = self.x() + self._width
+		r = self.sceneBoundingRect()
+		if p.x() > r.center().x():
+			x = r.right()
 		else:
-			x = self.x()
+			x = r.x()
 		y = p.y()
-		if p.y() < self.y():
-			y = self.y()
-		elif p.y() > self.y() + self._height:
-			y = self.y() + self._height
+		if p.y() < r.y():
+			y = r.y()
+		elif p.y() > r.bottom():
+			y = r.bottom()
 		return QPointF(x, y)
 		
 	def getBestRelationPointInput(self, p: QPointF, i: int) -> QPointF:
-		x = self.x()
+		r = self.sceneBoundingRect()
+		x = r.x()
 		h = (self._height - (self._inputNum - 1)*self._space)/self._inputNum
-		y0 = self.y() + (self._space + h)*i
+		y0 = r.y() + (self._space + h)*i
 		y = p.y()
 		if y < y0:
 			y = y0
@@ -248,9 +250,10 @@ class PFSActivity(PFSActive):
 		return QPointF(x, y)
 		
 	def getBestRelationPointOutput(self, p: QPointF, i: int) -> QPointF:
-		x = self.x() + self._width
+		r = self.sceneBoundingRect()
+		x = r.left()
 		h = (self._height - (self._outputNum - 1)*self._space)/self._outputNum
-		y0 = self.y() + (self._space + h)*i
+		y0 = r.y() + (self._space + h)*i
 		y = p.y()
 		if y < y0:
 			y = y0
@@ -259,10 +262,11 @@ class PFSActivity(PFSActive):
 		return QPointF(x, y)
 	
 	def getBestRelationPointSecondary(self, p: QPointF, posX: float) -> QPointF:
-		x = self.x() + 6 + posX/100*(self._width - 12)
-		y = self.y()
-		if p.y() > self.y() + self._height:
-			y = self.y() + self._height
+		r = self.sceneBoundingRect()
+		x = r.x() + 6 + posX/100*(self._width - 12)
+		y = r.y()
+		if p.y() > r.center().y():
+			y = r.bottom()
 		return QPointF(x, y)
 	
 	def propertiesTable(self):
@@ -431,13 +435,14 @@ class PFSOpenActivity(PFSActive):
 			return None
 		ref = self.scene()._page._subRef
 		h = (self._h - (ref._inputNum - 1)*self._space)/ref._inputNum
-		y0 = self.y() + (self._space + h)*i
+		r = self.sceneBoundingRect()
+		y0 = r.y() + (self._space + h)*i
 		y = p.y()
 		if y < y0:
 			y = y0
 		elif y > y0 + h:
 			y = y0 + h		
-		return QPointF(self.x(), y)
+		return QPointF(r.x(), y)
 	
 	def getBestRelationPointInput(self, p: QPointF, i: int) -> QPointF:
 		return self.getBestRelationPoint(p, i)
@@ -588,13 +593,14 @@ class PFSCloseActivity(PFSActive):
 			return None
 		ref = self.scene()._page._subRef
 		h = (self._h - (ref._outputNum - 1)*self._space)/ref._outputNum
-		y0 = self.y() + (self._space + h)*i
+		r = self.sceneBoundingRect()
+		y0 = r.y() + (self._space + h)*i
 		y = p.y()
 		if y < y0:
 			y = y0
 		elif y > y0 + h:
 			y = y0 + h		
-		return QPointF(self.x(), y)
+		return QPointF(r.x(), y)
 	
 	def getBestRelationPointInput(self, p: QPointF, i: int) -> QPointF:
 		return self.getBestRelationPoint(p, i)
@@ -780,8 +786,9 @@ class PFSDistributor(PFSPassive):
 	def getBestRelationPoint(self, p: QPointF) -> QPointF:
 		if p is None:
 			return None
-		x = self.x() + self._width/2
-		y = self.y() + self._height/2
+		r = self.sceneBoundingRect()
+		x = r.center().x()
+		y = r.center().y()
 		ang = math.atan2(p.y()-y, p.x()-x)
 		return QPointF(math.cos(ang)*self._width/2 + x, math.sin(ang)*self._height/2 + y)
 	

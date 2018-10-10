@@ -220,8 +220,9 @@ class PFSPage(QWidget, PFSBasicElement):
 			return page
 		return None
 	
-	def createFromContent(content: PFSPageContent, sm, net, window):
-		page = PFSPage(content._id, content._width, content._height, sm, net)
+	def createFromContent(content: PFSPageContent, sm, net):
+		page = PFSPage.newPage(content._id, sm, net, content._width, content._height)
+
 		for tag in content._tags:
 			page.addTag(tag._name, tag._use)
 		items = {}
@@ -265,7 +266,7 @@ class PFSPage(QWidget, PFSBasicElement):
 				it._sourceNum = item._sourceNum
 				it._targetNum = item._targetNum
 				for point in item._midPoints:
-					it._midPoints.append(QPointF(point.x, point.y))
+					it._midPoints.append(QPointF(point.x(), point.y()))
 				it.updatePoints()
 				it._pen = item._pen
 				for tag in item._tags:
@@ -283,17 +284,8 @@ class PFSPage(QWidget, PFSBasicElement):
 				for tag in item._tags:
 					it.addTag(tag._name, tag._use, False)				
 				items[item._id] = it
-		#tab.blockSignals(True)
-		x = QWidget()
-		page.show()
-		indice = window._tab.addTab(page, "Abrindo")
-		window._tab.setCurrentIndex(indice)
-		window._tab.update()
 		for i, item in items.items():
 			page._scene.addItem(item)
-		page._scene.update()
-		#window._tab.removeTab(indice)
-		#tab.blockSignals(False)
 		return page
 	
 	def getAllSubPages(self):
@@ -547,7 +539,7 @@ class PFSNet(QWidget):
 				continue
 			aux = {}
 			for page in pages:
-				p = PFSPage.createFromContent(page, window._sm, net, window)
+				p = PFSPage.createFromContent(page, window._sm, net)
 				if p is not None:
 					i = page._ref
 					if i is None or not i:

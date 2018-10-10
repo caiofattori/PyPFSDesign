@@ -1,1 +1,1 @@
-python3 src/window.py
+python3 -m pdb src/window.py
