@@ -222,7 +222,8 @@ class PFSPage(PFSBasicElement, QWidget):
 		return None
 	
 	def createFromContent(content: PFSPageContent, sm, net):
-		page = PFSPage(content._id, content._width, content._height, sm, net)
+		page = PFSPage.newPage(content._id, sm, net, content._width, content._height)
+		#page = PFSPage(content._id, content._width, content._height, sm, net)
 		for tag in content._tags:
 			page.addTag(tag._name, tag._use)
 		items = {}
@@ -574,6 +575,7 @@ class PFSNet(QWidget):
 						break
 			net._page = aux["main"]
 			net._pages = [aux["main"]]
+			net.tree()
 			nets.append(net)
 		return nets	
 	

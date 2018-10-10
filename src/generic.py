@@ -178,6 +178,8 @@ class PFSNode(PFSElement):
 		self._x = self._x + x
 		self._y = self._y + y
 		self.changed.emit()
+		for it in self.scene().items():
+			print(str(it.__class__) + " " + str(it.shape().boundingRect()))
 	
 	def setPenColor(self, color: QColor):
 		self._pen.setColor(color)

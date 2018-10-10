@@ -59,6 +59,7 @@ class PFSScene(QGraphicsScene):
 			return
 		self._lastPos = ev.scenePos()
 		self._lastItemClicked = self.itemAt(ev.scenePos(), QTransform())
+		print(ev.scenePos())
 		if self._parentState._sPasting:
 			self._page._net.pasteItems(self._lastPos)
 			self.inserted.emit()
@@ -120,6 +121,9 @@ class PFSScene(QGraphicsScene):
 					if not it.hasSubPage():
 						self._page._net.createPage(it)
 					self._page._net.openPage(it)
+				elif isinstance(it, PFSRelation):
+					if not it.closeMiddlePoint(ev.scenePos()):
+						it.createMiddlePoint(ev.scenePos())
 			return
 		if self._parentState._sTiping:
 			it = self._lastItemClicked

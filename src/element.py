@@ -1,7 +1,7 @@
 from generic import *
 from xml import PFSXmlBase
 from PyQt5.QtXml import QDomNode
-from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject, QPointF
+from PyQt5.QtCore import Qt, QRectF, QXmlStreamReader, QXmlStreamWriter, QPoint, pyqtSignal, QObject, QPointF, QSizeF
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QBrush, QPainter, QPainterPath, QPolygon, QPolygonF, QColor, QIcon
 from PyQt5.QtWidgets import QStyleOptionGraphicsItem, QWidget, QFontDialog, QColorDialog, QTreeWidgetItem
 import math
@@ -183,11 +183,11 @@ class PFSActivity(PFSActive):
 		
 	def setText(self, text: str):
 		self._text = text
-		r = self.minimunRect()
-		if self._width < r.width():
-			self._width = r.width()
-		if self._height < r.height():
-			self._height = r.height()
+		s = self.minimunSize()
+		if self._width < s.width():
+			self._width = s.width()
+		if self._height < s.height():
+			self._height = s.height()
 		if self.scene() is not None:
 			self.scene().update()
 			self.changed.emit()
@@ -212,17 +212,19 @@ class PFSActivity(PFSActive):
 	def getText(self):
 		return self._text
 		
-	def minimunRect(self):
+	def minimunSize(self):
 		s = self._fontMetrics.size(Qt.TextExpandTabs, self._text)
 		self._minWidth = s.width() + 15
 		self._minHeight = s.height() + 4
-		return QRectF(self._x, self._y, self._minWidth, self._minHeight)
+		return QSizeF(self._minWidth, self._minHeight)
 	
 	def boundingRect(self):
-		r = self.minimunRect()
-		width = max(self._width,r.width()) 
-		height = max(self._height,r.height())
-		return QRectF(self._x, self._y, width, height)
+		s = self.minimunSize()
+		width = max(self._width,s.width()) 
+		height = max(self._height,s.height())
+		r = QRectF(self._x, self._y, width, height)
+		#print(r)
+		return r
 	
 	def getBestRelationPoint(self, p: QPoint) -> QPoint:
 		if p.x() > self._x + self._width/2:
