@@ -18,6 +18,7 @@ class PFSWindow(QWidget):
 		self.setLayout(mainLayout)
 		self._tab = QTabWidget()
 		mainLayout.addWidget(self._tab)
+		self._tab.setHidden(True)
 		self._sm = None
 		self._idNet = 0
 		self._lastPath = "./"
@@ -66,6 +67,7 @@ class PFSWindow(QWidget):
 			if ans == QMessageBox.Save:
 				self.saveNet()
 		if self._tab.count() == 1:
+			self._tab.setHidden(True)
 			self.empty.emit()
 		self._tab.removeTab(index)
 	
@@ -77,6 +79,7 @@ class PFSWindow(QWidget):
 		w.undoStack.cleanChanged.connect(self.changeCurrentTabName)
 		self._idNet = self._idNet + 1
 		i = self._tab.addTab(w, w.getTabName())
+		self._tab.setVisible(True)
 		self._tab.setCurrentIndex(i)
 		self._sm.fixTransitions(w._pages[0]._scene)
 		self.nonempty.emit()
@@ -166,6 +169,7 @@ class PFSWindow(QWidget):
 			net.undoStack.cleanChanged.connect(self.changeCurrentTabName)
 			self._idNet = self._idNet + 1
 			i = self._tab.addTab(net, net.getTabName())
+			self._tab.setVisible(True)
 			self._tab.setCurrentIndex(i)
 			if self._tab.count() == 1:
 				self.updateUndoRedoAction()
