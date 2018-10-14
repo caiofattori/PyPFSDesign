@@ -17,3 +17,7 @@ For Linux users:
 For windows users:
 * Make sure that python3's bin folder is in your PATH.
 * Run the file pfsdesign.bat
+
+## Credits
+
+Icons were obtained from Nitrux, in https://github.com/Nitrux/compass-icon-theme

@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QToolBar, QMainWindow, QTabWidget, QAction, QFileDialog, QMessageBox, QMenu
 from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, QFileInfo, QDir, pyqtSignal, QTimer, QRect
 from PyQt5.QtXml import QDomDocument
-from toolbutton import PFSActivityButton, PFSDistributorButton, PFSRelationButton, PFSSecondaryFlowButton
+from toolbutton import *
 from page import PFSNet
 from PyQt5.QtGui import QIcon, QKeySequence
 from statemachine import PFSStateMachine
@@ -306,6 +306,9 @@ class PFSMain(QMainWindow):
 		toolBar.addAction(actDelete)
 		self.actDelete = actDelete
 		toolBar = self.addToolBar("Elements")
+		self.btnEditPoint = PFSEditPointButton()
+		ac = toolBar.addWidget(self.btnEditPoint)
+		ac.setVisible(True)
 		self.btnActivity = PFSActivityButton()
 		ac = toolBar.addWidget(self.btnActivity)
 		ac.setVisible(True)

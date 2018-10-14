@@ -26,6 +26,22 @@ class PFSStatePasting(QState):
 		self._statusBar.showMessage("")
 		self.machine()._sPasting = False
 		self._button.setChecked(False)
+
+class PFSStateEditPoint(QState):
+	def __init__(self, window):
+		super(QState, self).__init__()
+		self._statusBar = window.statusBar()
+		self._button = window.btnEditPoint
+		
+	def onEntry(self, ev: QEvent):
+		self._statusBar.showMessage("No botão que deseja editar")
+		self.machine()._sEditPoint = True
+		self._button.setChecked(True)
+		
+	def onExit(self, ev: QEvent):
+		self._statusBar.showMessage("")
+		self.machine()._sEditPoint = False
+		self._button.setChecked(False)
 		
 class PFSStateInsActivity(QState):
 	def __init__(self, window):
@@ -148,6 +164,7 @@ class PFSStateMachine(QStateMachine):
 		self._sPasting = False
 		self._sSFlowS = False
 		self._sSFlowT = False
+		self._sEditPoint = False
 		normal = PFSStateNormal()
 		insActivity = PFSStateInsActivity(window)
 		insDistributor = PFSStateInsDistributor(window)
@@ -155,6 +172,7 @@ class PFSStateMachine(QStateMachine):
 		insRelationT = PFSStateInsRelationTarget(window)
 		tiping = PFSStateTiping(window)
 		pasting = PFSStatePasting(window)
+		point = PFSStateEditPoint(window)
 		insSecFlowS = PFSStateInsSecondaryFlowSource(window)
 		insSecFlowT = PFSStateInsSecondaryFlowTarget(window)
 		normal.addTransition(window.btnActivity.clicked, insActivity)
@@ -199,6 +217,22 @@ class PFSStateMachine(QStateMachine):
 		insSecFlowS.addTransition(window.btnRelation.clicked, insRelationS)
 		insRelationT.addTransition(window.btnSecFlow.clicked, insSecFlowS)
 		insSecFlowT.addTransition(window.btnRelation.clicked, insRelationS)
+		#create transitions of edit point state for future reference
+		point.addTransition(window.btnEditPoint.clicked, normal)
+		point.addTransition(window.btnActivity.clicked, insActivity)
+		point.addTransition(window.btnDistributor.clicked, insDistributor)
+		point.addTransition(window.btnRelation.clicked, insRelationS)
+		point.addTransition(window.btnSecFlow.clicked, insSecFlowS)
+		point.addTransition(window.paste, pasting)
+		normal.addTransition(window.btnEditPoint.clicked, point)
+		insDistributor.addTransition(window.btnEditPoint.clicked, point)
+		insActivity.addTransition(window.btnEditPoint.clicked, point)
+		insRelationS.addTransition(window.btnEditPoint.clicked, point)
+		insRelationT.addTransition(window.btnEditPoint.clicked, point)
+		insSecFlowS.addTransition(window.btnEditPoint.clicked, point)
+		insSecFlowT.addTransition(window.btnEditPoint.clicked, point)
+		
+		self.editPoint = point
 		self.insActivity = insActivity
 		self.normal = normal
 		self.insDistributor = insDistributor
@@ -217,6 +251,7 @@ class PFSStateMachine(QStateMachine):
 		self.addState(insSecFlowT)
 		self.addState(tiping)
 		self.addState(pasting)
+		self.addState(point)
 		self.setInitialState(normal)
 		
 	def fixTransitions(self, scene):

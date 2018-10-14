@@ -39,7 +39,7 @@ class PFSScene(QGraphicsScene):
 		
 	def mouseReleaseEvent(self, ev: QGraphicsSceneMouseEvent):
 		if self._parentState._sNormal and not self._wasMoving:
-			it = self.itemAt(ev.scenePos(), QTransform())
+			it = self.itemAt(ev.scenePos(), QTransform())	
 			if int(ev.modifiers()) & Qt.ShiftModifier == 0:
 				self.clearSelection()
 			if it is not None:

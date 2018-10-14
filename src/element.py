@@ -96,7 +96,7 @@ class PFSActivity(PFSActive):
 		xml.writeAttribute("id", self._id)
 		xml.writeAttribute("inputnum", str(self._inputNum))
 		xml.writeAttribute("outputnum", str(self._outputNum))
-		PFSXmlBase.graphicsNode(xml, QRectF(self.x(), self.y(), self._width, self._height), self._pen, self._brush)
+		PFSXmlBase.graphicsNode(xml, QRectF(self.x()*2, self.y()*2, self._width, self._height), self._pen, self._brush)
 		PFSXmlBase.text(xml, self._text, 0, 0, font=self._textFont, tag="text", align="center")
 		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha activity
@@ -400,7 +400,7 @@ class PFSOpenActivity(PFSActive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("openactivity")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, QRectF(self.x(), self.y(), 6, self._h), self.scene()._page._subRef._pen, None)
+		PFSXmlBase.graphicsNode(xml, QRectF(self.x()*2, self.y()*2, 6, self._h), self.scene()._page._subRef._pen, None)
 		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha openactivity
 		PFSXmlBase.close(xml)
@@ -558,7 +558,7 @@ class PFSCloseActivity(PFSActive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("closeactivity")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, QRectF(self.x() - 6, self.y(), 6, self._h), self.scene()._page._subRef._pen, None)
+		PFSXmlBase.graphicsNode(xml, QRectF(self.x()*2 - 6, self.y()*2, 6, self._h), self.scene()._page._subRef._pen, None)
 		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha closeactivity
 		PFSXmlBase.close(xml)
@@ -735,7 +735,7 @@ class PFSDistributor(PFSPassive):
 		PFSXmlBase.open(xml)
 		xml.writeStartElement("distributor")
 		xml.writeAttribute("id", self._id)
-		PFSXmlBase.graphicsNode(xml, QRectF(self.x(), self.y(), self._width, self._height), self._pen, self._brush)
+		PFSXmlBase.graphicsNode(xml, QRectF(self.x()*2, self.y()*2, self._width, self._height), self._pen, self._brush)
 		PFSBasicElement.generateXml(self, xml)
 		xml.writeEndElement() #fecha distributor
 		PFSXmlBase.close(xml)
