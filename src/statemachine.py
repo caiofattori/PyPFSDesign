@@ -1,5 +1,6 @@
-from PyQt5.QtCore import QStateMachine, QState, QEvent
+from PyQt5.QtCore import QStateMachine, QState, QEvent, Qt
 from PyQt5.QtWidgets import QStatusBar
+from PyQt5.QtGui import QCursor
 
 class PFSStateNormal(QState):
 	def __init__(self):
@@ -32,13 +33,18 @@ class PFSStateEditPoint(QState):
 		super(QState, self).__init__()
 		self._statusBar = window.statusBar()
 		self._button = window.btnEditPoint
+		self._tab = window.wind._tab
 		
 	def onEntry(self, ev: QEvent):
-		self._statusBar.showMessage("No botão que deseja editar")
+		self._tab.currentWidget()._tab.setCursor(QCursor(Qt.CrossCursor))
+		self._tab.currentWidget()._tab.currentWidget()._scene.update()
+		self._statusBar.showMessage("No ponto que deseja mover")
 		self.machine()._sEditPoint = True
 		self._button.setChecked(True)
 		
 	def onExit(self, ev: QEvent):
+		self._tab.currentWidget()._tab.setCursor(QCursor(Qt.ArrowCursor))
+		self._tab.currentWidget()._tab.currentWidget()._scene.update()
 		self._statusBar.showMessage("")
 		self.machine()._sEditPoint = False
 		self._button.setChecked(False)
@@ -224,6 +230,7 @@ class PFSStateMachine(QStateMachine):
 		point.addTransition(window.btnRelation.clicked, insRelationS)
 		point.addTransition(window.btnSecFlow.clicked, insSecFlowS)
 		point.addTransition(window.paste, pasting)
+		point.addTransition(window.tabChanged, normal)
 		normal.addTransition(window.btnEditPoint.clicked, point)
 		insDistributor.addTransition(window.btnEditPoint.clicked, point)
 		insActivity.addTransition(window.btnEditPoint.clicked, point)

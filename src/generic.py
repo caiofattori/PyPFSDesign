@@ -77,7 +77,10 @@ class PFSBasicElement(object):
 	def __init__(self, id):
 		self._id = id
 		self._tags = []
-		
+	
+	def idItem(self):
+		return self._id
+	
 	def addTag(self, name, use=""):
 		tag = PFSTags(name, use)
 		tag.removed.connect(self.deleteTag)
@@ -176,8 +179,6 @@ class PFSNode(PFSElement):
 	def move(self, x, y):
 		self.moveBy(x/2, y/2)
 		self.changed.emit()
-		for it in self.scene().items():
-			print(str(it.__class__) + " " + str(it.shape().boundingRect()))
 	
 	def setPenColor(self, color: QColor):
 		self._pen.setColor(color)

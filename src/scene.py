@@ -36,6 +36,9 @@ class PFSScene(QGraphicsScene):
 		sy = int(h/self.DELTA - 1)
 		self._backgroundPoints = [QPointF((i+0.5)*self.DELTA, (j+0.5)*self.DELTA) for i in range(sx) for j in range(sy)]
 		self.update()
+	
+	def mouseDoubleClickEvent(self, ev: QGraphicsSceneMouseEvent):
+		return
 		
 	def mouseReleaseEvent(self, ev: QGraphicsSceneMouseEvent):
 		if self._parentState._sNormal and not self._wasMoving:
@@ -59,7 +62,17 @@ class PFSScene(QGraphicsScene):
 			return
 		self._lastPos = ev.scenePos()
 		self._lastItemClicked = self.itemAt(ev.scenePos(), QTransform())
-		print(ev.scenePos())
+		if self._parentState._sEditPoint:
+			self.clearSelection()
+			if isinstance(self._lastItemClicked, PFSRelationPoint):
+				self._lastItemClicked.setSelected(True)
+			elif isinstance(self._lastItemClicked, PFSRelation):
+				p = self._lastItemClicked.closestMiddlePoint(self._lastPos)
+				print(p)
+				if p is not None:
+					p.setSelected(True)
+			self.update()
+			return
 		if self._parentState._sPasting:
 			self._page._net.pasteItems(self._lastPos)
 			self.inserted.emit()

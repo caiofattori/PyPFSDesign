@@ -3,7 +3,7 @@ from PyQt5.QtCore import QFile, QIODevice, QXmlStreamWriter, QXmlStreamReader, Q
 from PyQt5.QtXml import QDomDocument
 from toolbutton import *
 from page import PFSNet
-from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtGui import QIcon, QKeySequence, QCursor
 from statemachine import PFSStateMachine
 from xml import PFSXmlBase
 from element import PFSDistributor, PFSActivity
@@ -42,6 +42,7 @@ class PFSWindow(QWidget):
 		if index < 0:
 			return
 		self._main.tabChanged.emit()
+		self._tab.currentWidget()._tab.setCursor(QCursor(Qt.ArrowCursor))
 		net = self._tab.widget(index)
 		net._tab.currentWidget()._scene.clearSelection()
 		self.updateUndoRedoAction()

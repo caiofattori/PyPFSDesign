@@ -15,17 +15,33 @@ from polygon import PFSPolygon
 class PFSRelationPoint(QGraphicsRectItem):
 	def __init__(self, parent, x, y):
 		QGraphicsRectItem.__init__(self, x, y, 6, 6, parent)
+		self.setFlag(QGraphicsItem.ItemIsSelectable)
+	
+	def move(self, x, y):
+		self.moveBy(x, y)
+		self.parentItem().updatePoints()
+		#self.changed.emit()
+	
+	def idItem(self):
+		return self.parentItem().idItem()
+	
+	def propertiesTable(self):
+		return self.parentItem().propertiesTable()
 	
 	def paint(self, p, o, m):
-		if self.parentItem().isSelected():
-			print(self.sceneBoundingRect())
-			p.setPen(Qt.black)
-			p.setBrush(QBrush(Qt.black, Qt.SolidPattern))
+		if self.parentItem().isSelected() or self.scene()._parentState._sEditPoint:
+			if self.scene()._parentState._sEditPoint:
+				if self.isSelected():
+					p.setPen(Qt.black)
+				else:
+					p.setPen(Qt.red)
+				p.setBrush(QBrush(Qt.red, Qt.SolidPattern))
+			else:
+				p.setPen(Qt.black)
+				p.setBrush(QBrush(Qt.black, Qt.SolidPattern))
 			r = self.rect()
 			r.moveCenter(r.center() - QPointF(3, 3))
 			p.drawRect(r)
-		
-		
 
 class PFSRelation(PFSElement):
 	def __init__(self, id: str, source: PFSNode, target: PFSNode):
@@ -104,10 +120,11 @@ class PFSRelation(PFSElement):
 	
 	def addMiddlePoint(self, point:QPointF, i=-1):
 		p = PFSRelationPoint(self, point.x(), point.y())
+		#self.installSceneEventFilter(p)
 		if i < 0:
 			self._midPoints.append(p)
 		else:
-			self._midPoints.insert(i, pp)
+			self._midPoints.insert(i, p)
 	
 	def createMiddlePoint(self, pos:QPointF):
 		p, i = self.closestPoint(pos)

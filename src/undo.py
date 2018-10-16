@@ -126,7 +126,7 @@ class PFSUndoMouseMove(QUndoCommand):
 		self._dx = dx
 		self._dy = dy
 		self.first = True
-		self._id = int(hash("M" + ",".join([x._id for x in self._stored])))
+		self._id = int(hash("M" + ",".join([x.idItem() for x in self._stored])))
 	
 	def undo(self):
 		for item in self._stored:
