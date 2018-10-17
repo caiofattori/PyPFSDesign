@@ -34,7 +34,8 @@ class PFSPage(QWidget, PFSBasicElement):
 		tree = PFSTreeItem(parent, [self._id], 0, QIcon(PFSPageIcon()))
 		tree.clicked.connect(self.selectSingle)		
 		for elem in self._scene.items():
-			child = elem.tree(tree)
+			if not isinstance(elem, PFSRelationPoint):
+				child = elem.tree(tree)
 		return tree
 	
 	def selectSingle(self):
@@ -72,7 +73,7 @@ class PFSPage(QWidget, PFSBasicElement):
 	
 	def getElementById(self, id):
 		for elem in self._scene.items():
-			if elem._id == id:
+			if not isinstance(elem, PFSRelationPoint) and elem._id == id:
 				return elem
 		return None
 	
@@ -83,6 +84,8 @@ class PFSPage(QWidget, PFSBasicElement):
 		r = -1
 		o = -1
 		for elem in self._scene.items():
+			if isinstance(elem, PFSRelationPoint):
+				continue
 			t = elem._id[0]
 			n = int(elem._id[1:])
 			if t == "A" and n > a:
@@ -266,7 +269,7 @@ class PFSPage(QWidget, PFSBasicElement):
 				it._sourceNum = item._sourceNum
 				it._targetNum = item._targetNum
 				for point in item._midPoints:
-					it._midPoints.append(QPointF(point.x(), point.y()))
+					it._midPoints.append(PFSRelationPoint(it, point.x(), point.y()))
 				it.updatePoints()
 				it._pen = item._pen
 				for tag in item._tags:
@@ -278,7 +281,8 @@ class PFSPage(QWidget, PFSBasicElement):
 			if (isinstance(source, PFSActive) and isinstance(target, PFSPassive)) or (isinstance(source, PFSPassive) and isinstance(target, PFSActive)):
 				it = PFSSecondaryFlow.createSecondaryFlow(item._id, source, target)
 				it._lineX = item._lineX
-				it._midPoints = item._midPoints
+				for point in item._midPoints:
+					it._midPoints.append(PFSRelationPoint(it, point.x(), point.y()))
 				it.updatePoints()
 				it._pen = item._pen
 				for tag in item._tags:
