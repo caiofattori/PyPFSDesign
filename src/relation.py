@@ -61,10 +61,6 @@ class PFSRelation(PFSElement):
 		self._stroke = QPainterPathStroker()
 		self._stroke.setWidth(20)
 	
-	def sceneEventFilter(self, item, ev:QEvent):
-		print(ev.type())
-		return QGraphicsItem.sceneEventFilter(self, item, ev)
-	
 	def closestMiddlePoint(self, pos:QPointF):
 		d = -1
 		p1 = None
@@ -208,10 +204,10 @@ class PFSRelation(PFSElement):
 	def updatePoints(self):
 		if len(self._midPoints) == 0:
 			if isinstance(self._source, PFSActive):
-				self._firstPoint = self._source.getBestRelationPointOutput(QRect(self._target.x(), self._target.y(), self._target._width, self._target._height).center(), self._sourceNum)
+				self._firstPoint = self._source.getBestRelationPointOutput(self._target.sceneBoundingRect().center(), self._sourceNum)
 				self._lastPoint = self._target.getBestRelationPointInput(self._firstPoint, self._targetNum)
 			else:
-				self._lastPoint = self._target.getBestRelationPointInput(QRect(self._source.x(), self._source.y(), self._source._width, self._source._height).center(), self._targetNum)
+				self._lastPoint = self._target.getBestRelationPointInput(self._source.sceneBoundingRect().center(), self._targetNum)
 				self._firstPoint = self._source.getBestRelationPointOutput(self._lastPoint, self._sourceNum)
 		else:
 			self._firstPoint = self._source.getBestRelationPointOutput(self._midPoints[0].sceneBoundingRect().topLeft(), self._sourceNum)
